@@ -95,7 +95,8 @@ function contrastRatio(foreground, background) {
   await page.locator('[data-patient="cr"]').click();
   await page.waitForTimeout(450);
   assert(await page.locator('[data-view-key="nurse-detail"]').isVisible(), 'Carlos detail did not open');
-  assert.strictEqual((await page.locator('.detail-status').textContent()).trim(), 'Revisar', 'Carlos detail header exposes a clinical value');
+  assert(!/\d/.test(await page.locator('.detail-status').textContent()), 'Carlos detail header exposes a clinical value');
+  assert.strictEqual((await page.locator('.view.is-active h1').textContent()).trim(), 'Carlos Rodríguez', 'detail title is the patient');
   assert((await page.locator('#screen').textContent()).includes('La familia recibe'), 'family copy typo remains');
   await viewAs(page, 'paciente');
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Registro clínico/), 'clinical detail remained immediately after switching to patient');

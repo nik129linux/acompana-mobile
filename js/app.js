@@ -491,28 +491,32 @@
       '<div class="ai-card"><strong>Preguntas de la familia</strong><span>Si una familia dejó una duda desde su vista, aparece aquí.</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>Revisar preguntas</button></div><div data-nurse-questions></div></div>';
   }
 
-  function detailRow(label, value, expanded) {
-    return '<div class="detail-list-row"><strong>' + escapeHtml(label) + '</strong><span>' + escapeHtml(value) + '</span><span class="detail-chevron' + (expanded ? ' is-expanded' : '') + '">' + icon('chevron') + '</span></div>';
+  function renderNurseDetail(patient) {
+    var kindLabels = { medication: 'Medicación', position: 'Cambio de posición', round: 'Ronda', other: 'Otro evento' };
+    // One chronological shift list: planned tasks and what the nurse logged.
+    var rows = TASKS.filter(function (task) { return task.patientId === patient.id; }).map(function (task) {
+      var done = isConfirmed(task.id);
+      return { time: task.time, title: task.title, note: '', status: done ? 'Hecho' : 'Pendiente', done: done };
+    }).concat(loadEvents().filter(function (e) { return e.patientId === patient.id; }).map(function (e) {
+      return { time: e.time, title: kindLabels[e.kind] || 'Evento', note: e.text, status: 'Registrado', done: true };
+    })).sort(function (x, y) { return x.time < y.time ? -1 : x.time > y.time ? 1 : 0; });
+    var alert = patient.status === 'critical'
+      ? '<div class="detail-alert detail-status" role="status"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span>Alerta de signos vitales · protocolo abierto</span></div>'
+      : '';
+    return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title detail-name">' + escapeHtml(patient.name) + '</h1></div></div>' +
+      '<p class="detail-room">' + escapeHtml(patient.room) + '</p>' + alert +
+      '<section class="detail-block clinical-block" aria-labelledby="clinical-title"><h2 id="clinical-title" class="detail-section-title">Valor clínico</h2>' +
+      '<div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button>' +
+      '<button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button></div>' +
+      '<p class="clinical-why">' + icon('shield') + '<span>Oculto porque esta pantalla también se ve desde la cama. La familia recibe solo un resumen del turno, sin valores clínicos.</span></p></section>' +
+      '<section class="detail-block" aria-labelledby="shift-title"><h2 id="shift-title" class="detail-section-title">Turno</h2><ol class="shift-list">' +
+      rows.map(function (r) {
+        return '<li class="shift-row' + (r.done ? ' is-done' : '') + '"><span class="shift-time">' + escapeHtml(r.time) + '</span>' +
+          '<span class="shift-copy"><strong>' + escapeHtml(r.title) + '</strong>' + (r.note ? '<span>' + escapeHtml(r.note) + '</span>' : '') + '</span>' +
+          '<span class="shift-status">' + escapeHtml(r.status) + '</span></li>';
+      }).join('') + '</ol></section></div>';
   }
 
-  function renderNurseDetail(patient) {
-    var patientTasks = TASKS.filter(function (task) { return task.patientId === patient.id; });
-    var loggedEvents = loadEvents().filter(function (e) { return e.patientId === patient.id; });
-    var loggedHtml = loggedEvents.length
-      ? '<div class="detail-section"><h2 class="detail-section-title">Eventos registrados</h2><div class="detail-list">' +
-        loggedEvents.map(function (e) {
-          var kindLabel = e.kind === 'medication' ? 'Medicación' : e.kind === 'position' ? 'Cambio de posición' : e.kind === 'round' ? 'Ronda' : 'Otro';
-          return detailRow(e.time + ' · ' + kindLabel, e.text, false);
-        }).join('') + '</div></div>'
-      : '';
-    return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title">Ficha del paciente</h1></div></div>' +
-      '<div class="detail-hero"><span class="patient-avatar">' + escapeHtml(patient.initials) + '</span><div class="detail-hero-copy"><h2 class="detail-name">' + escapeHtml(patient.name) + '</h2><span class="detail-room">' + escapeHtml(patient.room) + '</span><span class="badge ' + (patient.status === 'critical' ? 'badge-critical' : 'badge-neutral') + ' detail-status">' + escapeHtml(patient.status === 'critical' ? patient.statusLabel : 'En seguimiento') + '</span></div></div>' +
-      '<div class="detail-section"><h2 class="detail-section-title">Registro clínico</h2><div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button><button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button><p class="view-copy muted-copy">Oculto por defecto porque esta pantalla también se ve desde la cama.</p></div></div>' +
-      '<div class="privacy-note">' + icon('shield') + '<span>El dato sensible queda detrás de un toque deliberado. Si decides comunicarlo, hazlo con calma.</span></div>' +
-      '<div class="detail-section"><h2 class="detail-section-title">Eventos del turno</h2><div class="detail-list">' + patientTasks.map(function (task) { return detailRow(task.time + ' · ' + task.title, isConfirmed(task.id) ? 'Confirmado' : 'Pendiente', false); }).join('') + '</div></div>' +
-      loggedHtml +
-      '<p class="view-copy muted-copy">La familia recibe solo un resumen del turno, sin valores clínicos.</p></div>';
-  }
 
   function onboardingCard(slot, title, copy) {
     return '<article class="onboarding-card"><div class="onboarding-card-copy"><strong>' + escapeHtml(title) + '</strong><span>' + escapeHtml(copy) + '</span></div>' + videoSlot(slot, title) + '</article>';
