@@ -1,0 +1,296 @@
+/* Android Material layer for Acompana. Tokens only, no raw colors. */
+.role-switch,
+.role-row {
+  display: none;
+}
+
+.top-app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 64px;
+  margin: 0 calc(var(--space-5) * -1);
+  padding: var(--space-2) var(--space-4);
+  background: var(--canvas);
+}
+
+.top-app-bar-title {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.top-app-bar-title .view-header-copy,
+.top-app-bar-title .patient-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.top-app-bar-title h1 {
+  margin: 0;
+}
+
+.top-app-bar-actions {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.top-app-bar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform var(--duration-press) var(--ease-press), opacity var(--duration-enter) var(--ease-enter);
+}
+
+.top-app-bar-action:active {
+  transform: scale(0.94);
+}
+
+.top-app-bar-action .icon-svg {
+  width: 24px;
+  height: 24px;
+}
+
+.demo-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 20;
+  display: none;
+  min-width: 220px;
+  padding: var(--space-2);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+  transition: opacity var(--duration-enter) var(--ease-enter), transform var(--duration-enter) var(--ease-enter);
+}
+
+.demo-menu.is-open {
+  display: block;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.demo-menu-label {
+  margin: var(--space-1) var(--space-2) var(--space-2);
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.demo-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  text-align: left;
+  transition: opacity var(--duration-enter) var(--ease-enter), transform var(--duration-press) var(--ease-press);
+}
+
+.demo-menu-item:active {
+  transform: scale(0.98);
+}
+
+.demo-menu-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--ink);
+  opacity: 1;
+  transition: opacity var(--duration-enter) var(--ease-enter);
+}
+
+.demo-menu-check .icon-svg {
+  width: 20px;
+  height: 20px;
+}
+
+.demo-menu-item[aria-checked="false"] .demo-menu-check {
+  opacity: 0;
+}
+
+.demo-menu-divider {
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: var(--stone-border);
+}
+
+.fab-register {
+  position: absolute;
+  right: var(--space-4);
+  bottom: calc(var(--nav-height) + var(--space-4));
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 56px;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-6) var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--nurse);
+  color: var(--on-primary);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 600;
+  box-shadow: var(--elevation-1);
+  transition: transform var(--duration-press) var(--ease-press), opacity var(--duration-enter) var(--ease-enter);
+}
+
+.fab-register:active {
+  transform: scale(0.96);
+}
+
+.fab-register[hidden] {
+  display: none;
+}
+
+.fab-register-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.fab-register-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.snackbar {
+  position: absolute;
+  right: var(--space-4);
+  left: var(--space-4);
+  bottom: calc(var(--nav-height) + calc(var(--space-6) + var(--space-6)));
+  z-index: 35;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--ink);
+  color: var(--canvas);
+  box-shadow: var(--elevation-1);
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+  transition: opacity var(--duration-enter) var(--ease-enter), transform var(--duration-enter) var(--ease-enter);
+}
+
+.snackbar.is-visible {
+  display: flex;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.snackbar .tray-feedback-line {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.snackbar .undo-event-btn {
+  color: var(--canvas);
+}
+
+.event-patient-btn {
+  min-height: 48px;
+}
+
+.dictate-button {
+  min-height: 56px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.dictate-button:hover {
+  background: var(--primary-container);
+}
+
+.dictate-button .mic-bubble {
+  background: transparent;
+  color: var(--on-primary-container);
+}
+
+.dictate-button .dictate-copy small {
+  color: var(--on-primary-container);
+}
+
+.next-card [data-mascot] {
+  flex: 0 0 auto;
+  width: 72px;
+  max-width: 72px;
+  height: 72px;
+  max-height: 72px;
+}
+
+.next-card .next-mascot-slot {
+  width: 72px;
+  max-width: 72px;
+  height: 72px;
+  min-height: 0;
+  flex: 0 0 72px;
+}
+
+@media (max-width: 499px) {
+  .phone-notch,
+  .status-bar {
+    display: none;
+  }
+
+  .screen {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-app-bar-action,
+  .demo-menu,
+  .demo-menu-item,
+  .fab-register,
+  .snackbar {
+    transform: none;
+    transition: none;
+  }
+}

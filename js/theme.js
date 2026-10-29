@@ -20,11 +20,13 @@
   function sync() {
     var dark = isDark();
     root.classList.toggle('is-dark', dark);
-    var toggle = document.querySelector('[data-theme-toggle]');
-    if (toggle) {
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (toggle) {
       toggle.setAttribute('aria-pressed', String(dark));
       toggle.setAttribute('aria-label', dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
-    }
+    });
+    document.querySelectorAll('[data-theme-label]').forEach(function (label) {
+      label.textContent = dark ? 'Tema claro' : 'Tema oscuro';
+    });
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', getComputedStyle(document.body || root).backgroundColor);
   }
@@ -42,7 +44,8 @@
       apply(next);
       return;
     }
-    var box = event.currentTarget.getBoundingClientRect();
+    var source = event && event.currentTarget ? event.currentTarget : event && event.target;
+    var box = source && source.getBoundingClientRect ? source.getBoundingClientRect() : { left: 0, top: 0, width: 0 };
     root.style.setProperty('--reveal-x', (box.left + box.width / 2) + 'px');
     root.style.setProperty('--reveal-y', (box.top + box.height / 2) + 'px');
     document.startViewTransition(function () { apply(next); });
@@ -51,10 +54,17 @@
   var initial = saved();
   if (initial === 'light' || initial === 'dark') root.setAttribute('data-theme', initial);
 
+  // Delegated so the toggle also works inside per-view app bars that are
+  // created after this script runs.
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest ? event.target.closest('[data-theme-toggle]') : null;
+    if (button) toggle(event);
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
-    var button = document.querySelector('[data-theme-toggle]');
-    if (button) button.addEventListener('click', toggle);
     if (media && media.addEventListener) media.addEventListener('change', sync);
     sync();
   });
-})();
+
+  window.acompanaTheme = { toggle: toggle, sync: sync, isDark: isDark };
+}());
