@@ -142,11 +142,18 @@
   // placeholder: confirm in field
   var SHIFT_PHONE = '+573001234567';
 
-  // Plain-language translations for patient/family timelines
+  // Plain-language translations for patient/family timelines. Both maps
+  // mirror the server's RULE_PHRASES (server/server.js): family never gets
+  // intimate care (position) and free-text events reach nobody.
   var EVENT_KIND_PHRASES = {
     medication: 'Le aplicaron el medicamento',
     position: 'Le ayudaron a cambiar de posición',
     round: 'La enfermera pasó a revisar'
+  };
+  var EVENT_KIND_PHRASES_FAMILIA = {
+    medication: 'Tratamiento cumplido',
+    position: null,
+    round: 'El equipo pasó a revisar'
   };
 
   // Local mirror of server-side rules classification
@@ -513,7 +520,11 @@
 
   function timeline(items) {
     return '<div class="timeline">' + items.map(function (item) {
-      return '<div class="timeline-item' + (item.pending ? ' is-pending' : '') + '"><span class="timeline-time">' + escapeHtml(item.time) + '</span><p class="timeline-text">' + escapeHtml(item.text) + '</p></div>';
+      var attrs = item.eventId
+        ? ' data-translate-id="' + escapeHtml(item.eventId) + '"' +
+          ' data-translate-kind="' + escapeHtml(item.kind) + '"'
+        : '';
+      return '<div class="timeline-item' + (item.pending ? ' is-pending' : '') + '"' + attrs + '><span class="timeline-time">' + escapeHtml(item.time) + '</span><p class="timeline-text">' + escapeHtml(item.text) + '</p></div>';
     }).join('') + '</div>';
   }
 
@@ -674,6 +685,9 @@
       });
     }
     renderBottomNav();
+    // Reader timelines: once the fresh view is in the DOM, fill its logged
+    // lines with cached or fresh server translations (only with consent).
+    applyTimelineTranslations(next, state.role);
   }
 
   function renderBottomNav() {
@@ -1370,6 +1384,105 @@
     });
   }
 
+  // ---- Per-reader event translations on the patient/family timelines ----
+  // Every logged line keeps its local plain phrase until the server answers.
+  // The client asks /api/translate only with {event:{kind,text}, reader} (no
+  // names) and only when the reader said yes to AI. Results are cached per
+  // event id + reader in memory and localStorage so re-renders don't refetch.
+  var TRANSLATE_CACHE_KEY = 'acompana-translate-cache';
+  var translateMemoryCache = null; // parsed localStorage mirror
+  var translateInFlight = {}; // cacheKey -> true while a request runs
+
+  function translateCacheKey(eventId, reader) {
+    return reader + ':' + eventId;
+  }
+
+  function loadTranslateCache() {
+    if (translateMemoryCache) return translateMemoryCache;
+    try {
+      translateMemoryCache = JSON.parse(window.localStorage.getItem(TRANSLATE_CACHE_KEY) || '{}') || {};
+    } catch (cacheError) {
+      translateMemoryCache = {};
+    }
+    return translateMemoryCache;
+  }
+
+  function saveTranslateCache(value, cacheKey, entry) {
+    if (value && cacheKey) value[cacheKey] = entry;
+    try {
+      window.localStorage.setItem(TRANSLATE_CACHE_KEY, JSON.stringify(value));
+    } catch (saveError) {
+      // storage may be unavailable: the in-memory cache still applies
+    }
+  }
+
+  // Fonts one timeline line with a server answer: hidden when text is null,
+  // literate with the existing source-badge when the model wrote the words.
+  function paintTranslatedLine(element, entry) {
+    if (!element || !element.parentNode) return;
+    if (!entry || entry.text == null || entry.text === '') {
+      element.parentNode.removeChild(element);
+      return;
+    }
+    var line = element.querySelector('.timeline-text');
+    if (line) line.textContent = entry.text;
+    var badge = element.querySelector('.source-badge');
+    if (entry.source && entry.source !== 'rules') {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'source-badge timeline-source';
+        line.appendChild(badge);
+      }
+      badge.textContent = 'IA';
+      badge.classList.add('is-live');
+    }
+  }
+
+  function applyOneTranslatedLine(element, cache) {
+    var eventId = element.getAttribute('data-translate-id');
+    var reader = element.getAttribute('data-translate-reader');
+    var kind = element.getAttribute('data-translate-kind');
+    // The raw nurse text never sits in the patient/family DOM: look it up.
+    var source = loadEvents().filter(function (e) { return e.id === eventId; })[0];
+    var text = source ? source.text : '';
+    if (!eventId || !kind || !text) return;
+    var cacheKey = translateCacheKey(eventId, reader);
+    var cached = Object.prototype.hasOwnProperty.call(cache, cacheKey) ? cache[cacheKey] : null;
+    if (cached && typeof cached === 'object') {
+      paintTranslatedLine(element, cached);
+      return;
+    }
+    if (translateInFlight[cacheKey]) return;
+    translateInFlight[cacheKey] = true;
+    aiRequest('/api/translate', {
+      event: { kind: kind, text: text },
+      reader: reader
+    }).then(function (data) {
+      delete translateInFlight[cacheKey];
+      if (!data || typeof data !== 'object') return;
+      var entry = { text: data.text, source: data.source, model: data.model };
+      saveTranslateCache(cache, cacheKey, entry);
+      paintTranslatedLine(element, entry);
+    }, function () {
+      delete translateInFlight[cacheKey];
+      // failure, offline or timeout: keep the local phrase silently
+    });
+  }
+
+  // Called for every fresh render of the patient and family timelines.
+  function applyTimelineTranslations(view, role) {
+    if (role !== 'paciente' && role !== 'familia') return;
+    if (aiConsent !== 'yes') return; // no consent: local phrase, no calls
+    if (!view || !view.querySelector) return;
+    var lines = view.querySelectorAll('[data-translate-id]');
+    if (!lines.length) return;
+    var cache = loadTranslateCache();
+    Array.prototype.forEach.call(lines, function (element) {
+      element.setAttribute('data-translate-reader', role);
+      applyOneTranslatedLine(element, cache);
+    });
+  }
+
   // Day events without names, rooms or titles: only aggregates and
   // clinical tokens ever leave this device toward the model.
   // Logged events are merged in so the SBAR can reference what was registered.
@@ -1391,14 +1504,13 @@
     return base.concat(logged);
   }
 
-  // Patient timeline merges logged events as plain-language phrases
   function patientDayTimeline() {
     var items = TIMELINE_PACIENTE.slice();
     var logged = loadEvents().filter(function (e) {
       return e.patientId === FAMILY_PATIENT_ID && e.kind !== 'other' && EVENT_KIND_PHRASES[e.kind];
     });
     logged.forEach(function (e) {
-      items.push({ time: e.time, text: EVENT_KIND_PHRASES[e.kind], pending: false });
+      items.push({ time: e.time, text: EVENT_KIND_PHRASES[e.kind], pending: false, eventId: e.id, kind: e.kind });
     });
     return items;
   }
@@ -1407,10 +1519,10 @@
   function familyDayTimeline(patient) {
     var items = familyTimeline(patient);
     var logged = loadEvents().filter(function (e) {
-      return e.patientId === patient.id && e.kind !== 'other' && EVENT_KIND_PHRASES[e.kind];
+      return e.patientId === patient.id && EVENT_KIND_PHRASES_FAMILIA[e.kind];
     });
     logged.forEach(function (e) {
-      items.push({ time: e.time, text: EVENT_KIND_PHRASES[e.kind], pending: false });
+      items.push({ time: e.time, text: EVENT_KIND_PHRASES_FAMILIA[e.kind], pending: false, eventId: e.id, kind: e.kind });
     });
     return items;
   }

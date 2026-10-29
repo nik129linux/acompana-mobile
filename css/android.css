@@ -299,3 +299,9 @@
 .phone[data-role="enfermero"] .view {
   padding-bottom: calc(56px + var(--space-8) + var(--space-4));
 }
+
+/* AI-written timeline lines show their source with the existing badge. */
+.timeline-text .source-badge {
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}

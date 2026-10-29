@@ -64,6 +64,7 @@ async function logPositionForMaria(page) {
     const patientView = page.locator('.view.is-active');
     assert((await patientView.textContent()).includes(PHRASE), 'patient timeline shows the AI phrasing');
     assert(!/decúbito|postural/i.test(await patientView.textContent()), 'no raw nurse text');
+    assert(!/decúbito|postural/i.test(await patientView.innerHTML()), 'raw nurse text not even hidden in the DOM');
     const item = patientView.locator('.timeline-item', { hasText: PHRASE });
     assert(/IA/.test(await item.textContent()), 'the AI-written line says it came from IA');
     assert(translateCalls.some((c) => c.reader === 'paciente' && c.event && c.event.kind === 'position'), 'client asked /api/translate for the patient');
