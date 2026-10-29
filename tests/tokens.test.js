@@ -133,7 +133,8 @@ async function walk(page) {
         assert(r >= 4.5, theme + ': ' + p.s + ' contrast ' + r.toFixed(2) + ' < 4.5');
       }
       const canvas = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-      const dark = lum((canvas.match(/[\d.]+/g) || []).slice(0, 3).map(Number)) < 0.1;
+      const canvasRgb = (canvas.match(/[\d.]+/g) || []).slice(0, 3).map(Number).map((v) => (canvas.startsWith('color(') ? v * 255 : v));
+      const dark = lum(canvasRgb) < 0.1;
       assert.strictEqual(dark, theme === 'dark', theme + ': page background matches theme, got ' + canvas);
       ok(theme + ': text contrast >= 4.5:1 and background matches the theme');
       assert.deepStrictEqual(errors, []);

@@ -40,15 +40,17 @@
 /* Semantic tokens, light theme. */
 :root {
   color-scheme: light;
-  --canvas: var(--color-neutral-50);
-  --stone: var(--color-neutral-150);
-  --sand: var(--color-neutral-100);
+  /* Clinical and calm: one cool family. Surfaces and grays lean on the
+     primary hue so the whole app re-tints when the primary changes. */
+  --canvas: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-neutral-0));
+  --stone: color-mix(in srgb, var(--color-primary-500) 9%, var(--color-neutral-0));
+  --sand: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-neutral-0));
   --white: var(--color-neutral-0);
-  --ink: var(--color-neutral-950);
-  --charcoal: var(--color-neutral-700);
-  --body: var(--color-neutral-600);
-  --muted: var(--color-neutral-500);
-  --stone-border: var(--color-neutral-200);
+  --ink: color-mix(in srgb, var(--color-primary-500) 12%, var(--color-neutral-950));
+  --charcoal: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-700));
+  --body: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-600));
+  --muted: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-500));
+  --stone-border: color-mix(in srgb, var(--color-primary-500) 16%, var(--color-neutral-0));
   --nurse: var(--color-primary-500);
   --nurse-text: color-mix(in srgb, var(--color-primary-500) 86%, var(--color-neutral-950));
   --patient: var(--color-patient-500);
@@ -65,6 +67,15 @@
   --patient-soft: color-mix(in srgb, var(--patient) var(--tint), var(--white));
   --family-soft: color-mix(in srgb, var(--family) calc(var(--tint) * 1.6), var(--white));
   --critical-soft: color-mix(in srgb, var(--alert) 7%, var(--white));
+  /* Material-style containers: the one strong region per screen. */
+  --primary-container: color-mix(in srgb, var(--nurse) 16%, var(--white));
+  --on-primary-container: color-mix(in srgb, var(--nurse) 62%, var(--color-neutral-950));
+  --on-primary: var(--color-neutral-0);
+  --error-container: color-mix(in srgb, var(--alert) 13%, var(--white));
+  --on-error-container: color-mix(in srgb, var(--color-alert-700) 78%, var(--color-neutral-950));
+  --error-fill: var(--color-alert-700);
+  --on-error: var(--color-neutral-0);
+  --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-primary-500) 14%, transparent), 0 2px 8px color-mix(in srgb, var(--color-primary-500) 8%, transparent);
   --veil-ink: color-mix(in srgb, var(--color-neutral-950) 32%, transparent);
   --veil-canvas: color-mix(in srgb, var(--canvas) 88%, transparent);
   --on-ink-soft: color-mix(in srgb, var(--white) 72%, transparent);
@@ -113,16 +124,23 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --canvas: var(--color-dark-950);
-    --stone: var(--color-dark-800);
+    --canvas: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-dark-950));
+    --stone: color-mix(in srgb, var(--color-primary-500) 8%, var(--color-dark-800));
     --sand: var(--color-dark-850);
-    --white: var(--color-dark-900);
+    --white: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-dark-900));
     --ink: var(--color-dark-50);
     --charcoal: var(--color-dark-100);
     --body: var(--color-dark-200);
     --muted: var(--color-dark-300);
-    --stone-border: var(--color-dark-700);
+    --stone-border: color-mix(in srgb, var(--color-primary-500) 18%, var(--color-dark-700));
     --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
+    --primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-dark-900));
+    --on-primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-neutral-0));
+    --error-container: color-mix(in srgb, var(--color-alert-500) 24%, var(--color-dark-900));
+    --on-error-container: color-mix(in srgb, var(--color-alert-500) 25%, var(--color-neutral-0));
+    --error-fill: color-mix(in srgb, var(--color-alert-500) 75%, var(--color-neutral-0));
+    --on-error: var(--color-neutral-950);
+    --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 40%, transparent);
     --patient-text: var(--color-patient-500);
     --family-text: var(--color-family-400);
     --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
@@ -133,16 +151,23 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: var(--color-dark-950);
-  --stone: var(--color-dark-800);
+  --canvas: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-dark-950));
+  --stone: color-mix(in srgb, var(--color-primary-500) 8%, var(--color-dark-800));
   --sand: var(--color-dark-850);
-  --white: var(--color-dark-900);
+  --white: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-dark-900));
   --ink: var(--color-dark-50);
   --charcoal: var(--color-dark-100);
   --body: var(--color-dark-200);
   --muted: var(--color-dark-300);
-  --stone-border: var(--color-dark-700);
+  --stone-border: color-mix(in srgb, var(--color-primary-500) 18%, var(--color-dark-700));
   --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
+  --primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-dark-900));
+  --on-primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-neutral-0));
+  --error-container: color-mix(in srgb, var(--color-alert-500) 24%, var(--color-dark-900));
+  --on-error-container: color-mix(in srgb, var(--color-alert-500) 25%, var(--color-neutral-0));
+  --error-fill: color-mix(in srgb, var(--color-alert-500) 75%, var(--color-neutral-0));
+  --on-error: var(--color-neutral-950);
+  --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 40%, transparent);
   --patient-text: var(--color-patient-500);
   --family-text: var(--color-family-400);
   --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));

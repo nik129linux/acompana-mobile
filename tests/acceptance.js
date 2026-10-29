@@ -15,6 +15,8 @@ function contrastRatio(foreground, background) {
     }
     const m = trimmed.match(/[\d.]+/g);
     if (!m) throw new Error(`cannot parse color ${color}`);
+    // color-mix() computes to color(srgb r g b) with channels in 0..1
+    if (trimmed.startsWith('color(')) return m.slice(0,3).map(v=> Number(v) * 255);
     return m.slice(0,3).map(v=> Number(v));
   };
   const luminance = color => {
@@ -84,9 +86,9 @@ function contrastRatio(foreground, background) {
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="nurse-home"]').isVisible(), 'nurse home did not open');
   assert(await page.locator('[data-video-slot="splash"] video').evaluate(node => node.paused), 'hidden splash video is still playing');
-  assert(await page.locator('.badge-critical').count() >= 1, 'critical badge missing');
-  assert.strictEqual(await page.locator('[data-patient-card="cr"] .badge-critical').count(), 1, 'Carlos critical badge missing');
-  assert.strictEqual((await page.locator('[data-patient-card="cr"] .badge-critical').textContent()).trim(), 'Revisar', 'Carlos card exposes a clinical value');
+  assert.strictEqual(await page.locator('.urgent-card[data-patient-card="cr"]').count(), 1, 'Carlos is not the urgent card');
+  assert.strictEqual(await page.locator('.urgent-card').count(), 1, 'only the critical patient is urgent');
+  assert(/Revisar ahora/.test(await page.locator('.urgent-card .urgent-action').textContent()), 'urgent card has no clear action');
   assert(!(await page.locator('[data-view-key="nurse-home"]').textContent()).includes('PA 90/55'), 'clinical value leaked onto nurse home');
 
   await page.locator('[data-patient="cr"]').click();
@@ -163,7 +165,18 @@ function contrastRatio(foreground, background) {
     const style = getComputedStyle(node);
     return { background: style.backgroundColor, color: style.color, radius: style.borderRadius, whiteSpace: style.whiteSpace };
   });
-  assert.deepStrictEqual(emptyStateButtonStyle, { background: 'rgb(246, 244, 239)', color: 'rgb(18, 18, 18)', radius: '32px', whiteSpace: 'nowrap' });
+  // Colors come from tokens (they follow --color-primary-500), so compare
+  // against what the theme resolves, not a fixed hex.
+  const tokenColors = await emptyStateButton.evaluate(node => {
+    const probe = document.createElement('span');
+    node.parentNode.appendChild(probe);
+    probe.style.backgroundColor = 'var(--sand)';
+    probe.style.color = 'var(--ink)';
+    const out = { background: getComputedStyle(probe).backgroundColor, color: getComputedStyle(probe).color };
+    probe.remove();
+    return out;
+  });
+  assert.deepStrictEqual(emptyStateButtonStyle, { background: tokenColors.background, color: tokenColors.color, radius: '32px', whiteSpace: 'nowrap' });
   const emptyStateButtonIcon = emptyStateButton.locator('svg');
   assert.strictEqual(await emptyStateButtonIcon.count(), 1, 'empty-state chevron is missing');
   assert((await emptyStateButtonIcon.evaluate(node => getComputedStyle(node).transitionProperty)).includes('transform'), 'empty-state chevron does not animate');

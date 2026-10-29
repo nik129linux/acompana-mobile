@@ -226,6 +226,7 @@
   var videoObserver = null;
 
   var ICONS = {
+    alert: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"></path></svg>',
     arrow: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>',
     chevron: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>',
     check: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>',
@@ -293,26 +294,37 @@
 
   function patientCard(patient) {
     var task = taskForPatient(patient.id);
-    var side = patient.status === 'critical'
-      ? patientBadge(patient)
-      : task
-        ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + ' en un toque">1 toque</button>'
-        : patientBadge(patient);
+    var side = task
+      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + ' en un toque">Listo</button>'
+      : patientBadge(patient);
+    var next = task ? escapeHtml(task.time) + ' · ' + escapeHtml(task.title) : escapeHtml(patient.room);
     return '<article class="patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
       '<button type="button" class="patient-card-main" data-patient="' + escapeHtml(patient.id) + '" aria-label="Abrir detalle de ' + escapeHtml(patient.name) + '">' +
       '<span class="patient-avatar">' + escapeHtml(patient.initials) + '</span>' +
-      '<span class="patient-info"><span class="patient-name">' + escapeHtml(patient.name) + '</span><span class="patient-meta">' + escapeHtml(patient.room) + '</span></span>' +
-      '<span class="arrow-icon">' + icon('arrow') + '</span>' +
+      '<span class="patient-info"><span class="patient-name">' + escapeHtml(patient.name) + '</span><span class="patient-meta">' + escapeHtml(patient.room) + (task ? ' · ' + next : '') + '</span></span>' +
       '</button><div class="patient-side">' + side + '</div></article>';
+  }
+
+  // The critical patient is the one peak on the home screen. No clinical
+  // values here: the patient in the bed can see this screen.
+  function urgentCard(patient) {
+    return '<article class="urgent-card patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
+      '<div class="urgent-head"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span class="urgent-kicker">Alerta de signos vitales</span></div>' +
+      '<p class="urgent-name">' + escapeHtml(patient.name) + '</p>' +
+      '<p class="urgent-meta">' + escapeHtml(patient.room) + ' · protocolo abierto, sin confirmar</p>' +
+      '<button type="button" class="urgent-action" data-patient="' + escapeHtml(patient.id) + '" aria-label="Revisar ahora a ' + escapeHtml(patient.name) + '">Revisar ahora' + icon('arrow') + '</button>' +
+      '</article>';
   }
 
   function renderNurseHome() {
     var pending = remainingTasks().length;
-    var cards = PATIENTS.map(patientCard).join('');
-    return '<div class="home-intro"><p class="eyebrow">Hospital Central · Piso 3</p><h1 class="view-title">Mi turno</h1><p class="view-copy">Buenos días, Elena. Todo lo importante, a la vista.</p></div>' +
-      '<div class="shift-stats" aria-label="Resumen del turno"><div class="shift-stat"><strong>3</strong><span>Pacientes</span></div><div class="shift-stat"><strong>' + pending + '</strong><span>Pendientes</span></div><div class="shift-stat"><strong>1:00</strong><span>Próxima ronda</span></div></div>' +
-      '<div class="section-heading"><h2 class="section-label">Pacientes asignados</h2><span class="badge badge-critical">1 crítico</span></div>' +
-      '<div class="patient-list">' + cards + '</div>' +
+    var critical = PATIENTS.filter(function (p) { return p.status === 'critical'; });
+    var stable = PATIENTS.filter(function (p) { return p.status !== 'critical'; });
+    return '<div class="home-intro"><h1 class="view-title">Mi turno</h1><p class="view-copy">Buenos días, Elena · Piso 3, Hospital Central</p>' +
+      '<p class="shift-line" aria-label="Resumen del turno"><span><strong>' + PATIENTS.length + '</strong> pacientes</span><span><strong>' + pending + '</strong> pendientes</span><span>ronda <strong>1:00 p. m.</strong></span></p></div>' +
+      (critical.length ? '<section class="urgent-section" aria-label="Requiere atención">' + critical.map(urgentCard).join('') + '</section>' : '') +
+      '<div class="section-heading"><h2 class="section-label">Tus pacientes</h2><span class="section-meta">' + stable.length + ' estables</span></div>' +
+      '<div class="patient-list">' + stable.map(patientCard).join('') + '</div>' +
       '<div class="ai-card"><strong>Nota de entrega (SBAR)</strong><span>Prepara un borrador del turno para entregar. Puedes editarlo antes de copiarlo.</span><span class="source-badge" data-handover-home-badge>Plantilla</span><div class="ai-actions"><button type="button" class="secondary-button" data-handover-open>Preparar nota</button></div></div>';
   }
 

@@ -4,7 +4,7 @@
 // Precaches the app shell. Network-first, cache as offline fallback.
 // NEVER caches /api/* (network only). Versioned cache name.
 
-var CACHE = 'acompana-pwa-v3';
+var CACHE = 'acompana-pwa-v4';
 
 var SHELL = [
   '/',
@@ -20,6 +20,7 @@ var SHELL = [
   '/css/app.css',
   '/css/ai.css',
   '/css/theme.css',
+  '/css/home.css',
   '/js/theme.js',
   '/js/app.js'
 ];
