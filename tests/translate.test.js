@@ -62,6 +62,17 @@ test('clinical words from the nurse record never reach the reader', async () => 
   assert.strictEqual(out.source, 'rules');
 });
 
+test('body sites and routes never reach patient or family (real gemma output, 2026-10-29)', async () => {
+  for (const reader of ['paciente', 'familia']) {
+    const out = await srv.handleTranslate(MED, reader, client({ text: 'Ya le aplicamos el medicamento en el abdomen.' }));
+    assert.strictEqual(out.source, 'rules', reader + ': "abdomen" from "vía abdominal" must be rejected');
+  }
+  for (const bad of ['Le pusieron el medicamento en el brazo', 'Le dieron el medicamento por vía oral', 'Le pusieron suero en la vena']) {
+    const out = await srv.handleTranslate(MED, 'paciente', client({ text: bad }));
+    assert.strictEqual(out.source, 'rules', 'must reject: ' + bad);
+  }
+});
+
 test('advice, diagnosis and alarm words are rejected', async () => {
   for (const bad of ['Está grave pero estable', 'Debería descansar más', 'No hay diagnóstico todavía']) {
     const out = await srv.handleTranslate(ROUND, 'paciente', client({ text: bad }));

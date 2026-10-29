@@ -624,19 +624,21 @@ function translateRules(event, reader) {
 // Safety gates applied to any model phrasing before a reader sees it.
 const TRANSLATE_UNIT_RE = /\b(?:mg|ml|sc|dosis)\b|\binyecc/i;
 const TRANSLATE_ALARM_RE = /grave|diagn|pron[oó]st|deber[ií]a/i;
-const TRANSLATE_WORD_OK = new Set([
-  'cambio', 'posición', 'posicion', 'ronda', 'medicamento', 'enfermera', 'revisar'
-]);
+// Where and how a drug went in is clinical detail, never plain language.
+const TRANSLATE_BODY_RE = /abdom|brazo|pierna|muslo|nalga|gl[uú]te|vena|intraven|subcut|\bv[ií]a\b|\boral\b|\bboca\b/i;
+const TRANSLATE_STEM_OK = new Set(['cambi', 'posic', 'ronda', 'medic', 'enfer', 'revis', 'aplic']);
 
-function longWords(text) {
-  return new Set(String(text || '').toLowerCase().match(/[a-záéíóúüñ]{6,}/g) || []);
+// 5-letter stems so "abdomen" still matches the record's "abdominal".
+function stems(text) {
+  const words = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-zñ]{5,}/g) || [];
+  return new Set(words.map((w) => w.slice(0, 5)));
 }
 
-// No clinical word from the nurse record may reach the reader verbatim.
+// No clinical word from the nurse record may reach the reader, even reworded.
 function leaksEventWords(output, eventText) {
-  const source = longWords(eventText);
-  for (const word of longWords(output)) {
-    if (source.has(word) && !TRANSLATE_WORD_OK.has(word)) return true;
+  const source = stems(eventText);
+  for (const stem of stems(output)) {
+    if (source.has(stem) && !TRANSLATE_STEM_OK.has(stem)) return true;
   }
   return false;
 }
@@ -649,15 +651,18 @@ function validTranslateText(raw, eventText) {
   if (TRANSLATE_UNIT_RE.test(text)) return false;
   if (containsAdvice(text)) return false;
   if (TRANSLATE_ALARM_RE.test(text)) return false;
+  if (TRANSLATE_BODY_RE.test(text)) return false;
   if (leaksEventWords(text, eventText)) return false;
   return true;
 }
 
 const TRANSLATE_PROMPT =
   'Translate one nursing event into exactly one short plain sentence in neutral ' +
-  'Colombian Spanish for a hospital patient or a family member, addressing them ' +
-  'as "usted". Reassuring and concrete. No names, no numbers, no doses, no drug ' +
-  'names, no advice, no diagnosis. Return JSON {"text":"..."}. EVENT: ';
+  'Colombian Spanish. If reader is "paciente", speak to the patient as "usted". ' +
+  'If reader is "familia", speak to a relative about the patient in third person ' +
+  '(never "usted" for the patient). Reassuring and concrete. No names, no numbers, ' +
+  'no doses, no drug names, no body parts, no route (where or how it was given), ' +
+  'no advice, no diagnosis. Return JSON {"text":"..."}. EVENT: ';
 
 function buildTranslatePayload(event, reader) {
   return {
