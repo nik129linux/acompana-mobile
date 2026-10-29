@@ -1,58 +1,57 @@
 @property --accent {
   syntax: "<color>";
   inherits: true;
-  initial-value: #0070d6;
+  initial-value: #226beb;
 }
 
-/* Base palette: the only raw colors in the app. Change --color-primary-500
-   and every nurse surface, tint and text follows, in both themes. */
+/* Base palette (Medixin, sampled from its Figma color styles): the only raw
+   colors in the app. Change --color-primary-500 and every nurse surface,
+   gradient, tint and text follows, in both themes. */
 :root {
-  --color-primary-500: #0070d6;
-  --color-patient-500: #00ca48;
-  --color-patient-700: #087f35;
-  --color-family-400: #ffbb26;
+  --color-primary-500: #226beb;
+  --color-sky-400: #49c5e9;
+  --color-warm-400: #ffab53;
+  --color-warm-500: #f7a458;
+  --color-patient-500: #25ac5f;
+  --color-patient-700: #1b7f46;
+  --color-family-400: #fdbc20;
   --color-family-800: #8f5c00;
-  --color-alert-500: #ff2b3a;
+  --color-alert-500: #eb5c58;
   --color-alert-700: #c8102e;
-  --color-sky-300: #64c6ff;
-  --color-sun-300: #ffcd6c;
-  --color-coral-400: #ff58ae;
+  --color-sky-300: #49c5e9;
+  --color-sun-300: #fdbc20;
+  --color-coral-400: #f7a458;
   --color-neutral-0: #ffffff;
-  --color-neutral-50: #fbfaf9;
-  --color-neutral-100: #f6f4ef;
-  --color-neutral-150: #f2f0ed;
-  --color-neutral-200: #e5d5c3;
-  --color-neutral-500: #6b6b6a;
-  --color-neutral-600: #474645;
-  --color-neutral-700: #343433;
-  --color-neutral-950: #121212;
-  --color-dark-950: #121110;
-  --color-dark-900: #1c1b1a;
-  --color-dark-850: #1f1e1c;
-  --color-dark-800: #282624;
-  --color-dark-700: #3a352f;
-  --color-dark-300: #a19d97;
-  --color-dark-200: #c9c5bf;
-  --color-dark-100: #dcd9d4;
-  --color-dark-50: #f4f2ef;
+  --color-neutral-500: #6b6e72;
+  --color-neutral-600: #4b4e52;
+  --color-neutral-700: #383b3f;
+  --color-neutral-950: #212326;
+  --color-dark-950: #101113;
+  --color-dark-900: #18191c;
+  --color-dark-850: #1c1d20;
+  --color-dark-800: #24262a;
+  --color-dark-700: #33363b;
+  --color-dark-300: #a4a7ac;
+  --color-dark-200: #cbcdd1;
+  --color-dark-100: #e0e2e5;
+  --color-dark-50: #f4f5f7;
 }
 
-/* Semantic tokens, light theme. */
+/* Semantic tokens, light theme. White canvas with a breath of primary, white
+   cards lifted by soft primary-tinted shadows (Medixin), one gradient hero. */
 :root {
   color-scheme: light;
-  /* Clinical and calm: one cool family. Surfaces and grays lean on the
-     primary hue so the whole app re-tints when the primary changes. */
-  --canvas: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-neutral-0));
-  --stone: color-mix(in srgb, var(--color-primary-500) 9%, var(--color-neutral-0));
-  --sand: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-neutral-0));
+  --canvas: color-mix(in srgb, var(--color-primary-500) 3%, var(--color-neutral-0));
+  --stone: color-mix(in srgb, var(--color-primary-500) 7%, var(--color-neutral-0));
+  --sand: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-neutral-0));
   --white: var(--color-neutral-0);
-  --ink: color-mix(in srgb, var(--color-primary-500) 12%, var(--color-neutral-950));
+  --ink: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-950));
   --charcoal: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-700));
   --body: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-600));
   --muted: color-mix(in srgb, var(--color-primary-500) 10%, var(--color-neutral-500));
-  --stone-border: color-mix(in srgb, var(--color-primary-500) 16%, var(--color-neutral-0));
+  --stone-border: color-mix(in srgb, var(--color-primary-500) 12%, var(--color-neutral-0));
   --nurse: var(--color-primary-500);
-  --nurse-text: color-mix(in srgb, var(--color-primary-500) 86%, var(--color-neutral-950));
+  --nurse-text: color-mix(in srgb, var(--color-primary-500) 88%, var(--color-neutral-950));
   --patient: var(--color-patient-500);
   --patient-text: var(--color-patient-700);
   --family: var(--color-family-400);
@@ -66,42 +65,62 @@
   --nurse-soft: color-mix(in srgb, var(--nurse) var(--tint), var(--white));
   --patient-soft: color-mix(in srgb, var(--patient) var(--tint), var(--white));
   --family-soft: color-mix(in srgb, var(--family) calc(var(--tint) * 1.6), var(--white));
-  --critical-soft: color-mix(in srgb, var(--alert) 7%, var(--white));
-  /* Material-style containers: the one strong region per screen. */
-  --primary-container: color-mix(in srgb, var(--nurse) 16%, var(--white));
-  --on-primary-container: color-mix(in srgb, var(--nurse) 62%, var(--color-neutral-950));
+  --critical-soft: color-mix(in srgb, var(--alert) 9%, var(--white));
+  --primary-container: color-mix(in srgb, var(--nurse) 12%, var(--white));
+  --on-primary-container: color-mix(in srgb, var(--nurse) 70%, var(--color-neutral-950));
   --on-primary: var(--color-neutral-0);
-  --error-container: color-mix(in srgb, var(--alert) 13%, var(--white));
-  --on-error-container: color-mix(in srgb, var(--color-alert-700) 78%, var(--color-neutral-950));
+  --error-container: color-mix(in srgb, var(--alert) 12%, var(--white));
+  --on-error-container: color-mix(in srgb, var(--color-alert-700) 80%, var(--color-neutral-950));
   --error-fill: var(--color-alert-700);
   --on-error: var(--color-neutral-0);
-  --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-primary-500) 14%, transparent), 0 2px 8px color-mix(in srgb, var(--color-primary-500) 8%, transparent);
-  --veil-ink: color-mix(in srgb, var(--color-neutral-950) 32%, transparent);
-  --veil-canvas: color-mix(in srgb, var(--canvas) 88%, transparent);
+
+  /* Medixin gradients: "Blue Linear" hero and "Yellow Linear" stat tile. */
+  --grad-primary: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-primary-500) 78%, var(--color-neutral-0)) 0%,
+    var(--color-primary-500) 55%,
+    color-mix(in srgb, var(--color-primary-500) 82%, var(--color-neutral-950)) 100%);
+  --grad-alert: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-alert-500) 85%, var(--color-neutral-0)) 0%,
+    var(--color-alert-700) 100%);
+  --grad-warm: linear-gradient(135deg, var(--color-warm-400) 0%, var(--color-warm-500) 100%);
+  --on-gradient-soft: color-mix(in srgb, var(--color-neutral-0) 80%, transparent);
+  --glass-on-gradient: color-mix(in srgb, var(--color-neutral-0) 16%, transparent);
+
+  --veil-ink: color-mix(in srgb, var(--color-neutral-950) 36%, transparent);
+  --veil-canvas: color-mix(in srgb, var(--canvas) 90%, transparent);
   --on-ink-soft: color-mix(in srgb, var(--white) 72%, transparent);
   --shadow-ink: var(--color-neutral-950);
-  --phone-shadow: color-mix(in srgb, var(--shadow-ink) 4%, transparent) 0 1px 6px, color-mix(in srgb, var(--shadow-ink) 5%, transparent) 0 0 24px;
+  --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 5%, transparent),
+    0 6px 20px color-mix(in srgb, var(--color-primary-500) 8%, transparent);
+  --elevation-2: 0 2px 6px color-mix(in srgb, var(--color-neutral-950) 6%, transparent),
+    0 18px 40px color-mix(in srgb, var(--color-primary-500) 18%, transparent);
+  --elevation-nav: 0 -8px 30px color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+  --phone-shadow: 0 2px 8px color-mix(in srgb, var(--shadow-ink) 6%, transparent), 0 30px 80px color-mix(in srgb, var(--color-primary-500) 16%, transparent);
+
   --accent: var(--nurse-text);
   --accent-soft: var(--nurse-soft);
-  --font-display: "Bricolage Grotesque", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --font-display: "Poppins", system-ui, sans-serif;
+  --font-body: "Poppins", system-ui, sans-serif;
   --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --ease-press: cubic-bezier(0.2, 0, 0, 1);
-  --duration-enter: 360ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-enter: 420ms;
   --duration-exit: 240ms;
-  --duration-press: 120ms;
-  --stagger: 70ms;
+  --duration-press: 140ms;
+  --stagger: 60ms;
   --duration-drift: 3.6s;
   --duration-burst: 1200ms;
   --phone-width: 390px;
   --phone-height: 844px;
   --phone-radius: 48px;
   --nav-height: 76px;
-  --radius-card: 10px;
+  --radius-sm: 12px;
+  --radius-card: 16px;
+  --radius-lg: 24px;
   --radius-pill: 9999px;
-  --radius-cta: 32px;
-  --radius-badge: 6px;
+  --radius-cta: 16px;
+  --radius-badge: 8px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -110,23 +129,25 @@
   --space-6: 24px;
   --space-7: 32px;
   --space-8: 40px;
+  /* Medixin type: Poppins, H1 26 / H2 22 / H3 20 / H5 16 / body 14. */
   --text-caption: 12px;
-  --text-small: 16px;
+  --text-small: 14px;
   --text-body: 16px;
   --text-lead: 16px;
-  --text-section: 24px;
-  --text-heading: 44px;
-  --text-display: 44px;
+  --text-section: 20px;
+  --text-heading: 26px;
+  --text-display: 32px;
 }
 
-/* Dark theme: neutrals flip, role colors lift so text stays >= 4.5:1.
-   Same values for the OS preference and for an explicit data-theme. */
+/* Dark theme: deep blue-black surfaces, the same gradient hero, lifted text
+   colors so everything stays >= 4.5:1. Same values for the OS preference and
+   for an explicit data-theme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --canvas: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-dark-950));
+    --canvas: color-mix(in srgb, var(--color-primary-500) 4%, var(--color-dark-950));
     --stone: color-mix(in srgb, var(--color-primary-500) 8%, var(--color-dark-800));
-    --sand: var(--color-dark-850);
+    --sand: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-dark-850));
     --white: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-dark-900));
     --ink: var(--color-dark-50);
     --charcoal: var(--color-dark-100);
@@ -134,26 +155,27 @@
     --muted: var(--color-dark-300);
     --stone-border: color-mix(in srgb, var(--color-primary-500) 18%, var(--color-dark-700));
     --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
+    --patient-text: var(--color-patient-500);
+    --family-text: var(--color-family-400);
+    --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
     --primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-dark-900));
     --on-primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-neutral-0));
     --error-container: color-mix(in srgb, var(--color-alert-500) 24%, var(--color-dark-900));
     --on-error-container: color-mix(in srgb, var(--color-alert-500) 25%, var(--color-neutral-0));
     --error-fill: color-mix(in srgb, var(--color-alert-500) 75%, var(--color-neutral-0));
     --on-error: var(--color-neutral-950);
-    --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 40%, transparent);
-    --patient-text: var(--color-patient-500);
-    --family-text: var(--color-family-400);
-    --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
     --tint: 18%;
-    --shadow-ink: var(--color-neutral-950);
+    --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 50%, transparent);
+    --elevation-2: 0 12px 32px color-mix(in srgb, var(--color-neutral-950) 60%, transparent);
+    --elevation-nav: 0 -1px 0 var(--stone-border);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: color-mix(in srgb, var(--color-primary-500) 5%, var(--color-dark-950));
+  --canvas: color-mix(in srgb, var(--color-primary-500) 4%, var(--color-dark-950));
   --stone: color-mix(in srgb, var(--color-primary-500) 8%, var(--color-dark-800));
-  --sand: var(--color-dark-850);
+  --sand: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-dark-850));
   --white: color-mix(in srgb, var(--color-primary-500) 6%, var(--color-dark-900));
   --ink: var(--color-dark-50);
   --charcoal: var(--color-dark-100);
@@ -161,18 +183,19 @@
   --muted: var(--color-dark-300);
   --stone-border: color-mix(in srgb, var(--color-primary-500) 18%, var(--color-dark-700));
   --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
+  --patient-text: var(--color-patient-500);
+  --family-text: var(--color-family-400);
+  --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
   --primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-dark-900));
   --on-primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-neutral-0));
   --error-container: color-mix(in srgb, var(--color-alert-500) 24%, var(--color-dark-900));
   --on-error-container: color-mix(in srgb, var(--color-alert-500) 25%, var(--color-neutral-0));
   --error-fill: color-mix(in srgb, var(--color-alert-500) 75%, var(--color-neutral-0));
   --on-error: var(--color-neutral-950);
-  --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 40%, transparent);
-  --patient-text: var(--color-patient-500);
-  --family-text: var(--color-family-400);
-  --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
   --tint: 18%;
-  --shadow-ink: var(--color-neutral-950);
+  --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 50%, transparent);
+  --elevation-2: 0 12px 32px color-mix(in srgb, var(--color-neutral-950) 60%, transparent);
+  --elevation-nav: 0 -1px 0 var(--stone-border);
 }
 
 .phone[data-role="enfermero"] {

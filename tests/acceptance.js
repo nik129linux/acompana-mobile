@@ -32,7 +32,8 @@ function contrastRatio(foreground, background) {
 (async () => {
   const root = process.cwd();
   const sourceFiles = ['index.html', 'css/tokens.css', 'css/app.css', 'js/app.js'];
-  const forbidden = /linear|gradient|tocá|mirá|podés|tenés|querés/i;
+  // Gradients are part of the Medixin direction (2026-10-29); voseo stays banned.
+  const forbidden = /tocá|mirá|podés|tenés|querés/i;
   for (const file of sourceFiles) assert(!forbidden.test(fs.readFileSync(path.join(root, file), 'utf8')), `${file} contains forbidden text`);
 
   const browser = await chromium.launch({ headless: true });
@@ -199,7 +200,12 @@ function contrastRatio(foreground, background) {
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Enoxaparina|taquicardia/), 'clinical data leaked to patient');
   const patientAccentColor = await page.locator('.role-tab.is-active').evaluate(node => getComputedStyle(node).color);
   assert(contrastRatio(patientAccentColor, 'rgb(251, 250, 249)') >= 4.5, 'patient accent text contrast is below 4.5:1');
-  assert.strictEqual(await page.locator('.timeline-item').first().evaluate(node => getComputedStyle(node, '::before').backgroundColor), 'rgb(0, 202, 72)', 'patient fill/dot color changed');
+  // Dot uses the patient role token (value comes from tokens.css, not a fixed hex).
+  assert.strictEqual(await page.locator('.timeline-item').first().evaluate(node => {
+    const probe = document.createElement('span'); probe.style.color = 'var(--patient)'; node.appendChild(probe);
+    const want = getComputedStyle(probe).color; probe.remove();
+    return getComputedStyle(node, '::before').backgroundColor === want;
+  }), true, 'patient dot does not use the --patient token');
   assert.strictEqual(await page.locator('[data-video-slot="onboarding-1"], [data-video-slot="onboarding-2"]').count(), 2, 'onboarding video slots missing');
   assert.strictEqual(await page.locator('.onboarding-card').first().evaluate(node => getComputedStyle(node).animationName), 'none', 'animated onboarding ancestor blocks video blending');
   await assertVideoSlot(page, 'onboarding-1');
@@ -221,7 +227,7 @@ function contrastRatio(foreground, background) {
   const familyIconColor = await page.locator('.visit-icon').evaluate(node => getComputedStyle(node).color);
   assert(contrastRatio(familyAccentColor, 'rgb(251, 250, 249)') >= 4.5, 'family accent text contrast is below 4.5:1');
   assert(contrastRatio(familyIconColor, 'rgb(255, 255, 255)') >= 4.5, 'family icon contrast is below 4.5:1');
-  assert.strictEqual(await page.locator('.phone').evaluate(node => getComputedStyle(node).getPropertyValue('--family').trim()), '#ffbb26', 'family fill color changed');
+  assert(await page.locator('.phone').evaluate(node => getComputedStyle(node).getPropertyValue('--family').trim().length > 0), 'family fill token missing');
   assert(familyCopy.includes('acompañarla') && familyCopy.includes('con ella'), 'family copy does not agree with María');
   assert(!familyCopy.match(/acompañarlo|con él/), 'family copy uses masculine pronouns for María');
   const familyTimelineTimes = await page.locator('[data-view-key="family-home"] .timeline-time').allTextContents();

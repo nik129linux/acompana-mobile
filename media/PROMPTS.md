@@ -32,3 +32,28 @@ for f in splash onboarding-1 onboarding-2 empty; do
 done
 du -h *.mp4 *.webm   # target < 1 MB each
 ```
+
+---
+
+# Medixin redesign assets (2026-10-29)
+
+Stills: image model with the mascot sheet attached (`sheets/doctora.png` / `sheets/doctor.png`) as the
+style reference. Every still: **same flat 2D vector style, same line weight and palette as the sheet,
+1:1, 1024×1024, solid pure white background (#FFFFFF), character centered, no text, no shadow on
+the floor**. Save into `media/raw/` with the exact file name; I convert and wire them.
+
+| file | reference | prompt (append to the style line above) |
+|---|---|---|
+| `elena-avatar.png` | doctora | head-and-shoulders portrait of the doctora mascot, warm smile, looking at the viewer, framed for a round 48px avatar |
+| `patient-carlos.png` | doctora (style only) | a new character in the same style: man around 70, short grey hair, hospital gown, sitting up calmly in a hospital bed, gentle expression |
+| `patient-maria.png` | doctora (style only) | a new character in the same style: woman around 50, dark hair in a low bun, hospital gown, smiling softly, sitting in an armchair |
+| `patient-jorge.png` | doctora (style only) | a new character in the same style: man around 30, short dark hair, hospital gown, giving a small thumbs up |
+| `family.png` | doctor (style only) | a new character in the same style: adult relative holding a phone close to the chest, relieved smile |
+| `check.png` | none | glossy 3D green check mark inside a shiny green sphere, soft highlight top-left, clean product render, transparent background, centered |
+
+Videos (same Wan workflow and post-processing as above, first frame = last frame):
+
+| file | frame | change | ACTION |
+|---|---|---|---|
+| `splash-blue` | doctora | make the background solid blue **#226BEB** in the start frame first | raises one small arm and waves twice slowly, head tilting gently |
+| `onboarding-nurse` | doctora | white background | holds a tablet with both hands, looks at it, then looks up and nods |
