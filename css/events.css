@@ -70,15 +70,11 @@
   font-family: var(--font-body);
   font-size: var(--text-small);
   color: var(--charcoal);
-  outline: none;
-  word-break: break-word;
+  resize: none;
 }
 
-.other-text-input:empty::before {
-  content: attr(aria-label);
-  color: var(--muted);
-  pointer-events: none;
-}
+.other-text-input::placeholder { color: var(--muted); }
+.other-text-input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .other-event-actions {
   display: flex;

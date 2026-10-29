@@ -159,7 +159,9 @@ async function uiTests() {
     await page.locator('[data-quick-event="Otro evento"]').click();
     const other = page.locator('[data-other-text]');
     assert(await other.isVisible(), 'Otro evento opens a text field');
-    await other.fill('Familia pidió hablar con el médico');
+    // Set the value directly: in the sandboxed headless shell no text field
+    // accepts typing (not even a bare <textarea>), so fill() can't be used.
+    await other.evaluate((el) => { el.value = 'Familia pidió hablar con el médico'; el.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.locator('[data-other-save]').click();
     stored = await page.evaluate(() => JSON.parse(localStorage.getItem('acompana-events') || '[]'));
     assert.strictEqual(stored.length, 2);

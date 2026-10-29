@@ -646,18 +646,9 @@
       var active = p.id === state.eventPatient;
       return '<button type="button" class="event-patient-btn" data-event-patient="' + escapeHtml(p.id) + '" aria-pressed="' + String(active) + '"><span class="patient-dot">' + escapeHtml(p.initials) + '</span>' + escapeHtml(p.name.split(' ')[0]) + '</button>';
     }).join('');
-    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><div class="event-patient-picker" role="radiogroup" aria-label="Paciente">' + patientButtons + '</div><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><div class="other-event-field" data-other-field><div class="other-text-input" data-other-text contenteditable="true" role="textbox" aria-multiline="true" aria-label="Describe el evento"></div><div class="other-event-actions"><button type="button" class="primary-button" data-other-save>Guardar</button></div></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Mantén presionado para hablar</small></span><span class="dictate-pulse" aria-hidden="true"></span></button><div class="event-proposal" data-event-proposal><p class="event-proposal-label">Revisa antes de guardar</p><span class="event-proposal-kind" data-proposal-kind></span><p class="event-proposal-text" data-proposal-text></p><div class="event-proposal-actions"><button type="button" class="secondary-button" data-proposal-cancel>Cancelar</button><button type="button" class="primary-button" data-proposal-save>Guardar</button></div></div><p class="tray-feedback" data-tray-feedback aria-live="polite"></p></section>';
+    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><div class="event-patient-picker" role="radiogroup" aria-label="Paciente">' + patientButtons + '</div><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><div class="other-event-field" data-other-field><textarea class="other-text-input" data-other-text rows="2" maxlength="140" aria-label="Describe el evento" placeholder="Describe el evento"></textarea><div class="other-event-actions"><button type="button" class="primary-button" data-other-save>Guardar</button></div></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Mantén presionado para hablar</small></span><span class="dictate-pulse" aria-hidden="true"></span></button><div class="event-proposal" data-event-proposal><p class="event-proposal-label">Revisa antes de guardar</p><span class="event-proposal-kind" data-proposal-kind></span><p class="event-proposal-text" data-proposal-text></p><div class="event-proposal-actions"><button type="button" class="secondary-button" data-proposal-cancel>Cancelar</button><button type="button" class="primary-button" data-proposal-save>Guardar</button></div></div><p class="tray-feedback" data-tray-feedback aria-live="polite"></p></section>';
     app.registrationLayer.classList.add('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'false');
-    // GPU-composited translate3d layer breaks Chromium text input events; override
-    // the CSS rule so the sheet sits via flexbox (align-items: flex-end) instead
-    // of a transform layer.
-    if (!document.getElementById('events-sheet-fix')) {
-      var style = document.createElement('style');
-      style.id = 'events-sheet-fix';
-      style.textContent = '.registration-layer.is-open .registration-sheet { transform: none !important; transition: none !important; will-change: auto !important; }';
-      document.head.appendChild(style);
-    }
     renderBottomNav();
     bindSheetDrag();
     requestAnimationFrame(function () {
@@ -949,11 +940,10 @@
     var otherSave = event.target.closest('[data-other-save]');
     if (otherSave) {
       var otherField = app.registrationLayer.querySelector('[data-other-text]');
-      var text = otherField ? (otherField.value || otherField.textContent || '').trim() : '';
+      var text = otherField ? otherField.value.trim() : '';
       if (text) {
         saveLoggedEvent(state.eventPatient, 'other', text, 'manual');
-        if (otherField.value !== undefined) otherField.value = '';
-        else otherField.textContent = '';
+        otherField.value = '';
         var otherF = app.registrationLayer.querySelector('[data-other-field]');
         if (otherF) otherF.classList.remove('is-visible');
       }
@@ -1552,48 +1542,6 @@
 
   // Expose dayEvents for SBAR integration (used by tests).
   window.__acompana = { dayEvents: dayEvents };
-
-  // Workaround: Chromium drops keyboard events on elements inside the
-  // GPU-composited registration sheet. Capture keydown globally and
-  // insert into the active [data-other-text] element manually.
-  (function () {
-    document.addEventListener('keydown', function (e) {
-      var el = document.activeElement;
-      if (!el || el.dataset.otherText === undefined) return;
-      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (el.value !== undefined) {
-          var start = el.selectionStart;
-          var end = el.selectionEnd;
-          el.value = el.value.substring(0, start) + e.key + el.value.substring(end);
-          el.selectionStart = el.selectionEnd = start + 1;
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-        } else {
-          document.execCommand('insertText', false, e.key);
-        }
-        e.preventDefault();
-        e.stopPropagation();
-      } else if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey) {
-        if (el.value !== undefined) {
-          var s = el.selectionStart;
-          var en = el.selectionEnd;
-          if (s === en && s > 0) {
-            el.value = el.value.substring(0, s - 1) + el.value.substring(en);
-            el.selectionStart = el.selectionEnd = s - 1;
-          } else if (s !== en) {
-            el.value = el.value.substring(0, s) + el.value.substring(en);
-            el.selectionStart = el.selectionEnd = s;
-          } else {
-            return;
-          }
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-        } else {
-          document.execCommand('delete');
-        }
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    }, true);
-  })();
 
   function init() {
     if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
