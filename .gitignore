@@ -2,3 +2,4 @@
 media/raw/output.log
 shots/
 *-BRIEF.md
+node_modules/

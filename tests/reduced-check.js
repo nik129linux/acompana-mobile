@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { chromium } = require('/home/nico/.nvm/versions/node/v22.23.2/lib/node_modules/playwright');
+const { chromium } = require('playwright');
 const { pathToFileURL } = require('url');
 const path = require('path');
 (async () => {
