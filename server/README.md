@@ -58,3 +58,17 @@ node tests/server.test.js
   Chrome only offers "Install app" on HTTPS or localhost.
 - To install: USB + `adb reverse tcp:8787 tcp:8787`, then open `http://localhost:8787`
   on the phone and pick "Install app". It opens full screen and the shell works offline.
+
+## Gemma through the Ollama cloud API (no install)
+
+Put the key in a file only you can read, outside the repo:
+
+```
+mkdir -p ~/.config/acompana
+printf '%s\n' 'YOUR_KEY' > ~/.config/acompana/ollama-key   # or paste with an editor
+chmod 600 ~/.config/acompana/ollama-key
+```
+
+With a key and no `OLLAMA_URL`, the server calls `https://ollama.com/api` with
+`gemma4:31b`. `OLLAMA_API_KEY` in the environment also works and wins over the file.
+The key never reaches the browser: the phone only talks to this server.

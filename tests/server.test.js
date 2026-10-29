@@ -313,6 +313,58 @@ test('http: health, handover dryRun, ask flow, questions resolve', async () => {
   }
 });
 
+// --- Ollama cloud API key ---
+
+test('api key: Bearer header sent to ollama.com, never without a key', async () => {
+  const seen = [];
+  const spy = async (url, options) => { seen.push({ url, headers: options.headers }); return { ok: true, json: async () => ({ models: [{ name: 'gemma4:31b' }] }) }; };
+  await ai.listModels(ai.createClient({ apiKey: 'test-key-123', fetchImpl: spy }));
+  assert.strictEqual(seen[0].url, 'https://ollama.com/api/tags', 'a key without OLLAMA_URL targets the cloud API');
+  assert.strictEqual(seen[0].headers.Authorization, 'Bearer test-key-123');
+  await ai.listModels(ai.createClient({ apiKey: '', baseUrl: 'http://mock', fetchImpl: spy }));
+  assert.strictEqual(seen[1].headers.Authorization, undefined, 'no key, no header');
+});
+
+test('api key: read from a private file outside the repo, loose permissions refused', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'acompana-key-'));
+  const file = path.join(dir, 'ollama-key');
+  fs.writeFileSync(file, 'file-key-456\n', { mode: 0o600 });
+  assert.strictEqual(ai.readKeyFile(file), 'file-key-456');
+  fs.chmodSync(file, 0o644);
+  assert.strictEqual(ai.readKeyFile(file), null, 'group/other readable key file is ignored');
+  assert.strictEqual(ai.readKeyFile(path.join(dir, 'missing')), null);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('model: gemma4:31b preferred over other gemma sizes', () => {
+  const saved = process.env.OLLAMA_MODEL;
+  delete process.env.OLLAMA_MODEL;
+  assert.strictEqual(ai.pickModel([{ name: 'gemma4:e2b' }, { name: 'gemma4:31b' }, { name: 'glm-5.3' }]), 'gemma4:31b');
+  if (saved !== undefined) process.env.OLLAMA_MODEL = saved;
+});
+
+test('health never exposes the key', async () => {
+  const spy = async () => ({ ok: true, json: async () => ({ models: [{ name: 'gemma4:31b' }] }) });
+  const server = srv.createServer(ai.createClient({ apiKey: 'secret-key-789', fetchImpl: spy }));
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const body = await new Promise((resolve, reject) => {
+      require('http').get({ host: '127.0.0.1', port: server.address().port, path: '/api/health' }, (res) => {
+        let text = '';
+        res.on('data', (c) => { text += c; });
+        res.on('end', () => resolve(text));
+      }).on('error', reject);
+    });
+    assert(!body.includes('secret-key-789'), 'key leaked in /api/health');
+    assert(body.includes('gemma4:31b'));
+  } finally {
+    server.close();
+  }
+});
+
 (async () => {
   let failed = 0;
   for (const { name, fn } of tests) {

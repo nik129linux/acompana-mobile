@@ -1118,14 +1118,14 @@
   // ---- Local AI bridge: handover (SBAR) + family Q&A ----
   // server/server.js owns the rules, grounding and guardrails. The helpers
   // below mirror them so the prototype still works from file:// with no
-  // server. Every fetch runs ONLY on an explicit tap, with a 3s timeout,
+  // server. Every fetch runs ONLY on an explicit tap, with a 12s timeout,
   // and falls back silently to the on-device template. A badge always
-  // shows which source produced the text: "Plantilla" or "IA local".
+  // shows which source produced the text: "Plantilla" or "IA".
   var AI_BASE =
     (location.protocol === 'http:' || location.protocol === 'https:')
       ? location.origin
       : 'http://127.0.0.1:8787';
-  var AI_TIMEOUT_MS = 3000;
+  var AI_TIMEOUT_MS = 12000; // cloud gemma; the server gives up at 10s
   var HANDOVER_MAX = 200;
   var ASK_MAX = 220;
   var SAFE_ANSWER_OFFLINE = 'No puedo responder eso con lo que se ve del turno. Anótelo para preguntarlo a la enfermera.';
@@ -1305,7 +1305,7 @@
   function setBadge(element, source, model) {
     if (!element) return;
     if (source === 'ollama') {
-      element.textContent = 'IA local · ' + model;
+      element.textContent = 'IA · ' + model;
       element.classList.add('is-live');
     } else {
       element.textContent = 'Plantilla';
@@ -1314,7 +1314,7 @@
   }
 
   function consentBox(kind, payload) {
-    return '<div class="consent-box"><strong>Antes de usar la IA local</strong>' +
+    return '<div class="consent-box"><strong>Antes de usar la IA</strong>' +
       '<span>Esto es lo único que saldría de este equipo. Sin nombres ni datos personales. ¿Lo aceptas?</span>' +
       '<pre>' + escapeHtml(JSON.stringify(payload, null, 1)) + '</pre>' +
       '<div class="consent-row"><button type="button" class="primary-button" data-consent-yes="' + kind + '">Aceptar</button>' +

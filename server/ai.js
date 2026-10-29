@@ -4,17 +4,49 @@
 // Zero dependencies. Every function accepts an injected fetchImpl so tests
 // can mock the network without touching globals.
 
-const DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
-const OLLAMA_TIMEOUT_MS = 8000;
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
-function baseUrl() {
-  return process.env.OLLAMA_URL || DEFAULT_BASE_URL;
+const DEFAULT_BASE_URL = 'http://127.0.0.1:11434';
+const CLOUD_BASE_URL = 'https://ollama.com';
+const PREFERRED_MODEL = 'gemma4:31b';
+const OLLAMA_TIMEOUT_MS = 10000;
+const KEY_FILE = path.join(os.homedir(), '.config', 'acompana', 'ollama-key');
+
+// The cloud API key lives outside the repo: OLLAMA_API_KEY, or a one-line
+// file only its owner can read. A group/other readable file is ignored.
+function readKeyFile(file) {
+  try {
+    const stat = fs.statSync(file);
+    if ((stat.mode & 0o077) !== 0) {
+      console.warn('ignoring ' + file + ': run chmod 600 on it');
+      return null;
+    }
+    const key = fs.readFileSync(file, 'utf8').trim();
+    return key || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function apiKey() {
+  return process.env.OLLAMA_API_KEY || readKeyFile(process.env.OLLAMA_KEY_FILE || KEY_FILE);
+}
+
+// With a key and no OLLAMA_URL, talk to the cloud API directly (no local
+// Ollama install needed). Without a key, the local server.
+function baseUrl(key) {
+  if (process.env.OLLAMA_URL) return process.env.OLLAMA_URL;
+  return key ? CLOUD_BASE_URL : DEFAULT_BASE_URL;
 }
 
 function createClient(options) {
   const opts = options || {};
+  const key = opts.apiKey !== undefined ? opts.apiKey : apiKey();
   return {
-    baseUrl: opts.baseUrl || baseUrl(),
+    baseUrl: opts.baseUrl || baseUrl(key),
+    apiKey: key || null,
     timeoutMs: opts.timeoutMs || OLLAMA_TIMEOUT_MS,
     fetchImpl: opts.fetchImpl || fetch
   };
@@ -28,7 +60,9 @@ async function fetchJson(client, path, options) {
   try {
     const response = await client.fetchImpl(client.baseUrl + path, {
       method: (options && options.method) || 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: client.apiKey
+        ? { 'Content-Type': 'application/json', Authorization: 'Bearer ' + client.apiKey }
+        : { 'Content-Type': 'application/json' },
       body: options && options.body ? JSON.stringify(options.body) : undefined,
       signal: controller.signal
     });
@@ -47,14 +81,16 @@ async function listModels(client) {
   return data.models;
 }
 
-// Model policy: OLLAMA_MODEL env wins, otherwise a gemma model (cloud-tagged
-// gemma4:31b-cloud is fine). Never auto-pick another local model: a big local
-// one can freeze the PC. No gemma = null = rules.
+// Model policy: OLLAMA_MODEL env wins, then gemma4:31b, then any gemma
+// (cloud-tagged gemma4:31b-cloud is fine). Never auto-pick another local
+// model: a big local one can freeze the PC. No gemma = null = rules.
 function pickModel(models) {
   if (!Array.isArray(models)) return null;
+  const names = models.map((m) => m && m.name).filter(Boolean);
   const want = process.env.OLLAMA_MODEL;
-  const hit = models.find((m) => m && m.name && (want ? m.name === want : /^gemma/i.test(m.name)));
-  return hit ? hit.name : null;
+  if (want) return names.includes(want) ? want : null;
+  if (names.includes(PREFERRED_MODEL)) return PREFERRED_MODEL;
+  return names.find((name) => /^gemma/i.test(name)) || null;
 }
 
 async function activeModel(client) {
@@ -84,6 +120,9 @@ async function generateJson(client, model, prompt) {
 module.exports = {
   OLLAMA_TIMEOUT_MS,
   DEFAULT_BASE_URL,
+  CLOUD_BASE_URL,
+  KEY_FILE,
+  readKeyFile,
   baseUrl,
   createClient,
   fetchJson,
