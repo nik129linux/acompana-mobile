@@ -132,8 +132,95 @@
     faqOpen: {},
     listening: false,
     completionTimer: null,
-    feedbackTimer: null
+    feedbackTimer: null,
+    eventPatient: null,
+    eventUndo: null,
+    eventUndoTimer: null
   };
+
+  // placeholder: confirm in field
+  var SHIFT_PHONE = '+573001234567';
+
+  // Plain-language translations for patient/family timelines
+  var EVENT_KIND_PHRASES = {
+    medication: 'Le aplicaron el medicamento',
+    position: 'Le ayudaron a cambiar de posición',
+    round: 'La enfermera pasó a revisar'
+  };
+
+  // Local mirror of server-side rules classification
+  function classifyEventRulesLocal(text) {
+    var lower = String(text || '').toLowerCase();
+    var medKws = ['enoxaparina', 'heparina', 'paracetamol', 'ibuprofeno', 'insulina', 'morfina', 'tramadol', 'omeprazol', 'medicamento', 'medicina', 'pastilla', 'aplic', 'mg', 'ml'];
+    var posKws = ['posición', 'posicion', 'postural', 'decúbito', 'decubito', 'lateral', 'cambio de posicion', 'cambio de posición'];
+    var roundKws = ['ronda', 'control', 'signos', 'vitales', 'revis', 'monitoreo'];
+    for (var i = 0; i < medKws.length; i++) {
+      if (lower.includes(medKws[i])) return { kind: 'medication', text: text, source: 'rules' };
+    }
+    for (var j = 0; j < posKws.length; j++) {
+      if (lower.includes(posKws[j])) return { kind: 'position', text: text, source: 'rules' };
+    }
+    for (var k = 0; k < roundKws.length; k++) {
+      if (lower.includes(roundKws[k])) return { kind: 'round', text: text, source: 'rules' };
+    }
+    return { kind: 'other', text: text, source: 'rules' };
+  }
+
+  function loadEvents() {
+    try {
+      var raw = window.localStorage.getItem('acompana-events');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveEvents(events) {
+    try {
+      window.localStorage.setItem('acompana-events', JSON.stringify(events));
+    } catch (e) {
+      // ignore storage failures
+    }
+  }
+
+  function nowHHMM() {
+    var now = new Date();
+    return String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
+
+  function clearUndo() {
+    if (state.eventUndoTimer) {
+      window.clearTimeout(state.eventUndoTimer);
+      state.eventUndoTimer = null;
+    }
+    state.eventUndo = null;
+  }
+
+  function showEventFeedback(message) {
+    var feedback = app.registrationLayer.querySelector('[data-tray-feedback]');
+    if (!feedback) return;
+    feedback.textContent = '';
+    var line = document.createElement('div');
+    line.className = 'tray-feedback-line';
+    var span = document.createElement('span');
+    span.textContent = message;
+    line.appendChild(span);
+    var undo = document.createElement('button');
+    undo.type = 'button';
+    undo.className = 'undo-event-btn is-visible';
+    undo.setAttribute('data-undo-event', '');
+    undo.textContent = 'Deshacer';
+    line.appendChild(undo);
+    feedback.appendChild(line);
+    feedback.classList.add('is-visible');
+  }
+
+  function hideEventFeedback() {
+    var feedback = app.registrationLayer.querySelector('[data-tray-feedback]');
+    if (!feedback) return;
+    feedback.textContent = '';
+    feedback.classList.remove('is-visible');
+  }
 
   var reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener: function () {} };
   var videoObserver = null;
@@ -268,11 +355,20 @@
 
   function renderNurseDetail(patient) {
     var patientTasks = TASKS.filter(function (task) { return task.patientId === patient.id; });
+    var loggedEvents = loadEvents().filter(function (e) { return e.patientId === patient.id; });
+    var loggedHtml = loggedEvents.length
+      ? '<div class="detail-section"><h2 class="detail-section-title">Eventos registrados</h2><div class="detail-list">' +
+        loggedEvents.map(function (e) {
+          var kindLabel = e.kind === 'medication' ? 'Medicación' : e.kind === 'position' ? 'Cambio de posición' : e.kind === 'round' ? 'Ronda' : 'Otro';
+          return detailRow(e.time + ' · ' + kindLabel, e.text, false);
+        }).join('') + '</div></div>'
+      : '';
     return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><p class="view-subtitle">Detalle del turno</p><h1 class="view-title small-title">Ficha del paciente</h1></div></div>' +
       '<div class="detail-hero"><span class="patient-avatar">' + escapeHtml(patient.initials) + '</span><div class="detail-hero-copy"><h2 class="detail-name">' + escapeHtml(patient.name) + '</h2><span class="detail-room">' + escapeHtml(patient.room) + '</span><span class="badge ' + (patient.status === 'critical' ? 'badge-critical' : 'badge-neutral') + ' detail-status">' + escapeHtml(patient.status === 'critical' ? patient.statusLabel : 'En seguimiento') + '</span></div></div>' +
       '<div class="detail-section"><h2 class="detail-section-title">Registro clínico</h2><div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button><button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button><p class="view-copy muted-copy">Oculto por defecto porque esta pantalla también se ve desde la cama.</p></div></div>' +
       '<div class="privacy-note">' + icon('shield') + '<span>El dato sensible queda detrás de un toque deliberado. Si decides comunicarlo, hazlo con calma.</span></div>' +
       '<div class="detail-section"><h2 class="detail-section-title">Eventos del turno</h2><div class="detail-list">' + patientTasks.map(function (task) { return detailRow(task.time + ' · ' + task.title, isConfirmed(task.id) ? 'Confirmado' : 'Pendiente', false); }).join('') + '</div></div>' +
+      loggedHtml +
       '<p class="view-copy muted-copy">La familia recibe solo un resumen del turno, sin valores clínicos.</p></div>';
   }
 
@@ -290,7 +386,7 @@
     return '<div class="patient-intro"><p class="eyebrow">Hab. 304-B</p><h1 class="view-title">Mi estado</h1><p class="view-copy">Aquí ve lo que va pasando, en palabras sencillas.</p></div>' +
       '<div class="next-card"><span class="next-card-icon">' + icon('clock') + '</span><span class="next-card-copy"><strong>Lo que sigue</strong><span>La enfermera vuelve a hacer la ronda <span class="time-nowrap">a la 1:00 p. m.</span></span></span></div>' +
       '<div class="onboarding-block"><div class="onboarding-intro"><h2 class="section-label">Así funciona</h2><p>Dos ideas sencillas</p></div><div class="onboarding-grid">' + onboardingCard('onboarding-1', 'Lo que sigue', 'Vea el próximo paso del turno.') + onboardingCard('onboarding-2', 'Cómo pedir ayuda', 'Use el timbre cuando necesite algo.') + '</div></div>' +
-      '<div class="section-heading"><h2 class="section-label">Qué pasó hoy</h2><span class="section-meta">En simple</span></div>' + timeline(TIMELINE_PACIENTE);
+      '<div class="section-heading"><h2 class="section-label">Qué pasó hoy</h2><span class="section-meta">En simple</span></div>' + timeline(patientDayTimeline());
   }
 
   function faqItem(id, question, answerHtml) {
@@ -308,7 +404,7 @@
     var objectPronoun = patient.pronoun === 'ella' ? 'la' : 'lo';
     return '<div class="patient-intro"><p class="eyebrow">' + escapeHtml(patient.name) + ' · ' + escapeHtml(patient.room) + '</p><h1 class="view-title">Qué pasa</h1><p class="view-copy">Un resumen sencillo para acompañar' + objectPronoun + ' con tranquilidad.</p></div>' +
       '<div class="family-summary"><strong>El equipo está con ' + escapeHtml(patient.pronoun) + '</strong><span>El tratamiento de la mañana va avanzando con normalidad.</span></div>' +
-      '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(familyTimeline(patient)) +
+      '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(familyDayTimeline(patient)) +
       '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>' +
       '<div class="ai-card"><strong>¿Tiene una duda?</strong><span>Pregunte con tranquilidad. Le respondemos solo con lo que se ve del turno.</span><div class="ask-row"><input type="text" class="ask-input" data-ask-input maxlength="300" placeholder="¿Cómo pasó la noche?" aria-label="Escriba su pregunta"><button type="button" class="primary-button" data-ask-send>Preguntar</button></div><div class="ask-answer is-empty" data-ask-answer aria-live="polite"></div><span class="source-badge" data-ask-badge>Plantilla</span></div>';
   }
@@ -318,7 +414,8 @@
       '<p class="view-copy">Si necesita información sobre la visita, el equipo de turno puede orientarla.</p>' +
       '<div class="contact-card"><span class="contact-icon">' + icon('phone') + '</span><span class="contact-copy"><strong>Enfermera de turno</strong><span>Elena · vuelve a <span class="time-nowrap">la 1:00 p. m.</span></span></span></div>' +
       '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>' +
-      '<div class="contact-actions"><button type="button" class="primary-button">Llamar al turno</button><button type="button" class="secondary-button">Ver horarios</button></div>';
+      '<div class="contact-actions"><a href="tel:' + escapeHtml(SHIFT_PHONE) + '" class="primary-button">Llamar al turno</a><button type="button" class="secondary-button" data-schedule-open>Ver horarios</button></div>' +
+      '<div class="schedule-sheet-backdrop" data-schedule-close></div><div class="schedule-sheet" data-schedule-sheet><div class="sheet-header"><h2 class="sheet-title">Horarios del turno</h2><button type="button" class="schedule-close" data-schedule-close aria-label="Cerrar horarios">×</button></div><div class="schedule-row"><span class="schedule-label">Visita hoy</span><span class="schedule-value">3:00 p. m. a 5:00 p. m.</span></div><div class="schedule-row"><span class="schedule-label">Próxima ronda</span><span class="schedule-value">La 1:00 p. m.</span></div></div>';
   }
 
   function viewDefinition() {
@@ -480,6 +577,7 @@
     state.detailPatient = patient;
     state.activeNav.enfermero = 'turno';
     home.classList.add('is-behind');
+    home.classList.remove('is-active');
     var definition = viewDefinition();
     var detail = createView(definition, 'forward');
     app.screen.appendChild(detail);
@@ -542,9 +640,24 @@
     state.sheetOpen = true;
     state.sheetReturnNav = state.activeNav.enfermero === 'registrar' ? 'turno' : state.activeNav.enfermero;
     state.activeNav.enfermero = 'registrar';
-    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><p class="sheet-copy">Selecciona un evento previsto. También puedes dictarlo.</p><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Mantén presionado para hablar</small></span><span class="dictate-pulse" aria-hidden="true"></span></button><p class="tray-feedback" data-tray-feedback aria-live="polite"></p></section>';
+    state.eventPatient = state.detailPatient ? state.detailPatient.id : PATIENTS[0].id;
+    clearUndo();
+    var patientButtons = PATIENTS.map(function (p) {
+      var active = p.id === state.eventPatient;
+      return '<button type="button" class="event-patient-btn" data-event-patient="' + escapeHtml(p.id) + '" aria-pressed="' + String(active) + '"><span class="patient-dot">' + escapeHtml(p.initials) + '</span>' + escapeHtml(p.name.split(' ')[0]) + '</button>';
+    }).join('');
+    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><div class="event-patient-picker" role="radiogroup" aria-label="Paciente">' + patientButtons + '</div><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><div class="other-event-field" data-other-field><div class="other-text-input" data-other-text contenteditable="true" role="textbox" aria-multiline="true" aria-label="Describe el evento"></div><div class="other-event-actions"><button type="button" class="primary-button" data-other-save>Guardar</button></div></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Mantén presionado para hablar</small></span><span class="dictate-pulse" aria-hidden="true"></span></button><div class="event-proposal" data-event-proposal><p class="event-proposal-label">Revisa antes de guardar</p><span class="event-proposal-kind" data-proposal-kind></span><p class="event-proposal-text" data-proposal-text></p><div class="event-proposal-actions"><button type="button" class="secondary-button" data-proposal-cancel>Cancelar</button><button type="button" class="primary-button" data-proposal-save>Guardar</button></div></div><p class="tray-feedback" data-tray-feedback aria-live="polite"></p></section>';
     app.registrationLayer.classList.add('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'false');
+    // GPU-composited translate3d layer breaks Chromium text input events; override
+    // the CSS rule so the sheet sits via flexbox (align-items: flex-end) instead
+    // of a transform layer.
+    if (!document.getElementById('events-sheet-fix')) {
+      var style = document.createElement('style');
+      style.id = 'events-sheet-fix';
+      style.textContent = '.registration-layer.is-open .registration-sheet { transform: none !important; transition: none !important; will-change: auto !important; }';
+      document.head.appendChild(style);
+    }
     renderBottomNav();
     bindSheetDrag();
     requestAnimationFrame(function () {
@@ -758,6 +871,22 @@
       return;
     }
 
+    var scheduleOpen = event.target.closest('[data-schedule-open]');
+    if (scheduleOpen) {
+      var backdrop = app.screen.querySelector('[data-schedule-sheet]');
+      var sheet = app.screen.querySelector('[data-schedule-sheet]');
+      var bd = app.screen.querySelector('.schedule-sheet-backdrop');
+      if (sheet) { sheet.classList.add('is-visible'); bd.classList.add('is-visible'); }
+      return;
+    }
+    var scheduleClose = event.target.closest('[data-schedule-close]');
+    if (scheduleClose) {
+      var sheet = app.screen.querySelector('[data-schedule-sheet]');
+      var bd = app.screen.querySelector('.schedule-sheet-backdrop');
+      if (sheet) { sheet.classList.remove('is-visible'); bd.classList.remove('is-visible'); }
+      return;
+    }
+
     var goHome = event.target.closest('[data-go-home]');
     if (goHome) {
       state.activeNav.enfermero = 'turno';
@@ -796,15 +925,153 @@
       closeRegistrationSheet();
       return;
     }
+    var patientBtn = event.target.closest('[data-event-patient]');
+    if (patientBtn) {
+      state.eventPatient = patientBtn.getAttribute('data-event-patient');
+      var allBtns = app.registrationLayer.querySelectorAll('[data-event-patient]');
+      allBtns.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.getAttribute('data-event-patient') === state.eventPatient));
+      });
+      return;
+    }
+    var undo = event.target.closest('[data-undo-event]');
+    if (undo) {
+      if (state.eventUndo) {
+        var evs = loadEvents();
+        evs = evs.filter(function (e) { return e.id !== state.eventUndo; });
+        saveEvents(evs);
+        state.eventUndo = null;
+        if (state.eventUndoTimer) { window.clearTimeout(state.eventUndoTimer); state.eventUndoTimer = null; }
+        hideEventFeedback();
+      }
+      return;
+    }
+    var otherSave = event.target.closest('[data-other-save]');
+    if (otherSave) {
+      var otherField = app.registrationLayer.querySelector('[data-other-text]');
+      var text = otherField ? (otherField.value || otherField.textContent || '').trim() : '';
+      if (text) {
+        saveLoggedEvent(state.eventPatient, 'other', text, 'manual');
+        if (otherField.value !== undefined) otherField.value = '';
+        else otherField.textContent = '';
+        var otherF = app.registrationLayer.querySelector('[data-other-field]');
+        if (otherF) otherF.classList.remove('is-visible');
+      }
+      return;
+    }
+    var proposalSave = event.target.closest('[data-proposal-save]');
+    if (proposalSave) {
+      var proposal = app.registrationLayer.querySelector('[data-event-proposal]');
+      if (proposal && proposal.dataset.pendingKind) {
+        saveLoggedEvent(state.eventPatient, proposal.dataset.pendingKind, proposal.dataset.pendingText, 'voice');
+        proposal.classList.remove('is-visible');
+        delete proposal.dataset.pendingKind;
+        delete proposal.dataset.pendingText;
+      }
+      return;
+    }
+    var proposalCancel = event.target.closest('[data-proposal-cancel]');
+    if (proposalCancel) {
+      var proposalEl = app.registrationLayer.querySelector('[data-event-proposal]');
+      if (proposalEl) {
+        proposalEl.classList.remove('is-visible');
+        delete proposalEl.dataset.pendingKind;
+        delete proposalEl.dataset.pendingText;
+      }
+      return;
+    }
     var quick = event.target.closest('[data-quick-event]');
     if (quick) {
-      showTrayFeedback(quick.getAttribute('data-quick-event'));
+      var label = quick.getAttribute('data-quick-event');
+      if (label === 'Otro evento') {
+        var otherF = app.registrationLayer.querySelector('[data-other-field]');
+        if (otherF) otherF.classList.toggle('is-visible');
+        return;
+      }
+      var kindMap = { 'Medicación': 'medication', 'Cambio de posición': 'position', 'Ronda': 'round' };
+      var kind = kindMap[label] || 'other';
+      saveLoggedEvent(state.eventPatient, kind, label, 'quick');
       return;
     }
     var dictate = event.target.closest('[data-dictate]');
     if (dictate) {
-      toggleListening(dictate);
+      startDictation();
     }
+  }
+
+  function saveLoggedEvent(patientId, kind, text, source) {
+    var evs = loadEvents();
+    var id = 'evt-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    var entry = { id: id, patientId: patientId, kind: kind, text: text, time: nowHHMM(), source: source };
+    evs.push(entry);
+    saveEvents(evs);
+    state.eventUndo = id;
+    if (state.eventUndoTimer) window.clearTimeout(state.eventUndoTimer);
+    var label = kind === 'medication' ? 'Medicación' : kind === 'position' ? 'Cambio de posición' : kind === 'round' ? 'Ronda' : 'Otro evento';
+    showEventFeedback(label + ' registrado · ' + entry.time);
+    state.eventUndoTimer = window.setTimeout(function () {
+      state.eventUndo = null;
+      hideEventFeedback();
+    }, 5000);
+  }
+
+  function startDictation() {
+    // Prefer webkitSpeechRecognition (test mock sets this) over the native
+    // SpeechRecognition which may not fire events in headless Chromium.
+    var SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+    if (!SpeechRecognition) {
+      var otherF = app.registrationLayer.querySelector('[data-other-field]');
+      if (otherF) otherF.classList.add('is-visible');
+      return;
+    }
+    var recog = new SpeechRecognition();
+    recog.lang = 'es-CO';
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+    var button = app.registrationLayer.querySelector('[data-dictate]');
+    if (button) button.classList.add('is-listening');
+    var proposal = app.registrationLayer.querySelector('[data-event-proposal]');
+    recog.onresult = function (event) {
+      var transcript = event.results[0][0].transcript;
+      if (aiConsent === 'yes') {
+        aiRequest('/api/event', { text: transcript }).then(function (result) {
+          if (proposal) {
+            proposal.dataset.pendingKind = result.kind;
+            proposal.dataset.pendingText = result.text || transcript;
+            proposal.querySelector('[data-proposal-kind]').textContent = result.kind;
+            proposal.querySelector('[data-proposal-text]').textContent = result.text || transcript;
+            proposal.classList.add('is-visible');
+          }
+        }, function () {
+          var r = classifyEventRulesLocal(transcript);
+          if (proposal) {
+            proposal.dataset.pendingKind = r.kind;
+            proposal.dataset.pendingText = r.text;
+            proposal.querySelector('[data-proposal-kind]').textContent = r.kind;
+            proposal.querySelector('[data-proposal-text]').textContent = r.text;
+            proposal.classList.add('is-visible');
+          }
+        });
+      } else {
+        var r = classifyEventRulesLocal(transcript);
+        if (proposal) {
+          proposal.dataset.pendingKind = r.kind;
+          proposal.dataset.pendingText = r.text;
+          proposal.querySelector('[data-proposal-kind]').textContent = r.kind;
+          proposal.querySelector('[data-proposal-text]').textContent = r.text;
+          proposal.classList.add('is-visible');
+        }
+      }
+    };
+    recog.onend = function () {
+      if (button) button.classList.remove('is-listening');
+    };
+    recog.onerror = function () {
+      if (button) button.classList.remove('is-listening');
+      var otherF = app.registrationLayer.querySelector('[data-other-field]');
+      if (otherF) otherF.classList.add('is-visible');
+    };
+    recog.start();
   }
 
   function initSplash() {
@@ -925,14 +1192,47 @@
 
   // Day events without names, rooms or titles: only aggregates and
   // clinical tokens ever leave this device toward the model.
+  // Logged events are merged in so the SBAR can reference what was registered.
   function dayEvents() {
-    return [
+    var base = [
       { time: '08:00', text: 'Cambio postural de la mañana hecho', done: true },
       { time: '11:05', text: 'Enoxaparina 40mg SC, vía abdominal aplicada', done: isConfirmed('medication') },
       { time: '11:20', text: 'Cambio postural previsto', done: isConfirmed('position') },
       { time: '13:00', text: 'Ronda programada, control de signos', done: isConfirmed('round') },
       { time: '11:00', text: 'PA 90/55, taquicardia 112, alerta protocolo hipotensión', done: false }
     ];
+    var logged = loadEvents().map(function (e) {
+      var kindText = e.kind === 'medication' ? 'Medicación aplicada: ' + e.text
+        : e.kind === 'position' ? 'Cambio de posición: ' + e.text
+        : e.kind === 'round' ? 'Ronda realizada: ' + e.text
+        : 'Evento: ' + e.text;
+      return { time: e.time, text: kindText, done: true };
+    });
+    return base.concat(logged);
+  }
+
+  // Patient timeline merges logged events as plain-language phrases
+  function patientDayTimeline() {
+    var items = TIMELINE_PACIENTE.slice();
+    var logged = loadEvents().filter(function (e) {
+      return e.patientId === FAMILY_PATIENT_ID && e.kind !== 'other' && EVENT_KIND_PHRASES[e.kind];
+    });
+    logged.forEach(function (e) {
+      items.push({ time: e.time, text: EVENT_KIND_PHRASES[e.kind], pending: false });
+    });
+    return items;
+  }
+
+  // Family timeline merges logged events as plain-language phrases
+  function familyDayTimeline(patient) {
+    var items = familyTimeline(patient);
+    var logged = loadEvents().filter(function (e) {
+      return e.patientId === patient.id && e.kind !== 'other' && EVENT_KIND_PHRASES[e.kind];
+    });
+    logged.forEach(function (e) {
+      items.push({ time: e.time, text: EVENT_KIND_PHRASES[e.kind], pending: false });
+    });
+    return items;
   }
 
   function familyFacts() {
@@ -1249,6 +1549,51 @@
       });
     });
   }
+
+  // Expose dayEvents for SBAR integration (used by tests).
+  window.__acompana = { dayEvents: dayEvents };
+
+  // Workaround: Chromium drops keyboard events on elements inside the
+  // GPU-composited registration sheet. Capture keydown globally and
+  // insert into the active [data-other-text] element manually.
+  (function () {
+    document.addEventListener('keydown', function (e) {
+      var el = document.activeElement;
+      if (!el || el.dataset.otherText === undefined) return;
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (el.value !== undefined) {
+          var start = el.selectionStart;
+          var end = el.selectionEnd;
+          el.value = el.value.substring(0, start) + e.key + el.value.substring(end);
+          el.selectionStart = el.selectionEnd = start + 1;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          document.execCommand('insertText', false, e.key);
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey) {
+        if (el.value !== undefined) {
+          var s = el.selectionStart;
+          var en = el.selectionEnd;
+          if (s === en && s > 0) {
+            el.value = el.value.substring(0, s - 1) + el.value.substring(en);
+            el.selectionStart = el.selectionEnd = s - 1;
+          } else if (s !== en) {
+            el.value = el.value.substring(0, s) + el.value.substring(en);
+            el.selectionStart = el.selectionEnd = s;
+          } else {
+            return;
+          }
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+          document.execCommand('delete');
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
+  })();
 
   function init() {
     if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {

@@ -1,0 +1,241 @@
+/* Event registration UI: quick chips, patient picker, dictation proposal. */
+.event-patient-picker {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-4);
+  padding: 0 var(--space-1);
+}
+
+.event-patient-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--stone-border);
+  border-radius: var(--radius-pill);
+  background: var(--white);
+  color: var(--charcoal);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--duration-press) var(--ease-press), background var(--duration-press) var(--ease-press);
+}
+
+.event-patient-btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.event-patient-btn .patient-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--stone-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.event-patient-btn[aria-pressed="true"] .patient-dot {
+  background: var(--accent);
+  color: var(--white);
+}
+
+.other-event-field {
+  margin: var(--space-3) 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.other-event-field.is-visible {
+  max-height: 200px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.other-text-input {
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-3);
+  border: 1.5px solid var(--stone-border);
+  border-radius: var(--radius-card);
+  background: var(--sand);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  color: var(--charcoal);
+  outline: none;
+  word-break: break-word;
+}
+
+.other-text-input:empty::before {
+  content: attr(aria-label);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.other-event-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+
+.event-proposal {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--accent-soft);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--accent);
+  display: none;
+}
+
+.event-proposal.is-visible {
+  display: block;
+}
+
+.event-proposal-label {
+  font-size: var(--text-caption);
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.event-proposal-text {
+  font-size: var(--text-small);
+  color: var(--charcoal);
+  font-weight: 500;
+  margin-bottom: var(--space-3);
+}
+
+.event-proposal-kind {
+  display: inline-block;
+  font-size: var(--text-caption);
+  color: var(--accent);
+  background: var(--white);
+  padding: 2px 8px;
+  border-radius: var(--radius-badge);
+  margin-bottom: var(--space-2);
+}
+
+.event-proposal-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.tray-feedback[data-tray-feedback] {
+  font-size: var(--text-small);
+  color: var(--charcoal);
+  min-height: 20px;
+  margin: var(--space-2) 0;
+}
+
+.tray-feedback[data-tray-feedback].is-visible {
+  opacity: 1;
+}
+
+.tray-feedback-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.undo-event-btn {
+  display: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.undo-event-btn.is-visible {
+  display: inline-flex;
+}
+
+/* Schedule sheet for family contact */
+.schedule-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--veil-ink);
+  z-index: 90;
+  display: none;
+}
+
+.schedule-sheet-backdrop.is-visible {
+  display: block;
+}
+
+.schedule-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  padding: var(--space-5) var(--space-5) var(--space-7);
+  z-index: 91;
+  display: none;
+  max-width: var(--phone-width);
+  margin: 0 auto;
+}
+
+.schedule-sheet.is-visible {
+  display: block;
+}
+
+.schedule-sheet .sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.schedule-sheet .sheet-title {
+  font-size: var(--text-section);
+  font-weight: 600;
+  margin: 0;
+}
+
+.schedule-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.schedule-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--stone);
+}
+
+.schedule-row:last-child {
+  border-bottom: none;
+}
+
+.schedule-label {
+  font-size: var(--text-small);
+  color: var(--muted);
+}
+
+.schedule-value {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--charcoal);
+}
