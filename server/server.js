@@ -588,6 +588,106 @@ async function handleAsk(question, facts, ollamaClient) {
 }
 
 // ---------------------------------------------------------------------------
+// Per-reader translation of one event: deterministic rules -> Ollama -> rules.
+// The model may phrase the sentence; the server alone decides if it is safe.
+// ---------------------------------------------------------------------------
+
+const TRANSLATE_MAX = 90;
+const TRANSLATE_READERS = ['paciente', 'familia'];
+
+// Fixed plain phrases per kind and reader. Family never gets intimate care
+// details (position) and free-text ("other") events reach nobody.
+const RULE_PHRASES = {
+  paciente: {
+    medication: 'Le aplicaron el medicamento',
+    position: 'Le ayudaron a cambiar de posición',
+    round: 'La enfermera pasó a revisar',
+    other: null
+  },
+  familia: {
+    medication: 'Tratamiento cumplido',
+    position: null,
+    round: 'El equipo pasó a revisar',
+    other: null
+  }
+};
+
+function translateRules(event, reader) {
+  const phrases = RULE_PHRASES[reader] || {};
+  const kind = event && event.kind;
+  const text = kind && Object.prototype.hasOwnProperty.call(phrases, kind)
+    ? phrases[kind]
+    : null;
+  return { text, source: 'rules', model: null };
+}
+
+// Safety gates applied to any model phrasing before a reader sees it.
+const TRANSLATE_UNIT_RE = /\b(?:mg|ml|sc|dosis)\b|\binyecc/i;
+const TRANSLATE_ALARM_RE = /grave|diagn|pron[oó]st|deber[ií]a/i;
+const TRANSLATE_WORD_OK = new Set([
+  'cambio', 'posición', 'posicion', 'ronda', 'medicamento', 'enfermera', 'revisar'
+]);
+
+function longWords(text) {
+  return new Set(String(text || '').toLowerCase().match(/[a-záéíóúüñ]{6,}/g) || []);
+}
+
+// No clinical word from the nurse record may reach the reader verbatim.
+function leaksEventWords(output, eventText) {
+  const source = longWords(eventText);
+  for (const word of longWords(output)) {
+    if (source.has(word) && !TRANSLATE_WORD_OK.has(word)) return true;
+  }
+  return false;
+}
+
+function validTranslateText(raw, eventText) {
+  if (typeof raw !== 'string') return false;
+  const text = raw.trim();
+  if (!text || text.length > TRANSLATE_MAX) return false;
+  if (/\d/.test(text)) return false;
+  if (TRANSLATE_UNIT_RE.test(text)) return false;
+  if (containsAdvice(text)) return false;
+  if (TRANSLATE_ALARM_RE.test(text)) return false;
+  if (leaksEventWords(text, eventText)) return false;
+  return true;
+}
+
+const TRANSLATE_PROMPT =
+  'Translate one nursing event into exactly one short plain sentence in neutral ' +
+  'Colombian Spanish for a hospital patient or a family member, addressing them ' +
+  'as "usted". Reassuring and concrete. No names, no numbers, no doses, no drug ' +
+  'names, no advice, no diagnosis. Return JSON {"text":"..."}. EVENT: ';
+
+function buildTranslatePayload(event, reader) {
+  return {
+    task: 'translate',
+    reader,
+    kind: event.kind,
+    event: stripNames(String(event.text || '').slice(0, 600)),
+    schema: 'Return JSON {"text":"..."}: one short sentence, Spanish, "usted", ' +
+      'no names, no numbers, no drug names, no advice.'
+  };
+}
+
+async function handleTranslate(event, reader, ollamaClient) {
+  const rules = translateRules(event, reader);
+  // Family hidden details and free-text events never reach the model at all.
+  if (!rules.text) return rules;
+  if (!ollamaClient) return rules;
+  try {
+    const model = await ai.activeModel(ollamaClient);
+    if (!model) return rules;
+    const payload = buildTranslatePayload(event, reader);
+    const draft = await ai.generateJson(ollamaClient, model, TRANSLATE_PROMPT + JSON.stringify(payload));
+    if (!draft || !validTranslateText(draft.text, event && event.text)) return rules;
+    return { text: draft.text.trim(), source: 'ollama', model };
+  } catch (_) {
+    return rules;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // HTTP layer
 // ---------------------------------------------------------------------------
 
@@ -681,6 +781,21 @@ function createServer(ollamaClient) {
         sendJson(res, 200, result);
         return;
       }
+      if (req.method === 'POST' && url.pathname === '/api/translate') {
+        const body = JSON.parse(await readBody(req));
+        const event = body && body.event;
+        const reader = body && body.reader;
+        const text = event && typeof event.text === 'string' ? event.text : '';
+        const ok = TRANSLATE_READERS.includes(reader) &&
+          EVENT_KIND_ENUM.includes(event && event.kind) &&
+          text.trim().length >= 1 && text.length <= 600;
+        if (!ok) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
+        const result = await handleTranslate(
+          { kind: event.kind, text: text.trim() }, reader, client
+        );
+        sendJson(res, 200, result);
+        return;
+      }
       if (req.method === 'POST' && url.pathname === '/api/event') {
         const body = JSON.parse(await readBody(req));
         const text = body && typeof body.text === 'string' ? body.text.trim() : '';
@@ -745,6 +860,8 @@ module.exports = {
   resetNurseQuestions,
   handleHandover,
   handleAsk,
+  translateRules,
+  handleTranslate,
   classifyEventRules,
   handleEvent,
   createServer
