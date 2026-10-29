@@ -4,34 +4,73 @@
   initial-value: #0070d6;
 }
 
+/* Base palette: the only raw colors in the app. Change --color-primary-500
+   and every nurse surface, tint and text follows, in both themes. */
 :root {
-  --canvas: #fbfaf9;
-  --stone: #f2f0ed;
-  --sand: #f6f4ef;
-  --white: #ffffff;
-  --ink: #121212;
-  --charcoal: #343433;
-  --body: #474645;
-  --muted: #6b6b6a;
-  --stone-border: #e5d5c3;
-  --nurse: #0070d6;
-  --patient: #00ca48;
-  --patient-text: #087f35;
-  --family: #ffbb26;
-  --family-text: #8f5c00;
-  --sky: #64c6ff;
-  --sun: #ffcd6c;
-  --coral: #ff58ae;
-  --alert: #ff2b3a;
-  --alert-text: #c8102e;
-  --nurse-soft: #e8f3ff;
-  --patient-soft: #e5f9ec;
-  --family-soft: #fff4d6;
-  --critical-soft: #fff0f0;
-  --veil-ink: rgba(18, 18, 18, .32);
-  --veil-canvas: rgba(251, 250, 249, .88);
-  --on-ink-soft: rgba(255, 255, 255, .72);
-  --accent: var(--nurse);
+  --color-primary-500: #0070d6;
+  --color-patient-500: #00ca48;
+  --color-patient-700: #087f35;
+  --color-family-400: #ffbb26;
+  --color-family-800: #8f5c00;
+  --color-alert-500: #ff2b3a;
+  --color-alert-700: #c8102e;
+  --color-sky-300: #64c6ff;
+  --color-sun-300: #ffcd6c;
+  --color-coral-400: #ff58ae;
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #fbfaf9;
+  --color-neutral-100: #f6f4ef;
+  --color-neutral-150: #f2f0ed;
+  --color-neutral-200: #e5d5c3;
+  --color-neutral-500: #6b6b6a;
+  --color-neutral-600: #474645;
+  --color-neutral-700: #343433;
+  --color-neutral-950: #121212;
+  --color-dark-950: #121110;
+  --color-dark-900: #1c1b1a;
+  --color-dark-850: #1f1e1c;
+  --color-dark-800: #282624;
+  --color-dark-700: #3a352f;
+  --color-dark-300: #a19d97;
+  --color-dark-200: #c9c5bf;
+  --color-dark-100: #dcd9d4;
+  --color-dark-50: #f4f2ef;
+}
+
+/* Semantic tokens, light theme. */
+:root {
+  color-scheme: light;
+  --canvas: var(--color-neutral-50);
+  --stone: var(--color-neutral-150);
+  --sand: var(--color-neutral-100);
+  --white: var(--color-neutral-0);
+  --ink: var(--color-neutral-950);
+  --charcoal: var(--color-neutral-700);
+  --body: var(--color-neutral-600);
+  --muted: var(--color-neutral-500);
+  --stone-border: var(--color-neutral-200);
+  --nurse: var(--color-primary-500);
+  --nurse-text: color-mix(in srgb, var(--color-primary-500) 86%, var(--color-neutral-950));
+  --patient: var(--color-patient-500);
+  --patient-text: var(--color-patient-700);
+  --family: var(--color-family-400);
+  --family-text: var(--color-family-800);
+  --sky: var(--color-sky-300);
+  --sun: var(--color-sun-300);
+  --coral: var(--color-coral-400);
+  --alert: var(--color-alert-500);
+  --alert-text: var(--color-alert-700);
+  --tint: 10%;
+  --nurse-soft: color-mix(in srgb, var(--nurse) var(--tint), var(--white));
+  --patient-soft: color-mix(in srgb, var(--patient) var(--tint), var(--white));
+  --family-soft: color-mix(in srgb, var(--family) calc(var(--tint) * 1.6), var(--white));
+  --critical-soft: color-mix(in srgb, var(--alert) 7%, var(--white));
+  --veil-ink: color-mix(in srgb, var(--color-neutral-950) 32%, transparent);
+  --veil-canvas: color-mix(in srgb, var(--canvas) 88%, transparent);
+  --on-ink-soft: color-mix(in srgb, var(--white) 72%, transparent);
+  --shadow-ink: var(--color-neutral-950);
+  --phone-shadow: color-mix(in srgb, var(--shadow-ink) 4%, transparent) 0 1px 6px, color-mix(in srgb, var(--shadow-ink) 5%, transparent) 0 0 24px;
+  --accent: var(--nurse-text);
   --accent-soft: var(--nurse-soft);
   --font-display: "Bricolage Grotesque", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -67,11 +106,52 @@
   --text-section: 24px;
   --text-heading: 44px;
   --text-display: 44px;
-  --phone-shadow: rgba(0, 0, 0, .04) 0 1px 6px, rgba(0, 0, 0, .05) 0 0 24px;
+}
+
+/* Dark theme: neutrals flip, role colors lift so text stays >= 4.5:1.
+   Same values for the OS preference and for an explicit data-theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: var(--color-dark-950);
+    --stone: var(--color-dark-800);
+    --sand: var(--color-dark-850);
+    --white: var(--color-dark-900);
+    --ink: var(--color-dark-50);
+    --charcoal: var(--color-dark-100);
+    --body: var(--color-dark-200);
+    --muted: var(--color-dark-300);
+    --stone-border: var(--color-dark-700);
+    --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
+    --patient-text: var(--color-patient-500);
+    --family-text: var(--color-family-400);
+    --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
+    --tint: 18%;
+    --shadow-ink: var(--color-neutral-950);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: var(--color-dark-950);
+  --stone: var(--color-dark-800);
+  --sand: var(--color-dark-850);
+  --white: var(--color-dark-900);
+  --ink: var(--color-dark-50);
+  --charcoal: var(--color-dark-100);
+  --body: var(--color-dark-200);
+  --muted: var(--color-dark-300);
+  --stone-border: var(--color-dark-700);
+  --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
+  --patient-text: var(--color-patient-500);
+  --family-text: var(--color-family-400);
+  --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
+  --tint: 18%;
+  --shadow-ink: var(--color-neutral-950);
 }
 
 .phone[data-role="enfermero"] {
-  --accent: var(--nurse);
+  --accent: var(--nurse-text);
   --accent-soft: var(--nurse-soft);
 }
 

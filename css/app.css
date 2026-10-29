@@ -1804,7 +1804,7 @@ a:focus-visible {
 
 .contact-icon {
   background: var(--nurse-soft);
-  color: var(--nurse);
+  color: var(--nurse-text);
 }
 
 .visit-icon svg,
