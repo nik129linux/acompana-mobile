@@ -294,3 +294,8 @@
     transition: none;
   }
 }
+
+/* Room under the last item so the FAB never covers a control. */
+.phone[data-role="enfermero"] .view {
+  padding-bottom: calc(56px + var(--space-8) + var(--space-4));
+}

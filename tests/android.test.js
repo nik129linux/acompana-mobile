@@ -77,7 +77,18 @@ async function box(locator) {
     assert(await fab.isVisible(), 'FAB visible on Pendientes');
     await page.locator('[data-nav="turno"]').click();
     await page.waitForTimeout(500);
-    ok('Registrar FAB on nurse screens');
+    // The FAB must not sit on top of any control once scrolled to the end.
+    await page.locator('.view.is-active').evaluate((v) => { v.scrollTop = v.scrollHeight; });
+    await page.waitForTimeout(200);
+    const fabBox = await box(fab);
+    for (const b of await page.locator('.view.is-active button, .view.is-active a').all()) {
+      if (!(await b.isVisible())) continue;
+      const r = await b.boundingBox();
+      const overlap = r && !(r.x + r.width <= fabBox.x || fabBox.x + fabBox.width <= r.x || r.y + r.height <= fabBox.y || fabBox.y + fabBox.height <= r.y);
+      assert(!overlap, 'FAB covers a control after scrolling to the end');
+    }
+    await page.locator('.view.is-active').evaluate((v) => { v.scrollTop = 0; });
+    ok('Registrar FAB on nurse screens, never covering a control');
 
     // 4. System Back closes detail and sheets, never the app.
     await page.locator('[data-patient="mg"]').first().click();
