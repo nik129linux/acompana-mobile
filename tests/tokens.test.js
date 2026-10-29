@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { chromium } = require('playwright');
+const { viewAs, openRegister } = require('./helpers');
 
 const ROOT = path.join(__dirname, '..');
 const INDEX = pathToFileURL(path.join(ROOT, 'index.html')).href;
@@ -52,11 +53,11 @@ async function walk(page) {
   const add = async () => (await collectColors(page)).forEach((c) => all.add(c));
   await add();
   await page.locator('[data-nav="pendientes"]').click(); await page.waitForTimeout(500); await add();
-  await page.locator('[data-nav="registrar"]').click(); await page.waitForTimeout(500); await add();
+  await openRegister(page); await page.waitForTimeout(500); await add();
   await page.keyboard.press('Escape'); await page.locator('[data-sheet-close]').first().click().catch(() => {}); await page.waitForTimeout(500);
-  await page.locator('.role-tab[data-role="paciente"]').click(); await page.waitForTimeout(500); await add();
-  await page.locator('.role-tab[data-role="familia"]').click(); await page.waitForTimeout(500); await add();
-  await page.locator('.role-tab[data-role="enfermero"]').click(); await page.waitForTimeout(500);
+  await viewAs(page, 'paciente'); await page.waitForTimeout(500); await add();
+  await viewAs(page, 'familia'); await page.waitForTimeout(500); await add();
+  await viewAs(page, 'enfermero'); await page.waitForTimeout(500);
   return [...all];
 }
 

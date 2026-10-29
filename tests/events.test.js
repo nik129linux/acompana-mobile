@@ -12,6 +12,7 @@ const { pathToFileURL } = require('url');
 const ai = require('../server/ai');
 const srv = require('../server/server');
 const { chromium } = require('playwright');
+const { viewAs, openRegister } = require('./helpers');
 
 const INDEX = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
 let passed = 0;
@@ -98,7 +99,7 @@ async function skipSplash(page) {
 }
 
 async function openSheet(page) {
-  await page.locator('.bottom-nav [data-nav="registrar"]').first().click();
+  await openRegister(page);
   await page.waitForSelector('.registration-sheet');
   await page.waitForTimeout(400);
 }
@@ -195,12 +196,12 @@ async function uiTests() {
     ok('SBAR input includes logged events');
 
     // 7. Patient and family see plain words only, never the raw nurse text.
-    await page.locator('.role-tab[data-role="paciente"]').first().click();
+    await viewAs(page, 'paciente');
     await page.waitForTimeout(600);
     const patientView = await page.locator('.view.is-active').textContent();
     assert(/cambiar de posición/i.test(patientView), 'patient sees plain words for the position change');
     assert(!/decúbito|médico/i.test(patientView), 'patient never sees the raw clinical/manual text');
-    await page.locator('.role-tab[data-role="familia"]').first().click();
+    await viewAs(page, 'familia');
     await page.waitForTimeout(600);
     const familyView = await page.locator('.view.is-active').textContent();
     assert(!/decúbito|médico|enoxaparina/i.test(familyView), 'family never sees raw text');

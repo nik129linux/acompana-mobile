@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { chromium } = require('playwright');
+const { viewAs, openRegister } = require('./helpers');
 
 function contrastRatio(foreground, background) {
   const toRgb = color => {
@@ -96,25 +97,25 @@ function contrastRatio(foreground, background) {
   assert(await page.locator('[data-view-key="nurse-detail"]').isVisible(), 'Carlos detail did not open');
   assert.strictEqual((await page.locator('.detail-status').textContent()).trim(), 'Revisar', 'Carlos detail header exposes a clinical value');
   assert((await page.locator('#screen').textContent()).includes('La familia recibe'), 'family copy typo remains');
-  await page.locator('[data-role="paciente"]').click();
+  await viewAs(page, 'paciente');
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Registro clínico/), 'clinical detail remained immediately after switching to patient');
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="patient-home"]').isVisible(), 'patient role did not reset to home');
   assert.strictEqual(await page.locator('#screen .view.is-active').count(), 1, 'role switch left multiple active views');
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Registro clínico/), 'clinical detail leaked to patient after role switch');
 
-  await page.locator('[data-role="enfermero"]').click();
+  await viewAs(page, 'enfermero');
   await page.waitForTimeout(500);
   await page.locator('[data-patient="cr"]').click();
   await page.waitForTimeout(450);
-  await page.locator('[data-role="familia"]').click();
+  await viewAs(page, 'familia');
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Registro clínico/), 'clinical detail remained immediately after switching to family');
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="family-home"]').isVisible(), 'family role did not reset to home');
   assert.strictEqual(await page.locator('#screen .view.is-active').count(), 1, 'role switch left multiple active views');
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Registro clínico/), 'clinical detail leaked to family after role switch');
 
-  await page.locator('[data-role="enfermero"]').click();
+  await viewAs(page, 'enfermero');
   await page.waitForTimeout(500);
   await page.locator('[data-patient="mg"]').click();
   await page.waitForTimeout(450);
@@ -129,7 +130,7 @@ function contrastRatio(foreground, background) {
   await page.waitForTimeout(400);
   assert(await page.locator('[data-view-key="nurse-home"]').isVisible(), 'back navigation failed');
 
-  await page.locator('[data-nav="registrar"]').click();
+  await openRegister(page);
   await page.waitForTimeout(450);
   assert.strictEqual(await page.locator('.registration-layer.is-open').count(), 1, 'registration sheet did not open');
   assert.strictEqual(await page.locator('.event-chip').count(), 4, 'quick event count is not four');
@@ -138,13 +139,13 @@ function contrastRatio(foreground, background) {
   await page.waitForTimeout(450);
   assert.strictEqual(await page.locator('.registration-layer.is-open').count(), 0, 'registration sheet did not close');
 
-  await page.locator('[data-nav="registrar"]').click();
+  await openRegister(page);
   await page.waitForTimeout(450);
-  await page.locator('[data-role="paciente"]').click({ timeout: 1000 });
+  await viewAs(page, 'paciente');
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="patient-home"]').isVisible(), 'role switch from open sheet did not open patient home');
   assert.strictEqual(await page.locator('.registration-layer.is-open').count(), 0, 'role switch left registration sheet open');
-  await page.locator('[data-role="enfermero"]').click();
+  await viewAs(page, 'enfermero');
   await page.waitForTimeout(500);
 
   await page.locator('[data-nav="pendientes"]').click();
@@ -190,7 +191,7 @@ function contrastRatio(foreground, background) {
   await page.locator('[data-close-celebration]').click();
   await page.waitForTimeout(400);
 
-  await page.locator('[data-role="paciente"]').click();
+  await viewAs(page, 'paciente');
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="patient-home"]').isVisible(), 'patient role did not open');
   assert((await page.locator('#screen').textContent()).includes('Aquí ve'), 'patient copy is not formal');
@@ -210,7 +211,7 @@ function contrastRatio(foreground, background) {
   await page.locator('[data-faq]').first().click();
   assert.strictEqual(await page.locator('.faq-item.is-open').count(), 1, 'FAQ interaction failed');
 
-  await page.locator('[data-role="familia"]').click();
+  await viewAs(page, 'familia');
   await page.waitForTimeout(500);
   assert(await page.locator('[data-view-key="family-home"]').isVisible(), 'family role did not open');
   const familyCopy = await page.locator('[data-view-key="family-home"]').textContent();
@@ -352,7 +353,7 @@ function contrastRatio(foreground, background) {
   }
   // also check that sheet handle has extended hit area ::after
   // open registration sheet for F1 dictate + handle + empty-state after
-  await page.locator('[data-nav="registrar"]').click();
+  await openRegister(page);
   await page.waitForTimeout(500);
   assert(await page.locator('.registration-layer.is-open').count() === 1, 'findings: registration sheet not open');
   await assertGloveBox('.dictate-button', 'dictate-button');
@@ -380,7 +381,7 @@ function contrastRatio(foreground, background) {
   await assertGloveBox('.empty-state-link', 'empty-state-link');
 
   // Switch to family for F2 family chevrons and F1 contact buttons + F3 contrast + F5 times
-  await page.locator('[data-role="familia"]').click();
+  await viewAs(page, 'familia');
   await page.waitForTimeout(600);
   assert(await page.locator('[data-view-key="family-home"]').isVisible(), 'findings: family-home not visible');
   // F2: no detail-chevron in family
@@ -396,7 +397,7 @@ function contrastRatio(foreground, background) {
 
   // F3 — contrast ratio >=4.5 computed from real computed colors (muted on canvas/sand)
   {
-    await page.locator('[data-role="enfermero"]').click();
+    await viewAs(page, 'enfermero');
     await page.waitForTimeout(500);
     // ensure nurse-home where muted elements exist
     await page.locator('[data-nav="turno"]').click().catch(()=>{});
@@ -409,7 +410,7 @@ function contrastRatio(foreground, background) {
     const ratio = contrastRatio(mutedFg, canvasBg);
     assert(ratio >= 4.5, `F3: muted on canvas contrast ${ratio.toFixed(2)} <4.5 (fg ${mutedFg} bg ${canvasBg})`);
     // also check small inside event-chip on sand
-    await page.locator('[data-nav="registrar"]').click();
+    await openRegister(page);
     await page.waitForTimeout(500);
     const chipFg = await page.locator('.event-chip small').first().evaluate(n=> getComputedStyle(n).color);
     let chipBg = await page.locator('.event-chip').first().evaluate(n=> getComputedStyle(n).backgroundColor);
@@ -424,7 +425,7 @@ function contrastRatio(foreground, background) {
 
   // F5 — times do not wrap and tabular-nums computed
   {
-    await page.locator('[data-role="paciente"]').click();
+    await viewAs(page, 'paciente');
     await page.waitForTimeout(500);
     assert(await page.locator('[data-view-key="patient-home"]').isVisible(), 'findings: patient-home not visible for F5');
     const selectorsTabular = ['.timeline-time', '.task-time', '.shift-stat strong', '.pending-count', '.status-time', '.clinical-value'];
