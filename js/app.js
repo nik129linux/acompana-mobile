@@ -140,7 +140,7 @@
   };
 
   // placeholder: confirm in field
-  var SHIFT_PHONE = '+573001234567';
+  var SHIFT_PHONE = ''; // TODO: insert the shift phone (empty opens the dialer blank, never a stranger)
 
   // Plain-language translations for patient/family timelines. Both maps
   // mirror the server's RULE_PHRASES (server/server.js): family never gets
