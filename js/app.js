@@ -505,7 +505,7 @@
           return detailRow(e.time + ' · ' + kindLabel, e.text, false);
         }).join('') + '</div></div>'
       : '';
-    return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><p class="view-subtitle">Detalle del turno</p><h1 class="view-title small-title">Ficha del paciente</h1></div></div>' +
+    return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title">Ficha del paciente</h1></div></div>' +
       '<div class="detail-hero"><span class="patient-avatar">' + escapeHtml(patient.initials) + '</span><div class="detail-hero-copy"><h2 class="detail-name">' + escapeHtml(patient.name) + '</h2><span class="detail-room">' + escapeHtml(patient.room) + '</span><span class="badge ' + (patient.status === 'critical' ? 'badge-critical' : 'badge-neutral') + ' detail-status">' + escapeHtml(patient.status === 'critical' ? patient.statusLabel : 'En seguimiento') + '</span></div></div>' +
       '<div class="detail-section"><h2 class="detail-section-title">Registro clínico</h2><div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button><button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button><p class="view-copy muted-copy">Oculto por defecto porque esta pantalla también se ve desde la cama.</p></div></div>' +
       '<div class="privacy-note">' + icon('shield') + '<span>El dato sensible queda detrás de un toque deliberado. Si decides comunicarlo, hazlo con calma.</span></div>' +
@@ -726,6 +726,8 @@
   }
 
   function updateRole(role) {
+    // Nurse feedback (and its undo) must never follow into another reader's view.
+    hideEventFeedback();
     var nextIndex = ROLE_INDEX[role];
     var currentIndex = ROLE_INDEX[state.role];
     state.role = role;
@@ -1201,8 +1203,9 @@
     saveEvents(evs);
     state.eventUndo = id;
     if (state.eventUndoTimer) window.clearTimeout(state.eventUndoTimer);
-    var label = kind === 'medication' ? 'Medicación' : kind === 'position' ? 'Cambio de posición' : kind === 'round' ? 'Ronda' : 'Otro evento';
-    showEventFeedback(label + ' registrado · ' + entry.time);
+    // Spanish agreement: "Medicación/Ronda registrada", "Cambio/Otro evento registrado".
+    var label = kind === 'medication' ? 'Medicación registrada' : kind === 'position' ? 'Cambio de posición registrado' : kind === 'round' ? 'Ronda registrada' : 'Evento registrado';
+    showEventFeedback(label + ' · ' + entry.time);
     state.eventUndoTimer = window.setTimeout(function () {
       state.eventUndo = null;
       hideEventFeedback();

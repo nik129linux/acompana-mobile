@@ -147,8 +147,14 @@ async function box(locator) {
 
     // 7. Readers: FAB only for the nurse; mascot only at calm moments.
     const { viewAs } = require('./helpers');
+    await page.locator('[data-fab-register]').click();
+    await page.waitForTimeout(400);
+    await page.locator('[data-quick-event="Medicación"]').click();
+    await page.waitForTimeout(200);
+    assert(/Medicación registrada/.test(await page.locator('.snackbar').textContent()), 'feedback agrees in gender: "Medicación registrada"');
     await viewAs(page, 'paciente');
     await page.waitForTimeout(600);
+    assert(!(await page.locator('.snackbar').isVisible().catch(() => false)), 'nurse snackbar must not follow into the patient view');
     assert(!(await page.locator('[data-fab-register]').isVisible().catch(() => false)), 'no FAB for the patient');
     assert(await page.locator('.view.is-active .next-card [data-mascot]').count() >= 1, 'mascot accompanies the patient "Lo que sigue" card');
     await viewAs(page, 'enfermero');
@@ -156,6 +162,7 @@ async function box(locator) {
     await page.locator('[data-patient="cr"]').first().click();
     await page.waitForTimeout(600);
     assert.strictEqual(await page.locator('.view.is-active [data-mascot]').count(), 0, 'no mascot on the clinical detail');
+    assert.strictEqual(await page.locator('.view.is-active .top-app-bar .view-subtitle, .view.is-active .eyebrow').count(), 0, 'no kicker above the detail title');
     ok('FAB only for the nurse; mascot on calm screens, not clinical ones');
 
     // 8. Desktop stage may keep the phone frame for the demo.
