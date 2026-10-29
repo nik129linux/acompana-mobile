@@ -89,13 +89,6 @@
     { time: '1:00 p. m.', text: 'La enfermera vuelve a hacer la ronda', pending: true }
   ];
 
-  function familyTimeline(patient) {
-    return [
-      { time: 'Hoy', text: 'Tratamiento de la mañana cumplido', pending: false },
-      { time: 'Hoy', text: 'El equipo está con ' + patient.pronoun + ', sin novedad que reportar', pending: false },
-      { time: '15:00', text: 'Horario de visita disponible', pending: true }
-    ];
-  }
 
   var NAV_BY_ROLE = {
     enfermero: [
@@ -396,9 +389,6 @@
     return TASKS.filter(function (task) { return !isConfirmed(task.id); });
   }
 
-  function taskForPatient(patientId) {
-    return TASKS.find(function (task) { return task.patientId === patientId && !isConfirmed(task.id); });
-  }
 
   function patientById(patientId) {
     return PATIENTS.find(function (patient) { return patient.id === patientId; });
@@ -412,115 +402,8 @@
       '</video><div class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></div></div>';
   }
 
-  function patientBadge(patient) {
-    if (patient.status === 'critical') {
-      return '<span class="badge badge-critical">' + escapeHtml(patient.statusLabel) + '</span>';
-    }
-    if (taskForPatient(patient.id)) {
-      return '<span class="badge badge-pending">' + escapeHtml(patient.statusLabel) + '</span>';
-    }
-    return '<span class="badge badge-ready">Listo</span>';
-  }
-
-  function patientCard(patient) {
-    var task = taskForPatient(patient.id);
-    var side = task
-      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + ' en un toque">Listo</button>'
-      : patientBadge(patient);
-    var next = task ? escapeHtml(task.time) + ' · ' + escapeHtml(task.title) : escapeHtml(patient.room);
-    return '<article class="patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
-      '<button type="button" class="patient-card-main" data-patient="' + escapeHtml(patient.id) + '" aria-label="Abrir detalle de ' + escapeHtml(patient.name) + '">' +
-      '<span class="patient-avatar">' + escapeHtml(patient.initials) + '</span>' +
-      '<span class="patient-info"><span class="patient-name">' + escapeHtml(patient.name) + '</span><span class="patient-meta">' + escapeHtml(patient.room) + (task ? ' · ' + next : '') + '</span></span>' +
-      '</button><div class="patient-side">' + side + '</div></article>';
-  }
-
-  // The critical patient is the one peak on the home screen. No clinical
-  // values here: the patient in the bed can see this screen.
-  function urgentCard(patient) {
-    return '<article class="urgent-card patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
-      '<div class="urgent-head"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span class="urgent-kicker">Alerta de signos vitales</span></div>' +
-      '<p class="urgent-name">' + escapeHtml(patient.name) + '</p>' +
-      '<p class="urgent-meta">' + escapeHtml(patient.room) + ' · protocolo abierto, sin confirmar</p>' +
-      '<button type="button" class="urgent-action" data-patient="' + escapeHtml(patient.id) + '" aria-label="Revisar ahora a ' + escapeHtml(patient.name) + '">Revisar ahora' + icon('arrow') + '</button>' +
-      '</article>';
-  }
-
-  function renderNurseHome() {
-    var pending = remainingTasks().length;
-    var critical = PATIENTS.filter(function (p) { return p.status === 'critical'; });
-    var stable = PATIENTS.filter(function (p) { return p.status !== 'critical'; });
-    return '<div class="home-intro"><h1 class="view-title">Mi turno</h1><p class="view-copy">Buenos días, Elena · Piso 3, Hospital Central</p>' +
-      '<p class="shift-line" aria-label="Resumen del turno"><span><strong>' + PATIENTS.length + '</strong> pacientes</span><span><strong>' + pending + '</strong> pendientes</span><span>ronda <strong>1:00 p. m.</strong></span></p></div>' +
-      (critical.length ? '<section class="urgent-section" aria-label="Requiere atención">' + critical.map(urgentCard).join('') + '</section>' : '') +
-      '<div class="section-heading"><h2 class="section-label">Tus pacientes</h2><span class="section-meta">' + stable.length + ' estables</span></div>' +
-      '<div class="patient-list">' + stable.map(patientCard).join('') + '</div>' +
-      '<div class="ai-card"><strong>Nota de entrega (SBAR)</strong><span>Prepara un borrador del turno para entregar. Puedes editarlo antes de copiarlo.</span><span class="source-badge" data-handover-home-badge>Plantilla</span><div class="ai-actions"><button type="button" class="secondary-button" data-handover-open>Preparar nota</button></div></div>';
-  }
-
-  function taskCard(task) {
-    return '<article class="task-card" data-task-card="' + escapeHtml(task.id) + '">' +
-      '<span class="task-icon">' + icon(task.icon) + '</span>' +
-      '<span class="task-copy"><span class="task-time">' + escapeHtml(task.time) + '</span><span class="task-title">' + escapeHtml(task.title) + '</span><span class="task-note">' + escapeHtml(task.note) + '</span></span>' +
-      '<button type="button" class="task-action tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + '"><svg class="confirm-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="m7 16 6 6L25 9"></path></svg><span class="confirm-label">Listo</span></button>' +
-      '</article>';
-  }
-
-  function renderEmptyPending() {
-    var pieces = '';
-    var stagger = getStaggerMs();
-    for (var index = 1; index <= 12; index += 1) {
-      pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * stagger) + 'ms"></span>';
-    }
-    return '<div class="empty-state" data-empty-state>' +
-      '<div class="confetti-layer" aria-hidden="true">' + pieces + '</div>' +
-      videoSlot('empty', 'Doctora flotando tranquila') +
-      '<span class="completion-mark">' + icon('check') + '</span>' +
-      '<h2>Todo confirmado</h2><p>El turno está al día. Puedes respirar un momento.</p>' +
-      '<button type="button" class="accent-link empty-state-link" data-go-home>Volver al turno ' + icon('chevron') + '</button>' +
-      '</div>';
-  }
-
-  function renderPending() {
-    var pending = remainingTasks();
-    if (!pending.length) return renderEmptyPending();
-    return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Turno de Elena</p><h1 class="view-title small-title">Pendientes</h1></div></div>' +
-      '<div class="pending-summary"><div class="pending-summary-copy"><strong>Lo que falta</strong><span>Confirma cada evento con un toque.</span></div><span class="pending-count" data-pending-count>' + pending.length + '</span></div>' +
-      '<div class="section-heading"><h2 class="section-label">En este momento</h2><span class="section-meta">Orden por hora</span></div>' +
-      '<div class="task-list">' + pending.map(taskCard).join('') + '</div>' +
-      '<div class="ai-card"><strong>Preguntas de la familia</strong><span>Si una familia dejó una duda desde su vista, aparece aquí.</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>Revisar preguntas</button></div><div data-nurse-questions></div></div>';
-  }
-
-  function renderNurseDetail(patient) {
-    var kindLabels = { medication: 'Medicación', position: 'Cambio de posición', round: 'Ronda', other: 'Otro evento' };
-    // One chronological shift list: planned tasks and what the nurse logged.
-    var rows = TASKS.filter(function (task) { return task.patientId === patient.id; }).map(function (task) {
-      var done = isConfirmed(task.id);
-      return { time: task.time, title: task.title, note: '', status: done ? 'Hecho' : 'Pendiente', done: done };
-    }).concat(loadEvents().filter(function (e) { return e.patientId === patient.id; }).map(function (e) {
-      return { time: e.time, title: kindLabels[e.kind] || 'Evento', note: e.text, status: 'Registrado', done: true };
-    })).sort(function (x, y) { return x.time < y.time ? -1 : x.time > y.time ? 1 : 0; });
-    var alert = patient.status === 'critical'
-      ? '<div class="detail-alert detail-status" role="status"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span>Alerta de signos vitales · protocolo abierto</span></div>'
-      : '';
-    return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title detail-name">' + escapeHtml(patient.name) + '</h1></div></div>' +
-      '<p class="detail-room">' + escapeHtml(patient.room) + '</p>' + alert +
-      '<section class="detail-block clinical-block" aria-labelledby="clinical-title"><h2 id="clinical-title" class="detail-section-title">Valor clínico</h2>' +
-      '<div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button>' +
-      '<button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button></div>' +
-      '<p class="clinical-why">' + icon('shield') + '<span>Oculto porque esta pantalla también se ve desde la cama. La familia recibe solo un resumen del turno, sin valores clínicos.</span></p></section>' +
-      '<section class="detail-block" aria-labelledby="shift-title"><h2 id="shift-title" class="detail-section-title">Turno</h2><ol class="shift-list">' +
-      rows.map(function (r) {
-        return '<li class="shift-row' + (r.done ? ' is-done' : '') + '"><span class="shift-time">' + escapeHtml(r.time) + '</span>' +
-          '<span class="shift-copy"><strong>' + escapeHtml(r.title) + '</strong>' + (r.note ? '<span>' + escapeHtml(r.note) + '</span>' : '') + '</span>' +
-          '<span class="shift-status">' + escapeHtml(r.status) + '</span></li>';
-      }).join('') + '</ol></section></div>';
-  }
 
 
-  function onboardingCard(slot, title, copy) {
-    return '<article class="onboarding-card"><div class="onboarding-card-copy"><strong>' + escapeHtml(title) + '</strong><span>' + escapeHtml(copy) + '</span></div>' + videoSlot(slot, title) + '</article>';
-  }
 
   function timeline(items) {
     return '<div class="timeline">' + items.map(function (item) {
@@ -532,64 +415,26 @@
     }).join('') + '</div>';
   }
 
-  function renderPatient() {
-    return '<div class="patient-intro"><p class="eyebrow">Hab. 304-B</p><h1 class="view-title">Mi estado</h1><p class="view-copy">Aquí ve lo que va pasando, en palabras sencillas.</p></div>' +
-      '<div class="next-card"><span class="next-card-icon">' + icon('clock') + '</span><span class="next-card-copy"><strong>Lo que sigue</strong><span>La enfermera vuelve a hacer la ronda <span class="time-nowrap">a la 1:00 p. m.</span></span></span>' +
-      '<span class="next-mascot" data-mascot aria-hidden="true"><span class="video-slot next-mascot-slot">' +
-      '<video class="loop" autoplay muted loop playsinline preload="metadata" poster="media/onboarding-1.jpg" aria-hidden="true">' +
-      '<source src="media/onboarding-1.webm" type="video/webm"><source src="media/onboarding-1.mp4" type="video/mp4">' +
-      '</video><span class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></span></span></span></div>' +
-      '<div class="onboarding-block"><div class="onboarding-intro"><h2 class="section-label">Así funciona</h2><p>Dos ideas sencillas</p></div><div class="onboarding-grid">' + onboardingCard('onboarding-1', 'Lo que sigue', 'Vea el próximo paso del turno.') + onboardingCard('onboarding-2', 'Cómo pedir ayuda', 'Use el timbre cuando necesite algo.') + '</div></div>' +
-      '<div class="section-heading"><h2 class="section-label">Qué pasó hoy</h2><span class="section-meta">En simple</span></div>' + timeline(patientDayTimeline());
-  }
 
-  function faqItem(id, question, answerHtml) {
-    return '<article class="faq-item" data-faq-item="' + escapeHtml(id) + '"><button type="button" class="faq-question" data-faq="' + escapeHtml(id) + '" aria-expanded="false"><span>' + escapeHtml(question) + '</span><span class="detail-chevron">' + icon('chevron') + '</span></button><div class="faq-answer"><div>' + answerHtml + '</div></div></article>';
-  }
-
-  function renderQuestions() {
-    return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Hab. 304-B</p><h1 class="view-title small-title">Preguntas</h1></div></div>' +
-      '<p class="view-copy">Si hay algo que no tiene claro, puede preguntar con tranquilidad.</p>' +
-      '<div class="faq-list">' + faqItem('round', '¿Cuándo vuelve la enfermera?', 'La próxima ronda está prevista para <span class="time-nowrap">la 1:00 p. m.</span> Si llega un poco más tarde, el equipo le avisará.') + faqItem('help', '¿Cómo pido algo?', 'Use el timbre de la habitación. La enfermera responderá lo más pronto posible.') + faqItem('privacy', '¿Qué información veo aquí?', 'Ve un resumen del turno en palabras sencillas. Su equipo decide qué información clínica debe recibir.') + '</div>';
-  }
-
-  function renderFamily() {
-    var patient = patientById(FAMILY_PATIENT_ID);
-    var objectPronoun = patient.pronoun === 'ella' ? 'la' : 'lo';
-    return '<div class="patient-intro"><p class="eyebrow">' + escapeHtml(patient.name) + ' · ' + escapeHtml(patient.room) + '</p><h1 class="view-title">Qué pasa</h1><p class="view-copy">Un resumen sencillo para acompañar' + objectPronoun + ' con tranquilidad.</p></div>' +
-      '<div class="family-summary"><strong>El equipo está con ' + escapeHtml(patient.pronoun) + '</strong><span>El tratamiento de la mañana va avanzando con normalidad.</span></div>' +
-      '<div class="section-heading"><h2 class="section-label">Hoy</h2><span class="section-meta">Sin datos clínicos</span></div>' + timeline(familyDayTimeline(patient)) +
-      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>' +
-      '<div class="ai-card"><strong>¿Tiene una duda?</strong><span>Pregunte con tranquilidad. Le respondemos solo con lo que se ve del turno.</span><div class="ask-row"><input type="text" class="ask-input" data-ask-input maxlength="300" placeholder="¿Cómo pasó la noche?" aria-label="Escriba su pregunta"><button type="button" class="primary-button" data-ask-send>Preguntar</button></div><div class="ask-answer is-empty" data-ask-answer aria-live="polite"></div><span class="source-badge" data-ask-badge>Plantilla</span></div>';
-  }
-
-  function renderContact() {
-    return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Familia de María González</p><h1 class="view-title small-title">Contacto</h1></div></div>' +
-      '<p class="view-copy">Si necesita información sobre la visita, el equipo de turno puede orientarla.</p>' +
-      '<div class="contact-card"><span class="contact-icon">' + icon('phone') + '</span><span class="contact-copy"><strong>Enfermera de turno</strong><span>Elena · vuelve a <span class="time-nowrap">la 1:00 p. m.</span></span></span></div>' +
-      '<div class="visit-card"><span class="visit-icon">' + icon('calendar') + '</span><span class="visit-copy"><strong>Horario de visita</strong><span>Hoy, de <span class="time-nowrap">3:00 p. m.</span> a <span class="time-nowrap">5:00 p. m.</span></span></span></div>' +
-      '<div class="contact-actions"><a href="tel:' + escapeHtml(SHIFT_PHONE) + '" class="primary-button">Llamar al turno</a><button type="button" class="secondary-button" data-schedule-open>Ver horarios</button></div>' +
-      '<div class="schedule-sheet-backdrop" data-schedule-close></div><div class="schedule-sheet" data-schedule-sheet><div class="sheet-header"><h2 class="sheet-title">Horarios del turno</h2><button type="button" class="schedule-close" data-schedule-close aria-label="Cerrar horarios">×</button></div><div class="schedule-row"><span class="schedule-label">Visita hoy</span><span class="schedule-value">3:00 p. m. a 5:00 p. m.</span></div><div class="schedule-row"><span class="schedule-label">Próxima ronda</span><span class="schedule-value">La 1:00 p. m.</span></div></div>';
-  }
 
   function viewDefinition() {
     if (state.role === 'enfermero') {
       if (state.detailPatient) {
-        return { key: 'nurse-detail', className: 'is-detail', inner: renderNurseDetail(state.detailPatient) };
+        return { key: 'nurse-detail', className: 'is-detail', inner: views.nurse.renderNurseDetail(state.detailPatient) };
       }
       if (state.activeNav[state.role] === 'pendientes') {
-        return { key: 'nurse-pending', className: 'is-home', inner: renderPending() };
+        return { key: 'nurse-pending', className: 'is-home', inner: views.nurse.renderPending() };
       }
-      return { key: 'nurse-home', className: 'is-home', inner: renderNurseHome() };
+      return { key: 'nurse-home', className: 'is-home', inner: views.nurse.renderNurseHome() };
     }
     if (state.role === 'paciente') {
       return state.activeNav[state.role] === 'preguntas'
-        ? { key: 'patient-questions', className: 'is-home', inner: renderQuestions() }
-        : { key: 'patient-home', className: 'is-home', inner: renderPatient() };
+        ? { key: 'patient-questions', className: 'is-home', inner: views.patient.renderQuestions() }
+        : { key: 'patient-home', className: 'is-home', inner: views.patient.renderPatient() };
     }
     return state.activeNav[state.role] === 'contacto'
-      ? { key: 'family-contact', className: 'is-home', inner: renderContact() }
-      : { key: 'family-home', className: 'is-home', inner: renderFamily() };
+      ? { key: 'family-contact', className: 'is-home', inner: views.family.renderContact() }
+      : { key: 'family-home', className: 'is-home', inner: views.family.renderFamily() };
   }
 
   function createView(definition, direction) {
@@ -835,11 +680,7 @@
     state.activeNav.enfermero = 'registrar';
     state.eventPatient = state.detailPatient ? state.detailPatient.id : PATIENTS[0].id;
     clearUndo();
-    var patientButtons = PATIENTS.map(function (p) {
-      var active = p.id === state.eventPatient;
-      return '<button type="button" class="event-patient-btn" data-event-patient="' + escapeHtml(p.id) + '" aria-pressed="' + String(active) + '"><span class="patient-dot">' + escapeHtml(p.initials) + '</span>' + escapeHtml(p.name.split(' ')[0]) + '</button>';
-    }).join('');
-    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><div class="event-patient-picker" role="radiogroup" aria-label="Paciente">' + patientButtons + '</div><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><div class="other-event-field" data-other-field><textarea class="other-text-input" data-other-text rows="2" maxlength="140" aria-label="Describe el evento" placeholder="Describe el evento"></textarea><div class="other-event-actions"><button type="button" class="primary-button" data-other-save>Guardar</button></div></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Toca para dictar</small></span></button><div class="event-proposal" data-event-proposal><p class="event-proposal-label">Revisa antes de guardar</p><span class="event-proposal-kind" data-proposal-kind></span><p class="event-proposal-text" data-proposal-text></p><div class="event-proposal-actions"><button type="button" class="secondary-button" data-proposal-cancel>Cancelar</button><button type="button" class="primary-button" data-proposal-save>Guardar</button></div></div></section>';
+    app.registrationLayer.innerHTML = views.sheets.registrationSheet(state.eventPatient);
     app.registrationLayer.classList.add('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'false');
     renderBottomNav();
@@ -1511,28 +1352,6 @@
     return base.concat(logged);
   }
 
-  function patientDayTimeline() {
-    var items = TIMELINE_PACIENTE.slice();
-    var logged = loadEvents().filter(function (e) {
-      return e.patientId === FAMILY_PATIENT_ID && e.kind !== 'other' && EVENT_KIND_PHRASES[e.kind];
-    });
-    logged.forEach(function (e) {
-      items.push({ time: e.time, text: EVENT_KIND_PHRASES[e.kind], pending: false, eventId: e.id, kind: e.kind });
-    });
-    return items;
-  }
-
-  // Family timeline merges logged events as plain-language phrases
-  function familyDayTimeline(patient) {
-    var items = familyTimeline(patient);
-    var logged = loadEvents().filter(function (e) {
-      return e.patientId === patient.id && EVENT_KIND_PHRASES_FAMILIA[e.kind];
-    });
-    logged.forEach(function (e) {
-      items.push({ time: e.time, text: EVENT_KIND_PHRASES_FAMILIA[e.kind], pending: false, eventId: e.id, kind: e.kind });
-    });
-    return items;
-  }
 
   function familyFacts() {
     return [
@@ -1622,31 +1441,9 @@
     }
   }
 
-  function consentBox(kind, payload) {
-    return '<div class="consent-box"><strong>Antes de usar la IA</strong>' +
-      '<span>Esto es lo único que saldría de este equipo. Sin nombres ni datos personales. ¿Lo aceptas?</span>' +
-      '<pre>' + escapeHtml(JSON.stringify(payload, null, 1)) + '</pre>' +
-      '<div class="consent-row"><button type="button" class="primary-button" data-consent-yes="' + kind + '">Aceptar</button>' +
-      '<button type="button" class="secondary-button" data-consent-no="' + kind + '">Ahora no</button></div></div>';
-  }
 
   function openHandoverSheet() {
-    app.aiLayer.innerHTML = '<div class="ai-backdrop" data-ai-close></div>' +
-      '<section class="ai-sheet" role="dialog" aria-modal="true" aria-labelledby="ai-sheet-title">' +
-      '<div class="sheet-handle" aria-hidden="true"></div>' +
-      '<div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Entrega de turno</p>' +
-      '<h2 id="ai-sheet-title" class="sheet-title">Nota de entrega (SBAR)</h2></div>' +
-      '<button type="button" class="icon-button" data-ai-close aria-label="Cerrar nota">×</button></div>' +
-      '<p class="sheet-copy">Revisa cada campo. Puedes editarlo antes de copiarlo.</p>' +
-      '<div data-consent-slot></div>' +
-      '<label class="handover-field">Situación<textarea data-handover-s rows="2" maxlength="200"></textarea></label>' +
-      '<label class="handover-field">Antecedentes<textarea data-handover-b rows="2" maxlength="200"></textarea></label>' +
-      '<label class="handover-field">Evaluación<textarea data-handover-a rows="2" maxlength="200"></textarea></label>' +
-      '<label class="handover-field">Recomendación<textarea data-handover-r rows="2" maxlength="200"></textarea></label>' +
-      '<div class="ai-actions"><span class="source-badge" data-handover-badge>Plantilla</span>' +
-      '<button type="button" class="secondary-button" data-handover-generate>Generar borrador</button>' +
-      '<button type="button" class="primary-button" data-handover-copy>Copiar nota</button></div>' +
-      '<p class="tray-feedback ai-feedback" data-ai-feedback aria-live="polite"></p></section>';
+    app.aiLayer.innerHTML = views.sheets.handoverSheet();
     app.aiLayer.classList.add('is-open');
     app.aiLayer.setAttribute('aria-hidden', 'false');
     pushLayer('ai');
@@ -1689,7 +1486,7 @@
     }
     aiRequest('/api/handover', { events: dayEvents(), dryRun: true }).then(function (data) {
       var slot = app.aiLayer.querySelector('[data-consent-slot]');
-      if (slot && data && data.payload) slot.innerHTML = consentBox('handover', data.payload);
+      if (slot && data && data.payload) slot.innerHTML = views.sheets.consentBox('handover', data.payload);
     }, function () {
       fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
     });
@@ -1760,7 +1557,7 @@
       box.classList.remove('is-empty');
       box.innerHTML = '';
       var wrap = document.createElement('div');
-      wrap.innerHTML = consentBox('ask', data && data.payload);
+      wrap.innerHTML = views.sheets.consentBox('ask', data && data.payload);
       box.appendChild(wrap);
     }, function () {
       showAsk(box, askLocal(question).answer, 'rules', null);
@@ -1856,6 +1653,28 @@
 
   // Expose dayEvents for SBAR integration (used by tests).
   window.__acompana = { dayEvents: dayEvents };
+
+  // ---- Split view renderers: shared helpers reachable from js/views/*.js ----
+  var views = window.AcompanaViews;
+  views.ctx = {
+    escapeHtml: escapeHtml,
+    icon: icon,
+    videoSlot: videoSlot,
+    getStaggerMs: getStaggerMs,
+    timeline: timeline,
+    loadEvents: loadEvents,
+    isConfirmed: isConfirmed,
+    remainingTasks: remainingTasks,
+    patientById: patientById,
+    PATIENTS: PATIENTS,
+    TASKS: TASKS,
+    TIMELINE_PACIENTE: TIMELINE_PACIENTE,
+    FAMILY_PATIENT_ID: FAMILY_PATIENT_ID,
+    SHIFT_PHONE: SHIFT_PHONE,
+    EVENT_KIND_PHRASES: EVENT_KIND_PHRASES,
+    EVENT_KIND_PHRASES_FAMILIA: EVENT_KIND_PHRASES_FAMILIA
+  };
+  views.ctx.sheets = views.sheets;
 
   function init() {
     if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {

@@ -24,6 +24,10 @@ var SHELL = [
   '/css/detail.css',
   '/css/android.css',
   '/js/theme.js',
+  '/js/views/nurse.js',
+  '/js/views/patient.js',
+  '/js/views/family.js',
+  '/js/views/sheets.js',
   '/js/app.js'
 ];
 
