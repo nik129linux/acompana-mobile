@@ -49,3 +49,12 @@ models are valid). The UI badge reads "Plantilla" or "IA local · \<model\>".
 ```bash
 node tests/server.test.js
 ```
+
+## Run it on an Android phone
+
+`node server/server.js` now serves the app too, on every interface (`HOST` overrides).
+
+- Same Wi-Fi: open the printed `http://192.168.x.x:8787` in Chrome. The AI works, but
+  Chrome only offers "Install app" on HTTPS or localhost.
+- To install: USB + `adb reverse tcp:8787 tcp:8787`, then open `http://localhost:8787`
+  on the phone and pick "Install app". It opens full screen and the shell works offline.

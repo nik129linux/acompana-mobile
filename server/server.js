@@ -8,9 +8,68 @@
 // no names, rooms, titles or free text. See buildHandoverPayload.
 
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const ai = require('./ai');
 
 const PORT = 8787;
+const HOST = process.env.HOST || '0.0.0.0';
+const ROOT = path.join(__dirname, '..');
+
+// Static files allowed to be served from the repo root. Anything outside
+// this set (server/, tests/, .git, *.md, path traversal) is 404.
+const STATIC_ROOT_FILES = ['index.html', 'manifest.webmanifest', 'sw.js'];
+const STATIC_DIRS = ['css', 'js', 'media', 'icons'];
+const CONTENT_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm'
+};
+
+function serveStatic(res, pathname) {
+  var decoded;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch (_) {
+    decoded = pathname;
+  }
+  // Reject path traversal (encoded or raw).
+  if (decoded.includes('..')) {
+    sendJson(res, 404, { ok: false, error: 'not found' });
+    return;
+  }
+  var rel = decoded.replace(/^\/+/, '');
+  if (!rel) rel = 'index.html';
+  var top = rel.split('/')[0];
+  var allowed = STATIC_ROOT_FILES.includes(rel) || STATIC_DIRS.includes(top);
+  if (!allowed) {
+    sendJson(res, 404, { ok: false, error: 'not found' });
+    return;
+  }
+  var filePath = path.join(ROOT, rel);
+  // Belt-and-suspenders: resolved path must stay under ROOT.
+  var resolved = path.resolve(filePath);
+  if (resolved !== ROOT && !resolved.startsWith(ROOT + path.sep)) {
+    sendJson(res, 404, { ok: false, error: 'not found' });
+    return;
+  }
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+    sendJson(res, 404, { ok: false, error: 'not found' });
+    return;
+  }
+  var ext = path.extname(resolved).toLowerCase();
+  var type = CONTENT_TYPES[ext] || 'application/octet-stream';
+  var body = fs.readFileSync(resolved);
+  res.writeHead(200, { 'Content-Type': type, 'Content-Length': body.length });
+  res.end(body);
+}
 const MAX_BODY_BYTES = 256 * 1024;
 const HANDOVER_MAX = 200;
 const ASK_MAX = 220;
@@ -520,7 +579,12 @@ function createServer(ollamaClient) {
         sendJson(res, 200, result);
         return;
       }
-      sendJson(res, 404, { ok: false, error: 'not found' });
+      // Static frontend: only for GET, everything else 404.
+      if (req.method === 'GET') {
+        serveStatic(res, url.pathname);
+      } else {
+        sendJson(res, 404, { ok: false, error: 'not found' });
+      }
     } catch (error) {
       sendJson(res, 400, { ok: false, error: 'bad request' });
     }
@@ -528,13 +592,23 @@ function createServer(ollamaClient) {
 }
 
 if (require.main === module) {
-  createServer().listen(PORT, '127.0.0.1', () => {
+  createServer().listen(PORT, HOST, () => {
+    const ifaces = os.networkInterfaces();
+    const lan = [];
+    for (const name of Object.keys(ifaces)) {
+      for (const iface of ifaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) lan.push(iface.address);
+      }
+    }
     // eslint-disable-next-line no-console
-    console.log('nursing prototype backend on http://127.0.0.1:' + PORT);
+    console.log('Acompaña backend on:');
+    if (HOST === '0.0.0.0') console.log('  http://localhost:' + PORT);
+    for (const ip of lan) console.log('  http://' + ip + ':' + PORT);
   });
 }
 
 module.exports = {
+  HOST,
   PORT,
   HANDOVER_MAX,
   ASK_MAX,

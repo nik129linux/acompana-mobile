@@ -864,7 +864,10 @@
   // server. Every fetch runs ONLY on an explicit tap, with a 3s timeout,
   // and falls back silently to the on-device template. A badge always
   // shows which source produced the text: "Plantilla" or "IA local".
-  var AI_BASE = 'http://127.0.0.1:8787';
+  var AI_BASE =
+    (location.protocol === 'http:' || location.protocol === 'https:')
+      ? location.origin
+      : 'http://127.0.0.1:8787';
   var AI_TIMEOUT_MS = 3000;
   var HANDOVER_MAX = 200;
   var ASK_MAX = 220;
@@ -1248,6 +1251,9 @@
   }
 
   function init() {
+    if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    }
     ensureVideoObserver();
     app.screen.addEventListener('click', handleScreenClick);
     app.bottomNav.addEventListener('click', handleNavClick);
