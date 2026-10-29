@@ -86,6 +86,54 @@ const MED_WORDS = [
   'adrenalina', 'atropina', 'warfarina', 'aspirina', 'salino', 'suero',
   'oxígeno', 'oxigeno', 'medicamento'
 ];
+
+const EVENT_KIND_ENUM = ['medication', 'position', 'round', 'other'];
+const EVENT_KIND_KEYWORDS = {
+  medication: ['enoxaparina', 'heparina', 'paracetamol', 'ibuprofeno', 'insulina', 'morfina', 'tramadol', 'omeprazol', 'furosemida', 'losartan', 'amoxicilina', 'ceftriaxona', 'dexametasona', 'ondansetron', 'adrenalina', 'atropina', 'warfarina', 'aspirina', 'salino', 'suero', 'oxígeno', 'oxigeno', 'medicamento', 'medicina', 'pastilla', 'inyección', 'aplic', 'mg', 'ml'],
+  position: ['posición', 'posicion', 'postural', 'decúbito', 'decubito', 'lateral', 'cambio de posicion', 'cambio de posición', 'levantar', 'sentar', 'mover'],
+  round: ['ronda', 'control', 'signos', 'vitales', 'revis', 'monitoreo']
+};
+
+function classifyEventRules(text) {
+  const lower = String(text || '').toLowerCase();
+  for (const kind of ['medication', 'position', 'round']) {
+    for (const kw of EVENT_KIND_KEYWORDS[kind]) {
+      if (lower.includes(kw)) {
+        return { kind, text: clip(text, 140), source: 'rules' };
+      }
+    }
+  }
+  return { kind: 'other', text: clip(text, 140), source: 'rules' };
+}
+
+const EVENT_PROMPT =
+  'Clasifica este evento de enfermería. Devuelve JSON {"kind":"medication|position|round|other","text":"texto breve en español neutro"}. ' +
+  'Solo usa números, medicamentos y tiempos que aparezcan en el texto original. Nunca inventes valores. Texto: ';
+
+function validEventDraft(draft) {
+  if (!draft || typeof draft !== 'object') return false;
+  if (!EVENT_KIND_ENUM.includes(draft.kind)) return false;
+  if (typeof draft.text !== 'string' || !draft.text.trim() || draft.text.length > 140) return false;
+  return true;
+}
+
+async function handleEvent(text, ollamaClient) {
+  const cleanText = String(text || '').trim();
+  if (!cleanText || cleanText.length > 600) return classifyEventRules(cleanText || 'evento sin texto');
+  const safeText = stripNames(cleanText);
+  if (!ollamaClient) return classifyEventRules(safeText);
+  try {
+    const model = await ai.activeModel(ollamaClient);
+    if (!model) return classifyEventRules(safeText);
+    const draft = await ai.generateJson(ollamaClient, model, EVENT_PROMPT + JSON.stringify({ text: safeText }));
+    if (!validEventDraft(draft)) return classifyEventRules(safeText);
+    const ok = isGrounded(draft.text, safeText, []);
+    if (!ok) return classifyEventRules(safeText);
+    return { kind: draft.kind, text: clip(draft.text, 140), source: 'ollama', model };
+  } catch (_) {
+    return classifyEventRules(safeText);
+  }
+}
 const UNIT_WORDS = ['mg', 'ml', 'mcg', 'g', 'ui', 'sc', 'iv', 'im', 'vo'];
 const NUMBER_WORDS = {
   uno: '1', una: '1', un: '1', dos: '2', tres: '3', cuatro: '4',
@@ -579,6 +627,15 @@ function createServer(ollamaClient) {
         sendJson(res, 200, result);
         return;
       }
+      if (req.method === 'POST' && url.pathname === '/api/event') {
+        const body = JSON.parse(await readBody(req));
+        const text = body && typeof body.text === 'string' ? body.text.trim() : '';
+        if (!text) { sendJson(res, 400, { ok: false, error: 'empty text' }); return; }
+        if (text.length > 600) { sendJson(res, 400, { ok: false, error: 'text too long' }); return; }
+        const result = await handleEvent(text, client);
+        sendJson(res, 200, result);
+        return;
+      }
       // Static frontend: only for GET, everything else 404.
       if (req.method === 'GET') {
         serveStatic(res, url.pathname);
@@ -633,5 +690,7 @@ module.exports = {
   resetNurseQuestions,
   handleHandover,
   handleAsk,
+  classifyEventRules,
+  handleEvent,
   createServer
 };
