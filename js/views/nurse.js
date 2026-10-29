@@ -25,40 +25,50 @@
     return '<span class="badge badge-ready">Listo</span>';
   }
 
+  var KIND_ICON = { medication: 'pill', position: 'bed', round: 'stethoscope' };
+
   function patientCard(patient) {
     var task = taskForPatient(patient.id);
     var side = task
-      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + ' en un toque">Listo</button>'
+      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + ' en un toque">' + icon('check') + '<span>Listo</span></button>'
       : patientBadge(patient);
-    var next = task ? escapeHtml(task.time) + ' · ' + escapeHtml(task.title) : escapeHtml(patient.room);
-    return '<article class="patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
+    var meta = '<span>' + icon('bed') + escapeHtml(patient.room) + '</span>' +
+      (task ? '<span>' + icon('clock') + escapeHtml(task.time) + ' · ' + escapeHtml(task.title) + '</span>' : '');
+    return '<article class="patient-card list-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
       '<button type="button" class="patient-card-main" data-patient="' + escapeHtml(patient.id) + '" aria-label="Abrir detalle de ' + escapeHtml(patient.name) + '">' +
-      '<span class="patient-avatar">' + escapeHtml(patient.initials) + '</span>' +
-      '<span class="patient-info"><span class="patient-name">' + escapeHtml(patient.name) + '</span><span class="patient-meta">' + escapeHtml(patient.room) + (task ? ' · ' + next : '') + '</span></span>' +
+      '<span class="media-square patient-avatar">' + escapeHtml(patient.initials) + '</span>' +
+      '<span class="list-copy patient-info"><span class="list-title patient-name">' + escapeHtml(patient.name) + '</span><span class="list-meta patient-meta">' + meta + '</span></span>' +
       '</button><div class="patient-side">' + side + '</div></article>';
   }
 
-  // The critical patient is the one peak on the home screen. No clinical
-  // values here: the patient in the bed can see this screen.
+  // The critical patient is the one gradient hero on the home screen. No
+  // clinical values here: the patient in the bed can see this screen.
   function urgentCard(patient) {
-    return '<article class="urgent-card patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
-      '<div class="urgent-head"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span class="urgent-kicker">Alerta de signos vitales</span></div>' +
-      '<p class="urgent-name">' + escapeHtml(patient.name) + '</p>' +
-      '<p class="urgent-meta">' + escapeHtml(patient.room) + ' · protocolo abierto, sin confirmar</p>' +
-      '<button type="button" class="urgent-action" data-patient="' + escapeHtml(patient.id) + '" aria-label="Revisar ahora a ' + escapeHtml(patient.name) + '">Revisar ahora' + icon('arrow') + '</button>' +
-      '</article>';
+    return '<div class="hero-stack is-critical"><article class="hero-card urgent-card patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
+      '<div class="hero-row"><span class="hero-media" aria-hidden="true">' + icon('pulse') + '</span>' +
+      '<div class="hero-copy"><p class="hero-title urgent-name">' + escapeHtml(patient.name) + '</p><span class="hero-sub urgent-meta">' + escapeHtml(patient.room) + ' · alerta de signos vitales</span></div></div>' +
+      '<button type="button" class="glass-pill urgent-action" data-patient="' + escapeHtml(patient.id) + '" aria-label="Revisar ahora a ' + escapeHtml(patient.name) + '">' + icon('alert') + 'Revisar ahora · protocolo abierto</button>' +
+      '</article></div>';
   }
 
   function renderNurseHome() {
     var pending = remainingTasks().length;
     var critical = ctx().PATIENTS.filter(function (p) { return p.status === 'critical'; });
     var stable = ctx().PATIENTS.filter(function (p) { return p.status !== 'critical'; });
-    return '<div class="home-intro"><h1 class="view-title">Mi turno</h1><p class="view-copy">Buenos días, Elena · Piso 3, Hospital Central</p>' +
-      '<p class="shift-line" aria-label="Resumen del turno"><span><strong>' + ctx().PATIENTS.length + '</strong> pacientes</span><span><strong>' + pending + '</strong> pendientes</span><span>ronda <strong>1:00 p. m.</strong></span></p></div>' +
-      (critical.length ? '<section class="urgent-section" aria-label="Requiere atención">' + critical.map(urgentCard).join('') + '</section>' : '') +
-      '<div class="section-heading"><h2 class="section-label">Tus pacientes</h2><span class="section-meta">' + stable.length + ' estables</span></div>' +
+    return '<header class="greet-bar" data-greet><span class="avatar" aria-hidden="true"><img src="media/frames/doctora-white.png" alt=""></span>' +
+      '<div class="greet-copy"><h1 class="greet-title view-title">Hola, Elena</h1><span class="greet-meta view-copy">' + icon('location') + 'Piso 3 · Hospital Central</span></div></header>' +
+      '<div class="chip-row shift-line" aria-label="Resumen del turno">' +
+      '<span class="chip"><span class="chip-icon">' + icon('user') + '</span><strong>' + ctx().PATIENTS.length + '</strong>&nbsp;pacientes</span>' +
+      '<span class="chip"><span class="chip-icon">' + icon('task') + '</span><strong>' + pending + '</strong>&nbsp;pendientes</span>' +
+      '<span class="chip"><span class="chip-icon">' + icon('clock') + '</span>Ronda&nbsp;<strong>1:00 p. m.</strong></span></div>' +
+      (critical.length ? '<section class="urgent-section" aria-label="Requiere atención"><div class="section-head"><h2>Requiere atención</h2></div>' + critical.map(urgentCard).join('') + '</section>' : '') +
+      '<div class="section-head"><h2 class="section-label">Tus pacientes</h2><span class="section-link">' + stable.length + ' estables</span></div>' +
       '<div class="patient-list">' + stable.map(patientCard).join('') + '</div>' +
-      '<div class="ai-card"><strong>Nota de entrega (SBAR)</strong><span>Prepara un borrador del turno para entregar. Puedes editarlo antes de copiarlo.</span><span class="source-badge" data-handover-home-badge>Plantilla</span><div class="ai-actions"><button type="button" class="secondary-button" data-handover-open>Preparar nota</button></div></div>';
+      '<div class="section-head"><h2>Entrega de turno</h2></div>' +
+      '<div class="ai-card list-card sbar-card"><span class="media-square" aria-hidden="true">' + icon('note') + '</span>' +
+      '<span class="list-copy"><strong class="list-title">Nota de entrega (SBAR)</strong><span class="list-meta">Borrador del turno que puedes editar antes de copiar.</span>' +
+      '<span class="source-badge" data-handover-home-badge>Plantilla</span></span>' +
+      '<div class="ai-actions"><button type="button" class="btn btn-tonal sbar-open" data-handover-open>Preparar</button></div></div>';
   }
 
   function taskCard(task) {

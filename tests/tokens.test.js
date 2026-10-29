@@ -121,7 +121,7 @@ async function walk(page) {
           }
           return [255, 255, 255];
         };
-        const sels = ['.view.is-active .view-title', '.view.is-active .view-copy', '.patient-card', '.section-label', '.nav-item.is-active', '.role-tab.is-active', '.primary-button, .quick-confirm'];
+        const sels = ['.view.is-active .view-title', '.view.is-active .view-copy', '.patient-list .patient-card', '.section-label', '.nav-item.is-active', '.role-tab.is-active', '.primary-button, .quick-confirm'];
         return sels.map((s) => {
           const el = document.querySelector(s);
           if (!el) return null;
@@ -129,6 +129,22 @@ async function walk(page) {
         }).filter(Boolean);
       });
       assert(pairs.length >= 5, theme + ': found the elements to check');
+      // Text on gradients: every stop of the background must hold 4.5:1.
+      const gradientPairs = await page.evaluate(() => {
+        const out = [];
+        for (const el of document.querySelectorAll('.view.is-active .hero-card, .view.is-active .stat-tile, .view.is-active .btn-primary, .fab-register')) {
+          const cs = getComputedStyle(el);
+          const stops = cs.backgroundImage.match(/color\([^)]*\)|rgba?\([^)]*\)/g) || [];
+          for (const stop of stops) out.push({ s: el.className, fg: cs.color, stop });
+        }
+        return out;
+      });
+      const toRgb = (c) => { const n = (c.match(/[\d.]+/g) || []).map(Number); return c.startsWith('color(') ? n.slice(0, 3).map((v) => v * 255) : n.slice(0, 3); };
+      assert(gradientPairs.length >= 2, theme + ': gradient stops found to check (' + gradientPairs.length + ')');
+      for (const g of gradientPairs) {
+        const r = ratio(toRgb(g.fg), toRgb(g.stop));
+        assert(r >= 4.5, theme + ': text on gradient ' + g.s + ' stop ' + g.stop + ' contrast ' + r.toFixed(2) + ' < 4.5');
+      }
       for (const p of pairs) {
         const r = ratio(p.fg, p.bg);
         assert(r >= 4.5, theme + ': ' + p.s + ' contrast ' + r.toFixed(2) + ' < 4.5');

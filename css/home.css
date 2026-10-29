@@ -1,117 +1,84 @@
-/* Nurse home hierarchy: one urgent peak, a calm list below. */
-.shift-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin: var(--space-4) 0 0;
-  color: var(--body);
-  font-size: var(--text-small);
-  font-variant-numeric: tabular-nums;
-}
+/* Nurse "Mi turno" (DESIGN.md reference screen, Medixin Home anatomy):
+   greeting, shift chips, one critical gradient hero, calm patient list, SBAR. */
 
-.shift-line strong {
-  color: var(--ink);
-  font-weight: 600;
-}
 
-.urgent-section {
-  margin-top: var(--space-6);
-}
-
-.urgent-card {
-  display: grid;
-  gap: var(--space-1);
+.hero-card.urgent-card {
+  min-height: 0;
   padding: var(--space-5);
   border: 0;
-  border-radius: 24px;
-  background: var(--error-container);
-  color: var(--on-error-container);
-  box-shadow: var(--elevation-1);
 }
 
-.urgent-head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-caption);
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.urgent-card .hero-title { font-size: var(--text-section); letter-spacing: -0.01em; }
+.urgent-card .glass-pill { min-height: 52px; font-size: var(--text-small); font-weight: 600; }
+.urgent-card .glass-pill:active { transform: scale(0.98); }
+.urgent-card .glass-pill:focus-visible { outline: 3px solid var(--on-primary); outline-offset: 2px; }
+
+.shift-line .chip strong { font-weight: 600; }
+
+.patient-list {
+  display: grid;
+  gap: var(--space-3);
 }
 
-.urgent-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--error-fill);
-  color: var(--on-error);
-}
-
-.urgent-icon .icon-svg {
-  width: 16px;
-  height: 16px;
-}
-
-.urgent-name {
-  margin: var(--space-3) 0 0;
-  font-family: var(--font-display);
-  font-size: var(--text-section);
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-}
-
-.urgent-meta {
-  margin: 0;
-  font-size: var(--text-small);
-  opacity: 0.86;
-}
-
-.urgent-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: 56px;
-  margin-top: var(--space-4);
-  padding: 0 var(--space-6);
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: var(--error-fill);
-  color: var(--on-error);
-  font: 600 var(--text-body) / 1 var(--font-body);
-  cursor: pointer;
-  transition: transform var(--duration-press) var(--ease-press), filter var(--duration-press) var(--ease-press);
-}
-
-.urgent-action .icon-svg { width: 18px; height: 18px; }
-.urgent-action:hover { filter: brightness(1.08); }
-.urgent-action:active { transform: scale(0.97); }
-.urgent-action:focus-visible { outline: 3px solid var(--on-error-container); outline-offset: 3px; }
-
-/* Stable patients: quiet rows, tonal action. */
 .patient-list .patient-card {
-  border-color: transparent;
-  background: var(--white);
-  box-shadow: var(--elevation-1);
+  padding: var(--space-3);
+  border: 0;
 }
+
+.patient-card-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.patient-card-main:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: var(--radius-sm); }
+
+.patient-card .media-square.patient-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  font-size: 18px;
+}
+
+.patient-card .list-meta { flex-direction: column; align-items: flex-start; gap: 2px; }
 
 .quick-confirm {
-  min-width: 72px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 56px;
   min-height: 56px;
-  border-radius: var(--radius-pill);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-card);
   background: var(--primary-container);
   color: var(--on-primary-container);
-  font-weight: 600;
+  font: 600 var(--text-caption) / 1 var(--font-body);
+  cursor: pointer;
+  transition: transform var(--duration-press) var(--ease-press);
 }
 
-.quick-confirm:hover { filter: brightness(0.97); }
+.quick-confirm .icon-svg { width: 18px; height: 18px; }
+.quick-confirm:active { transform: scale(0.94); }
 
-.patient-avatar {
-  background: var(--primary-container);
-  color: var(--on-primary-container);
+.sbar-card {
+  align-items: center;
+  padding: var(--space-4);
+  border: 0;
 }
+
+.sbar-card .list-copy { gap: 6px; }
+.sbar-card .source-badge { justify-self: start; }
+.sbar-card .ai-actions { margin: 0; }
+.sbar-card .btn { width: auto; min-height: 44px; padding: 0 var(--space-4); }
 
 /* Pending tasks: the main action is the primary fill, not black. */
 .task-action {

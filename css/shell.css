@@ -1,0 +1,109 @@
+/* App shell in the Medixin language: canvas, greeting bar, bottom nav with
+   the raised center "+" (Registrar). Loaded last; tokens only. */
+.phone {
+  background: var(--canvas);
+}
+
+.greet-bar.top-app-bar {
+  gap: var(--space-3);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-5);
+}
+
+.greet-bar .top-app-bar-actions { gap: var(--space-2); margin-left: auto; }
+
+.greet-bar .top-app-bar-action {
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+}
+
+.top-app-bar-action .icon-svg { width: 22px; height: 22px; }
+
+/* Bottom nav: white sheet with rounded top and a soft upward shadow. */
+.bottom-nav {
+  border-top: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--white);
+  box-shadow: var(--elevation-nav);
+}
+
+.nav-item .icon-svg { width: 24px; height: 24px; }
+
+.nav-item.is-active .nav-icon {
+  position: relative;
+}
+
+.nav-item.is-active .nav-icon::after {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  transform: translateX(-50%);
+}
+
+/* Nurse: two tabs either side of the raised "+". */
+.phone[data-role="enfermero"] .bottom-nav {
+  column-gap: 96px;
+  padding: 0 var(--space-4);
+}
+
+.fab-register {
+  right: auto;
+  bottom: calc(var(--nav-height) - 34px);
+  left: 50%;
+  justify-content: center;
+  width: 64px;
+  min-width: 64px;
+  height: 64px;
+  min-height: 64px;
+  padding: 0;
+  border: 4px solid var(--white);
+  border-radius: 50%;
+  background: var(--grad-primary);
+  box-shadow: var(--elevation-2);
+  transform: translateX(-50%);
+}
+
+.fab-register:active { transform: translateX(-50%) scale(0.94); }
+
+.fab-register-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke: var(--on-primary);
+  stroke-width: 2.2;
+}
+
+.fab-register-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Views are flex columns: nothing in them may shrink (chip rows, heroes). */
+.view > * { flex-shrink: 0; }
+
+.view { gap: var(--space-4); }
+
+.section-head { margin: var(--space-2) 0 0; }
+
+.section-head .section-label {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.hero-stack { margin-bottom: 0; padding-bottom: 18px; }
+.urgent-section { display: grid; gap: var(--space-3); }
+.urgent-section .section-head { margin-top: 0; }
+
+/* The mascot art has a white ground: keep its disc white in both themes. */
+.greet-bar .avatar { background: var(--on-primary); box-shadow: var(--elevation-1); }

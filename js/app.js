@@ -263,8 +263,10 @@
     sun: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>'
   };
 
+  // Hugeicons stroke-rounded (js/icons.js); the old inline set is the fallback.
   function icon(name) {
-    return ICONS[name] || ICONS.check;
+    var huge = window.ACOMPANA_ICONS || {};
+    return huge[name] || ICONS[name] || huge.check || ICONS.check;
   }
 
   function escapeHtml(value) {
@@ -301,6 +303,16 @@
   // Every view gets a Material top app bar. The existing h1 (and back
   // button) are lifted into it so there is exactly one h1 per view.
   function buildTopBar(view) {
+    // Home screens use the Medixin greeting as their app bar.
+    var greet = view.querySelector('[data-greet]');
+    if (greet) {
+      greet.classList.add('top-app-bar');
+      var greetActions = document.createElement('div');
+      greetActions.className = 'top-app-bar-actions';
+      greetActions.innerHTML = themeToggleHtml() + demoMenuHtml();
+      greet.appendChild(greetActions);
+      return;
+    }
     var h1 = view.querySelector('h1');
     var back = view.querySelector('[data-back]');
     var bar = document.createElement('header');
