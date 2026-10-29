@@ -4,14 +4,19 @@
 // Precaches the app shell. Network-first, cache as offline fallback.
 // NEVER caches /api/* (network only). Versioned cache name.
 
-var CACHE = 'acompana-pwa-v1';
+var CACHE = 'acompana-pwa-v2';
 
 var SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/sw.js',
+  '/css/fonts.css',
   '/css/tokens.css',
+  '/fonts/inter-latin-400-normal.woff2',
+  '/fonts/inter-latin-500-normal.woff2',
+  '/fonts/inter-latin-600-normal.woff2',
+  '/fonts/bricolage-grotesque-latin-500-normal.woff2',
   '/css/app.css',
   '/css/ai.css',
   '/js/app.js'

@@ -204,8 +204,8 @@ function contrastRatio(foreground, background) {
   assert(!(await page.locator('#screen').textContent()).match(/PA 90\/55|Enoxaparina|taquicardia/), 'clinical data leaked to family');
   const familyAccentColor = await page.locator('.role-tab.is-active').evaluate(node => getComputedStyle(node).color);
   const familyIconColor = await page.locator('.visit-icon').evaluate(node => getComputedStyle(node).color);
-  assert.strictEqual(familyAccentColor, 'rgb(212, 143, 0)', 'family accent text is not #d48f00');
-  assert.strictEqual(familyIconColor, 'rgb(212, 143, 0)', 'family icon is not #d48f00');
+  assert(contrastRatio(familyAccentColor, 'rgb(251, 250, 249)') >= 4.5, 'family accent text contrast is below 4.5:1');
+  assert(contrastRatio(familyIconColor, 'rgb(255, 255, 255)') >= 4.5, 'family icon contrast is below 4.5:1');
   assert.strictEqual(await page.locator('.phone').evaluate(node => getComputedStyle(node).getPropertyValue('--family').trim()), '#ffbb26', 'family fill color changed');
   assert(familyCopy.includes('acompañarla') && familyCopy.includes('con ella'), 'family copy does not agree with María');
   assert(!familyCopy.match(/acompañarlo|con él/), 'family copy uses masculine pronouns for María');

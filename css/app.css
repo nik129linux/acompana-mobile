@@ -12,7 +12,7 @@ body {
 
 html {
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: var(--text-body);
   line-height: 26px;
   letter-spacing: -0.013em;
   -webkit-font-smoothing: antialiased;
@@ -134,7 +134,7 @@ a:focus-visible {
   position: relative;
   z-index: 1;
   flex: 1;
-  min-height: 40px;
+  min-height: 48px;
   padding: 8px 4px;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -271,7 +271,7 @@ a:focus-visible {
   font-family: var(--font-display);
   font-size: var(--text-heading);
   font-weight: 500;
-  line-height: 36px;
+  line-height: 1.04;
   letter-spacing: -0.02em;
 }
 
@@ -334,7 +334,7 @@ a:focus-visible {
   background: var(--white);
   color: var(--ink);
   cursor: pointer;
-  font-size: 22px;
+  font-size: var(--text-section);
   transition: transform var(--duration-press) var(--ease-press),
     background-color var(--duration-enter) var(--ease-enter),
     color var(--duration-enter) var(--ease-enter),
@@ -658,7 +658,7 @@ a:focus-visible {
 
 .badge-critical {
   background: var(--critical-soft);
-  color: var(--alert);
+  color: var(--alert-text);
 }
 
 .badge-pending {
@@ -782,7 +782,7 @@ a:focus-visible {
 .clinical-value {
   display: inline-block;
   width: fit-content;
-  color: var(--alert);
+  color: var(--alert-text);
   cursor: pointer;
   filter: blur(5px);
   font-family: var(--font-display);

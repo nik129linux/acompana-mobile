@@ -1,7 +1,7 @@
 @property --accent {
   syntax: "<color>";
   inherits: true;
-  initial-value: #0086fc;
+  initial-value: #0070d6;
 }
 
 :root {
@@ -14,15 +14,16 @@
   --body: #474645;
   --muted: #6b6b6a;
   --stone-border: #e5d5c3;
-  --nurse: #0086fc;
+  --nurse: #0070d6;
   --patient: #00ca48;
   --patient-text: #087f35;
   --family: #ffbb26;
-  --family-text: #d48f00;
+  --family-text: #8f5c00;
   --sky: #64c6ff;
   --sun: #ffcd6c;
   --coral: #ff58ae;
   --alert: #ff2b3a;
+  --alert-text: #c8102e;
   --nurse-soft: #e8f3ff;
   --patient-soft: #e5f9ec;
   --family-soft: #fff4d6;
@@ -40,7 +41,7 @@
   --duration-enter: 360ms;
   --duration-exit: 240ms;
   --duration-press: 120ms;
-  --stagger: 40ms;
+  --stagger: 70ms;
   --duration-drift: 3.6s;
   --duration-burst: 1200ms;
   --phone-width: 390px;
@@ -60,11 +61,11 @@
   --space-7: 32px;
   --space-8: 40px;
   --text-caption: 12px;
-  --text-small: 15px;
-  --text-body: 17px;
-  --text-lead: 19px;
-  --text-section: 23px;
-  --text-heading: 32px;
+  --text-small: 16px;
+  --text-body: 16px;
+  --text-lead: 16px;
+  --text-section: 24px;
+  --text-heading: 44px;
   --text-display: 44px;
   --phone-shadow: rgba(0, 0, 0, .04) 0 1px 6px, rgba(0, 0, 0, .05) 0 0 24px;
 }

@@ -20,7 +20,7 @@ const ROOT = path.join(__dirname, '..');
 // Static files allowed to be served from the repo root. Anything outside
 // this set (server/, tests/, .git, *.md, path traversal) is 404.
 const STATIC_ROOT_FILES = ['index.html', 'manifest.webmanifest', 'sw.js'];
-const STATIC_DIRS = ['css', 'js', 'media', 'icons'];
+const STATIC_DIRS = ['css', 'js', 'media', 'icons', 'fonts'];
 const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
@@ -30,7 +30,8 @@ const CONTENT_TYPES = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.mp4': 'video/mp4',
-  '.webm': 'video/webm'
+  '.webm': 'video/webm',
+  '.woff2': 'font/woff2'
 };
 
 function serveStatic(res, pathname) {
