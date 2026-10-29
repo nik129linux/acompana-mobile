@@ -313,6 +313,54 @@ test('http: health, handover dryRun, ask flow, questions resolve', async () => {
   }
 });
 
+// --- SBAR truthfulness (real gemma output, 2026-10-29) ---
+
+const REAL_EVENTS = [
+  { time: '08:00', text: 'Cambio postural de la mañana hecho', done: true },
+  { time: '11:05', text: 'Enoxaparina 40mg SC, vía abdominal aplicada', done: true },
+  { time: '13:00', text: 'Ronda programada, control de signos', done: false },
+  { time: '11:00', text: 'PA 90/55, taquicardia 112, alerta protocolo hipotensión', done: false }
+];
+
+test('payload carries the pending tasks and the open alert, not just times', () => {
+  const payload = srv.buildHandoverPayload(REAL_EVENTS);
+  assert(JSON.stringify(payload.pending).includes('Ronda programada'), 'pending task text is sent');
+  assert(payload.alerts.length === 1 && payload.alerts[0].includes('90/55'), 'open alert is sent first-class');
+});
+
+test('draft claiming a pending task was done falls back to rules', async () => {
+  const bad = {
+    s: 'Tienes 4 tareas en total: 2 ya están hechas y 2 quedan pendientes.',
+    b: 'Se realizó cambio postural a las 08:00 y se aplicó Enoxaparina 40mg SC en abdomen a las 11:05.',
+    a: 'Se cumplió la ronda programada y el control de signos.',
+    r: 'Tu pendiente es gestionar las tareas de las 11:00 y las 13:00.'
+  };
+  const out = await srv.handleHandover(REAL_EVENTS, localClient({ tags: LOCAL_TAGS, generate: bad }));
+  assert.strictEqual(out.source, 'rules', 'false "se cumplió la ronda" must be rejected');
+});
+
+test('draft that omits the open alert falls back to rules', async () => {
+  const silent = {
+    s: 'Tienes 4 tareas: 2 hechas y 2 pendientes.',
+    b: 'Cambio postural a las 08:00 y Enoxaparina 40mg SC a las 11:05.',
+    a: 'Paciente sin novedad.',
+    r: 'Haz la ronda de las 13:00.'
+  };
+  const out = await srv.handleHandover(REAL_EVENTS, localClient({ tags: LOCAL_TAGS, generate: silent }));
+  assert.strictEqual(out.source, 'rules', 'assessment must name the 90/55 alert');
+});
+
+test('truthful draft with the alert is accepted', async () => {
+  const good = {
+    s: 'Tienes 4 tareas: 2 hechas y 2 pendientes.',
+    b: 'Cambio postural a las 08:00 y Enoxaparina 40mg SC a las 11:05.',
+    a: 'Alerta abierta: PA 90/55 y taquicardia 112, protocolo de hipotensión pendiente.',
+    r: 'Revalora signos ya y haz la ronda de las 13:00.'
+  };
+  const out = await srv.handleHandover(REAL_EVENTS, localClient({ tags: LOCAL_TAGS, generate: good }));
+  assert.strictEqual(out.source, 'ollama');
+});
+
 // --- Ollama cloud API key ---
 
 test('api key: Bearer header sent to ollama.com, never without a key', async () => {

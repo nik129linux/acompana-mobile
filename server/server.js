@@ -330,19 +330,28 @@ function buildHandoverRules(events) {
 
 // Exact aggregate payload shown for consent and sent to Ollama.
 // Names/rooms/titles never leave this function toward the model.
+const ALERT_RE = /\bPA\b|taquicardia|hipotensi|alerta|protocolo/i;
+
+function openAlerts(list) {
+  return list.filter((e) => !e.done && ALERT_RE.test(e.text));
+}
+
 function buildHandoverPayload(events) {
   const list = cleanEvents(events);
   const { total, done, pending } = handoverCounts(list);
-  const vitals = list.find((e) => /PA\b|taquicardia|signos|vitales|alerta|protocolo/i.test(e.text));
+  const alerts = openAlerts(list);
+  const vitals = alerts[0] || list.find((e) => /signos|vitales/i.test(e.text));
   return {
     task: 'handover',
     counts: { total, done, pending },
     pendingTimes: list.filter((e) => !e.done).map((e) => e.time || ''),
+    pending: list.filter((e) => !e.done).map((e) => ({ time: e.time || '', text: stripNames(e.text).slice(0, 120) })),
+    alerts: alerts.map((e) => stripNames((e.time ? e.time + ' ' : '') + e.text).slice(0, 120)),
     lastVitals: vitals ? stripNames(vitals.text) : null,
     applied: list
       .filter((e) => e.done)
       .map((e) => stripNames(((e.time ? e.time + ' ' : '') + e.text)).slice(0, 120)),
-    schema: 'Return JSON {"s","b","a","r"}; each max 200 chars, Spanish, nurse "tu". Use ONLY numbers, times and medication names present above.'
+    schema: 'Return JSON {"s","b","a","r"}; each max 200 chars, Spanish, nurse "tu". Use ONLY numbers, times and medication names present above. Items in "pending" are NOT done yet. "a" must name every item in "alerts".'
   };
 }
 
@@ -358,12 +367,56 @@ function validHandoverDraft(draft) {
   );
 }
 
+// Truth checks the grounding check can't see: every number can be real and the
+// sentence still false. Reject drafts that (1) skip an open alert in the
+// assessment or (2) call a pending task done.
+const DONE_CLAIM_RE = /cumpli|realiz|hech[oa]s?\b|aplicad|complet|termin|ya se/i;
+const STILL_OPEN_RE = /pendiente|falta|por hacer|no se ha|sin hacer|queda/i;
+const STOPWORDS = new Set(['programada', 'programado', 'previsto', 'prevista', 'control', 'durante', 'despues']);
+
+function keywords(text) {
+  return String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .split(/[^a-z0-9]+/).filter((w) => w.length >= 5 && !STOPWORDS.has(w));
+}
+
+function plain(text) {
+  return String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function namesOpenAlerts(draft, list) {
+  return openAlerts(list).every((e) => {
+    const marks = e.text.match(/\d+\/\d+/g) || keywords(e.text).slice(0, 1);
+    return marks.every((m) => plain(draft.a).includes(plain(m)));
+  });
+}
+
+function claimsPendingDone(draft, list) {
+  const pending = list.filter((e) => !e.done);
+  const done = list.filter((e) => e.done);
+  const sentences = [draft.s, draft.b, draft.a, draft.r].join('. ').split(/[.;]\s*/);
+  return sentences.some((sentence) => {
+    if (!DONE_CLAIM_RE.test(sentence) || STILL_OPEN_RE.test(sentence)) return false;
+    const words = plain(sentence);
+    const hitsPending = pending.some((e) => keywords(e.text).some((w) => words.includes(w)));
+    if (!hitsPending) return false;
+    // A finished task with the same words makes the claim plausible; only
+    // flag claims that can only refer to something still pending.
+    const matchesDone = done.some((e) => keywords(e.text).some((w) => words.includes(w)));
+    return !matchesDone;
+  });
+}
+
+function truthfulHandover(draft, list) {
+  return namesOpenAlerts(draft, list) && !claimsPendingDone(draft, list);
+}
+
 const HANDOVER_PROMPT =
   'You draft a nursing shift handover (SBAR) in neutral Colombian Spanish, ' +
   'addressing the incoming nurse as "tu". FACTS below are the only allowed source. ' +
   'Return JSON {"s":situation,"b":background,"a":assessment,"r":recommendation}, ' +
   'each 1-200 chars. Cite ONLY numbers, times and medication names present in FACTS. ' +
-  'Never invent values. FACTS: ';
+  'Never invent values. Items under "pending" are NOT done: never say they were done. ' +
+  'The assessment must name every open alert with its numbers. FACTS: ';
 
 // ---------------------------------------------------------------------------
 // Family Q&A: guardrails + keyword rules from ref/content-spec.md
@@ -494,7 +547,7 @@ async function handleHandover(events, ollamaClient) {
     const draft = await ai.generateJson(ollamaClient, model, HANDOVER_PROMPT + JSON.stringify(payload));
     if (!validHandoverDraft(draft)) return { ...rules, source: 'rules', model: null };
     const ok = ['s', 'b', 'a', 'r'].every((k) => isGrounded(draft[k], source, extras));
-    if (!ok) return { ...rules, source: 'rules', model: null };
+    if (!ok || !truthfulHandover(draft, list)) return { ...rules, source: 'rules', model: null };
     return { s: draft.s, b: draft.b, a: draft.a, r: draft.r, source: 'ollama', model };
   } catch (_) {
     return { ...rules, source: 'rules', model: null };
@@ -675,6 +728,7 @@ module.exports = {
   eventSource,
   buildHandoverRules,
   buildHandoverPayload,
+  truthfulHandover,
   handoverExtras,
   validHandoverDraft,
   isGrounded,
