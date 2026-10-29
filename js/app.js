@@ -6,6 +6,8 @@
     phone: document.querySelector('.phone'),
     screen: $('screen'),
     bottomNav: $('bottomNav'),
+    fab: document.querySelector('[data-fab-register]'),
+    snackbar: $('snackbar'),
     roleSwitch: document.querySelector('.role-switch'),
     roleTabs: Array.prototype.slice.call(document.querySelectorAll('.role-tab')),
     splashLayer: $('splashLayer'),
@@ -98,7 +100,6 @@
   var NAV_BY_ROLE = {
     enfermero: [
       { key: 'turno', label: 'Turno', icon: 'list' },
-      { key: 'registrar', label: 'Registrar', icon: 'plus' },
       { key: 'pendientes', label: 'Pendientes', icon: 'clock' }
     ],
     paciente: [
@@ -196,8 +197,20 @@
     state.eventUndo = null;
   }
 
+  function undoEvent() {
+    if (!state.eventUndo) return;
+    var events = loadEvents().filter(function (entry) { return entry.id !== state.eventUndo; });
+    saveEvents(events);
+    state.eventUndo = null;
+    if (state.eventUndoTimer) {
+      window.clearTimeout(state.eventUndoTimer);
+      state.eventUndoTimer = null;
+    }
+    hideEventFeedback();
+  }
+
   function showEventFeedback(message) {
-    var feedback = app.registrationLayer.querySelector('[data-tray-feedback]');
+    var feedback = app.snackbar;
     if (!feedback) return;
     feedback.textContent = '';
     var line = document.createElement('div');
@@ -216,7 +229,7 @@
   }
 
   function hideEventFeedback() {
-    var feedback = app.registrationLayer.querySelector('[data-tray-feedback]');
+    var feedback = app.snackbar;
     if (!feedback) return;
     feedback.textContent = '';
     feedback.classList.remove('is-visible');
@@ -245,6 +258,8 @@
     eye: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12s3.2-5 9-5 9 5 9 5-3.2 5-9 5-9-5-9-5Z"></path><circle cx="12" cy="12" r="2"></circle></svg>',
     shield: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 19 7v5c0 4.2-2.8 7-7 8-4.2-1-7-3.8-7-8V7l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>',
     calendar: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="13" rx="2"></rect><path d="M8 4v4M16 4v4M5 10h14"></path></svg>',
+    more: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="12" cy="19" r="1.4"></circle></svg>',
+    moon: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>',
     sun: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>'
   };
 
@@ -256,6 +271,114 @@
     return String(value).replace(/[&<>"']/g, function (character) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
     });
+  }
+
+  function roleMenuItem(role, label) {
+    var checked = state.role === role;
+    return '<button type="button" class="demo-menu-item" role="menuitemradio" data-view-as="' + role + '" aria-checked="' + String(checked) + '">' +
+      '<span class="demo-menu-check" aria-hidden="true">' + icon('check') + '</span><span>' + label + '</span></button>';
+  }
+
+  function demoMenuHtml() {
+    return '<button type="button" class="top-app-bar-action" data-demo-menu aria-haspopup="menu" aria-expanded="false" aria-label="Ver como">' + icon('more') + '</button>' +
+      '<div class="demo-menu" role="menu" aria-label="Ver como">' +
+      '<p class="demo-menu-label">Ver como</p>' +
+      roleMenuItem('enfermero', 'Enfermero') +
+      roleMenuItem('paciente', 'Paciente') +
+      roleMenuItem('familia', 'Familia') +
+      '<div class="demo-menu-divider" aria-hidden="true"></div>' +
+      '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-menu-theme aria-pressed="false">' +
+      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('moon') + '</span><span data-theme-label>Tema oscuro</span></button>' +
+      '</div>';
+  }
+
+  function themeToggleHtml() {
+    return '<button type="button" class="top-app-bar-action theme-toggle" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">' +
+      '<span class="theme-icon theme-icon-moon" aria-hidden="true">' + icon('moon') + '</span>' +
+      '<span class="theme-icon theme-icon-sun" aria-hidden="true">' + icon('sun') + '</span></button>';
+  }
+
+  // Every view gets a Material top app bar. The existing h1 (and back
+  // button) are lifted into it so there is exactly one h1 per view.
+  function buildTopBar(view) {
+    var h1 = view.querySelector('h1');
+    var back = view.querySelector('[data-back]');
+    var bar = document.createElement('header');
+    bar.className = 'top-app-bar';
+    if (back) bar.appendChild(back);
+    var title = document.createElement('div');
+    title.className = 'top-app-bar-title';
+    if (h1) {
+      var headerCopy = h1.closest('.view-header-copy');
+      if (headerCopy) {
+        var header = headerCopy.closest('.view-header');
+        title.appendChild(headerCopy);
+        if (header && !header.querySelector('h1, [data-back]') && !header.textContent.trim()) header.remove();
+      } else {
+        title.appendChild(h1);
+      }
+    }
+    bar.appendChild(title);
+    var actions = document.createElement('div');
+    actions.className = 'top-app-bar-actions';
+    actions.innerHTML = themeToggleHtml() + demoMenuHtml();
+    bar.appendChild(actions);
+    view.insertBefore(bar, view.firstChild);
+  }
+
+  function removeBarActions(view) {
+    var actions = view.querySelector('.top-app-bar-actions');
+    if (actions) actions.remove();
+  }
+
+  function ensureBarActions(view) {
+    var bar = view.querySelector('.top-app-bar');
+    if (!bar || bar.querySelector('.top-app-bar-actions')) return;
+    var actions = document.createElement('div');
+    actions.className = 'top-app-bar-actions';
+    actions.innerHTML = themeToggleHtml() + demoMenuHtml();
+    bar.appendChild(actions);
+  }
+
+  // ---- Android navigation: layers + system Back ----
+  var layerOrder = [];
+  var layerOpen = {};
+  var layerPushed = {};
+  var suppressPop = 0;
+
+  function pushLayer(id) {
+    if (layerOpen[id]) return;
+    layerOpen[id] = true;
+    layerOrder.push(id);
+    var pushed = false;
+    try {
+      history.pushState({ acompanaLayer: id }, '');
+      pushed = true;
+    } catch (error) {
+      // file:// and sandboxed contexts: keep the layer working without history
+    }
+    layerPushed[id] = pushed;
+  }
+
+  function dropLayer(id, fromPop) {
+    if (!layerOpen[id]) return;
+    delete layerOpen[id];
+    var index = layerOrder.indexOf(id);
+    if (index !== -1) layerOrder.splice(index, 1);
+    var pushed = layerPushed[id];
+    delete layerPushed[id];
+    if (!fromPop && pushed) {
+      suppressPop += 1;
+      try {
+        history.back();
+      } catch (error) {
+        suppressPop -= 1;
+      }
+    }
+  }
+
+  function topLayer() {
+    return layerOrder.length ? layerOrder[layerOrder.length - 1] : null;
   }
 
   function isConfirmed(taskId) {
@@ -396,7 +519,11 @@
 
   function renderPatient() {
     return '<div class="patient-intro"><p class="eyebrow">Hab. 304-B</p><h1 class="view-title">Mi estado</h1><p class="view-copy">Aquí ve lo que va pasando, en palabras sencillas.</p></div>' +
-      '<div class="next-card"><span class="next-card-icon">' + icon('clock') + '</span><span class="next-card-copy"><strong>Lo que sigue</strong><span>La enfermera vuelve a hacer la ronda <span class="time-nowrap">a la 1:00 p. m.</span></span></span></div>' +
+      '<div class="next-card"><span class="next-card-icon">' + icon('clock') + '</span><span class="next-card-copy"><strong>Lo que sigue</strong><span>La enfermera vuelve a hacer la ronda <span class="time-nowrap">a la 1:00 p. m.</span></span></span>' +
+      '<span class="next-mascot" data-mascot aria-hidden="true"><span class="video-slot next-mascot-slot">' +
+      '<video class="loop" autoplay muted loop playsinline preload="metadata" poster="media/onboarding-1.jpg" aria-hidden="true">' +
+      '<source src="media/onboarding-1.webm" type="video/webm"><source src="media/onboarding-1.mp4" type="video/mp4">' +
+      '</video><span class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></span></span></span></div>' +
       '<div class="onboarding-block"><div class="onboarding-intro"><h2 class="section-label">Así funciona</h2><p>Dos ideas sencillas</p></div><div class="onboarding-grid">' + onboardingCard('onboarding-1', 'Lo que sigue', 'Vea el próximo paso del turno.') + onboardingCard('onboarding-2', 'Cómo pedir ayuda', 'Use el timbre cuando necesite algo.') + '</div></div>' +
       '<div class="section-heading"><h2 class="section-label">Qué pasó hoy</h2><span class="section-meta">En simple</span></div>' + timeline(patientDayTimeline());
   }
@@ -456,6 +583,7 @@
     view.dataset.viewKey = definition.key;
     view.setAttribute('role', 'region');
     view.innerHTML = definition.inner;
+    buildTopBar(view);
     return view;
   }
 
@@ -554,12 +682,40 @@
       var active = item.key === state.activeNav[state.role];
       return '<button type="button" class="nav-item' + (active ? ' is-active' : '') + '" data-nav="' + escapeHtml(item.key) + '" aria-pressed="' + String(active) + '"><span class="nav-icon">' + icon(item.icon) + '</span><span>' + escapeHtml(item.label) + '</span></button>';
     }).join('');
+    updateFab();
+  }
+
+  function updateFab() {
+    if (!app.fab) return;
+    app.fab.hidden = state.role !== 'enfermero';
+  }
+
+  function openDemoMenu(button) {
+    document.querySelectorAll('.demo-menu.is-open').forEach(function (menu) {
+      menu.classList.remove('is-open');
+    });
+    var menu = button.parentElement.querySelector('.demo-menu');
+    if (!menu) return;
+    menu.classList.add('is-open');
+    button.setAttribute('aria-expanded', 'true');
+    pushLayer('menu');
+  }
+
+  function closeDemoMenu(fromPop) {
+    var menu = document.querySelector('.demo-menu.is-open');
+    if (menu) {
+      menu.classList.remove('is-open');
+      var button = menu.parentElement.querySelector('[data-demo-menu]');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    }
+    dropLayer('menu', fromPop);
   }
 
   function updateRole(role) {
     var nextIndex = ROLE_INDEX[role];
     var currentIndex = ROLE_INDEX[state.role];
     state.role = role;
+    if (state.detailPatient) dropLayer('detail');
     state.detailPatient = null;
     state.activeNav[role] = HOME_NAV[role];
     app.phone.dataset.role = role;
@@ -588,8 +744,10 @@
     }
     state.detailPatient = patient;
     state.activeNav.enfermero = 'turno';
+    pushLayer('detail');
     home.classList.add('is-behind');
     home.classList.remove('is-active');
+    removeBarActions(home);
     var definition = viewDefinition();
     var detail = createView(definition, 'forward');
     app.screen.appendChild(detail);
@@ -628,10 +786,11 @@
     ], { duration: getDurationEnterMs(), easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'both' });
   }
 
-  function closePatientDetail() {
+  function closePatientDetail(fromPop) {
     var detail = app.screen.querySelector('.view[data-view-key="nurse-detail"]');
     var home = app.screen.querySelector('.view[data-view-key="nurse-home"]');
     state.detailPatient = null;
+    dropLayer('detail', fromPop);
     if (!detail) {
       renderBottomNav();
       renderRoute('back', true);
@@ -642,6 +801,7 @@
     if (home) {
       home.classList.remove('is-behind');
       home.classList.add('is-active');
+      ensureBarActions(home);
     }
     window.setTimeout(function () { if (detail.parentNode) detail.remove(); }, 320);
     renderBottomNav();
@@ -650,6 +810,7 @@
   function openRegistrationSheet() {
     if (state.sheetOpen) return;
     state.sheetOpen = true;
+    pushLayer('register');
     state.sheetReturnNav = state.activeNav.enfermero === 'registrar' ? 'turno' : state.activeNav.enfermero;
     state.activeNav.enfermero = 'registrar';
     state.eventPatient = state.detailPatient ? state.detailPatient.id : PATIENTS[0].id;
@@ -658,7 +819,7 @@
       var active = p.id === state.eventPatient;
       return '<button type="button" class="event-patient-btn" data-event-patient="' + escapeHtml(p.id) + '" aria-pressed="' + String(active) + '"><span class="patient-dot">' + escapeHtml(p.initials) + '</span>' + escapeHtml(p.name.split(' ')[0]) + '</button>';
     }).join('');
-    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><div class="event-patient-picker" role="radiogroup" aria-label="Paciente">' + patientButtons + '</div><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><div class="other-event-field" data-other-field><textarea class="other-text-input" data-other-text rows="2" maxlength="140" aria-label="Describe el evento" placeholder="Describe el evento"></textarea><div class="other-event-actions"><button type="button" class="primary-button" data-other-save>Guardar</button></div></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Mantén presionado para hablar</small></span><span class="dictate-pulse" aria-hidden="true"></span></button><div class="event-proposal" data-event-proposal><p class="event-proposal-label">Revisa antes de guardar</p><span class="event-proposal-kind" data-proposal-kind></span><p class="event-proposal-text" data-proposal-text></p><div class="event-proposal-actions"><button type="button" class="secondary-button" data-proposal-cancel>Cancelar</button><button type="button" class="primary-button" data-proposal-save>Guardar</button></div></div><p class="tray-feedback" data-tray-feedback aria-live="polite"></p></section>';
+    app.registrationLayer.innerHTML = '<div class="sheet-backdrop" data-sheet-close></div><section class="registration-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-handle" data-sheet-handle aria-label="Arrastrar para cerrar"></div><div class="sheet-header"><div class="sheet-title-wrap"><p class="view-subtitle">Registro rápido</p><h2 id="sheet-title" class="sheet-title">¿Qué acabas de hacer?</h2></div><button type="button" class="icon-button" data-sheet-close aria-label="Cerrar registro">×</button></div><div class="event-patient-picker" role="radiogroup" aria-label="Paciente">' + patientButtons + '</div><div class="quick-events"><button type="button" class="event-chip" data-quick-event="Medicación"><span class="event-icon">' + icon('pill') + '</span><span><strong>Medicación</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Cambio de posición"><span class="event-icon">' + icon('move') + '</span><span><strong>Cambio de posición</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Ronda"><span class="event-icon">' + icon('ruler') + '</span><span><strong>Ronda</strong><small>1 toque</small></span></button><button type="button" class="event-chip" data-quick-event="Otro evento"><span class="event-icon">' + icon('clipboard') + '</span><span><strong>Otro evento</strong><small>Abrir detalle</small></span></button></div><div class="other-event-field" data-other-field><textarea class="other-text-input" data-other-text rows="2" maxlength="140" aria-label="Describe el evento" placeholder="Describe el evento"></textarea><div class="other-event-actions"><button type="button" class="primary-button" data-other-save>Guardar</button></div></div><button type="button" class="dictate-button" data-dictate><span class="mic-bubble">' + icon('mic') + '</span><span class="dictate-copy"><strong>Dictar evento</strong><small>Toca para dictar</small></span></button><div class="event-proposal" data-event-proposal><p class="event-proposal-label">Revisa antes de guardar</p><span class="event-proposal-kind" data-proposal-kind></span><p class="event-proposal-text" data-proposal-text></p><div class="event-proposal-actions"><button type="button" class="secondary-button" data-proposal-cancel>Cancelar</button><button type="button" class="primary-button" data-proposal-save>Guardar</button></div></div></section>';
     app.registrationLayer.classList.add('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'false');
     renderBottomNav();
@@ -669,9 +830,10 @@
     });
   }
 
-  function closeRegistrationSheet(restoreNav) {
+  function closeRegistrationSheet(restoreNav, fromPop) {
     if (!state.sheetOpen) return;
     state.sheetOpen = false;
+    dropLayer('register', fromPop);
     if (restoreNav !== false) state.activeNav.enfermero = state.sheetReturnNav || 'turno';
     app.registrationLayer.classList.remove('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'true');
@@ -773,17 +935,40 @@
     var copy = button.querySelector('.dictate-copy');
     if (state.listening) {
       copy.querySelector('strong').textContent = 'Escuchando';
-      copy.querySelector('small').textContent = 'Suelta para dejar el registro';
+      copy.querySelector('small').textContent = 'Toca para detener';
       button.classList.add('is-listening');
     } else {
       copy.querySelector('strong').textContent = 'Dictar evento';
-      copy.querySelector('small').textContent = 'Mantén presionado para hablar';
+      copy.querySelector('small').textContent = 'Toca para dictar';
       button.classList.remove('is-listening');
       showTrayFeedback('Registro por voz');
     }
   }
 
   function handleScreenClick(event) {
+    var demoMenu = event.target.closest('[data-demo-menu]');
+    if (demoMenu) {
+      var openMenu = demoMenu.parentElement.querySelector('.demo-menu');
+      if (openMenu && openMenu.classList.contains('is-open')) closeDemoMenu();
+      else openDemoMenu(demoMenu);
+      return;
+    }
+
+    var viewAs = event.target.closest('[data-view-as]');
+    if (viewAs) {
+      var role = viewAs.getAttribute('data-view-as');
+      closeDemoMenu();
+      updateRole(role);
+      return;
+    }
+
+    var menuTheme = event.target.closest('.demo-menu [data-menu-theme]');
+    if (menuTheme) {
+      if (window.acompanaTheme) window.acompanaTheme.toggle(event);
+      closeDemoMenu();
+      return;
+    }
+
     var handoverOpen = event.target.closest('[data-handover-open]');
     if (handoverOpen) {
       openHandoverSheet();
@@ -939,14 +1124,7 @@
     }
     var undo = event.target.closest('[data-undo-event]');
     if (undo) {
-      if (state.eventUndo) {
-        var evs = loadEvents();
-        evs = evs.filter(function (e) { return e.id !== state.eventUndo; });
-        saveEvents(evs);
-        state.eventUndo = null;
-        if (state.eventUndoTimer) { window.clearTimeout(state.eventUndoTimer); state.eventUndoTimer = null; }
-        hideEventFeedback();
-      }
+      undoEvent();
       return;
     }
     var otherSave = event.target.closest('[data-other-save]');
@@ -1352,12 +1530,17 @@
       '<p class="tray-feedback ai-feedback" data-ai-feedback aria-live="polite"></p></section>';
     app.aiLayer.classList.add('is-open');
     app.aiLayer.setAttribute('aria-hidden', 'false');
+    pushLayer('ai');
   }
 
-  function closeAiSheet() {
-    if (!app.aiLayer.classList.contains('is-open')) return;
+  function closeAiSheet(fromPop) {
+    if (!app.aiLayer.classList.contains('is-open')) {
+      dropLayer('ai', fromPop);
+      return;
+    }
     app.aiLayer.classList.remove('is-open');
     app.aiLayer.setAttribute('aria-hidden', 'true');
+    dropLayer('ai', fromPop);
     window.setTimeout(function () {
       if (!app.aiLayer.classList.contains('is-open')) app.aiLayer.innerHTML = '';
     }, 420);
@@ -1562,9 +1745,31 @@
     ensureVideoObserver();
     app.screen.addEventListener('click', handleScreenClick);
     app.bottomNav.addEventListener('click', handleNavClick);
+    if (app.fab) app.fab.addEventListener('click', function () { openRegistrationSheet(); });
+    if (app.snackbar) app.snackbar.addEventListener('click', function (event) {
+      if (event.target.closest('[data-undo-event]')) undoEvent();
+    });
     app.registrationLayer.addEventListener('click', handleRegistrationClick);
     app.aiLayer.addEventListener('click', handleAiClick);
     app.roleTabs.forEach(function (tab) { tab.addEventListener('click', handleRoleClick); });
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('.demo-menu') && !event.target.closest('[data-demo-menu]')) closeDemoMenu();
+    });
+    window.addEventListener('popstate', function () {
+      if (suppressPop > 0) {
+        suppressPop -= 1;
+        return;
+      }
+      var layer = topLayer();
+      if (!layer) return;
+      layerOrder.pop();
+      delete layerOpen[layer];
+      delete layerPushed[layer];
+      if (layer === 'detail') closePatientDetail(true);
+      else if (layer === 'register') closeRegistrationSheet(undefined, true);
+      else if (layer === 'ai') closeAiSheet(true);
+      else if (layer === 'menu') closeDemoMenu(true);
+    });
     app.celebrationLayer.addEventListener('click', function (event) {
       if (event.target.closest('[data-close-celebration]')) hideCompletion();
     });
@@ -1575,7 +1780,8 @@
         return;
       }
       if (event.key !== 'Escape') return;
-      if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
+      if (document.querySelector('.demo-menu.is-open')) closeDemoMenu();
+      else if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
       else if (state.sheetOpen) closeRegistrationSheet();
       else if (state.detailPatient) closePatientDetail();
       else if (app.celebrationLayer.classList.contains('is-visible')) hideCompletion();
