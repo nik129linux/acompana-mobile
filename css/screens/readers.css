@@ -163,9 +163,12 @@
   padding-left: calc(var(--space-4) + 44px + var(--space-3));
 }
 
-/* ---- Contacto: three fee-card style options in a row ---- */
+/* ---- Contacto: three equal cards, each with a 56px gradient icon disc ---- */
 .contact-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
+  align-items: stretch;
 }
 
 .contact-options .contact-option {
@@ -199,19 +202,33 @@
   outline-offset: 3px;
 }
 
-.contact-option-icon {
+.contact-icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--primary-container);
+  color: var(--on-primary);
 }
 
-.contact-option-icon .icon-svg {
-  width: 22px;
-  height: 22px;
+.contact-icon .icon-svg {
+  width: 24px;
+  height: 24px;
+}
+
+.contact-icon.is-call {
+  background: var(--grad-primary);
+}
+
+.contact-icon.is-message {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--nurse) 88%, var(--color-neutral-950)) 0%,
+    color-mix(in srgb, var(--nurse) 68%, var(--color-neutral-950)) 100%);
+}
+
+.contact-icon.is-visit {
+  background: var(--grad-warm);
 }
 
 .contact-option-label {
@@ -226,4 +243,94 @@
   font-size: var(--text-caption);
   font-weight: 500;
   line-height: 1.4;
+}
+
+/* ---- "Lo que sigue": the mascot keeps its white ground on a white disc, so
+   the multiply blend no longer darkens the art against the gradient ---- */
+.mascot-disc {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--on-primary);
+  box-shadow: var(--elevation-1);
+}
+
+/* ---- Timelines: 32px badges with white icons on filled circles, joined by
+   a 2px rounded rail (the flat ::before dot is gone) ---- */
+.timeline-item {
+  grid-template-columns: 32px 62px 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 0 14px;
+  border-left: 0;
+}
+
+.timeline-item::before {
+  content: none;
+  background: var(--patient);
+}
+
+.timeline-item::after {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: 15px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--stone-border);
+  content: "";
+}
+
+.timeline-item:first-child::after {
+  top: 50%;
+}
+
+.timeline-item:last-child::after {
+  bottom: 50%;
+}
+
+.timeline-badge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--patient);
+  color: var(--on-primary);
+}
+
+.timeline-badge.is-pending {
+  background: var(--grad-primary);
+}
+
+.timeline-badge .icon-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.timeline-time {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+.timeline-text,
+.timeline-item.is-pending .timeline-text {
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+
+/* ---- Visit hours (and any leftover status circle): white icon on fill ---- */
+.visit-icon {
+  background: var(--grad-primary);
+  color: var(--on-primary);
 }

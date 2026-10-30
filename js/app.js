@@ -452,7 +452,12 @@
         ? ' data-translate-id="' + escapeHtml(item.eventId) + '"' +
           ' data-translate-kind="' + escapeHtml(item.kind) + '"'
         : '';
-      return '<div class="timeline-item' + (item.pending ? ' is-pending' : '') + '"' + attrs + '><span class="timeline-time">' + escapeHtml(item.time) + '</span><p class="timeline-text">' + escapeHtml(item.text) + '</p></div>';
+      // 32px status badge: white icon on a filled circle (done = check on the
+      // patient green; pending = clock on the primary gradient; visit/AI lines
+      // may swap in the calendar icon).
+      var badgeIcon = item.icon || (item.pending ? 'clock' : 'check');
+      var badge = '<span class="timeline-badge' + (item.pending ? ' is-pending' : '') + '" aria-hidden="true">' + icon(badgeIcon) + '</span>';
+      return '<div class="timeline-item' + (item.pending ? ' is-pending' : '') + '"' + attrs + '>' + badge + '<span class="timeline-time">' + escapeHtml(item.time) + '</span><p class="timeline-text">' + escapeHtml(item.text) + '</p></div>';
     }).join('') + '</div>';
   }
 

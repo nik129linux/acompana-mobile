@@ -26,7 +26,7 @@
     return [
       { time: 'Hoy', text: 'Tratamiento de la mañana cumplido', pending: false },
       { time: 'Hoy', text: 'El equipo está con ' + patient.pronoun + ', sin novedad que reportar', pending: false },
-      { time: '15:00', text: 'Horario de visita disponible', pending: true }
+      { time: '15:00', text: 'Horario de visita disponible', pending: true, icon: 'calendar' }
     ];
   }
 
@@ -52,9 +52,9 @@
       '<article class="list-card"><span class="avatar" aria-hidden="true"><img src="media/frames/doctora-white.png" alt=""></span>' +
       '<span class="list-copy"><strong class="list-title">Enfermera de turno</strong><span class="list-meta">Elena · vuelve a <span class="time-nowrap">la 1:00 p. m.</span></span></span></article>' +
       '<div class="contact-actions contact-options">' +
-      '<a class="contact-option primary-button" href="tel:' + escapeHtml(ctx().SHIFT_PHONE) + '"><span class="contact-option-icon" aria-hidden="true">' + icon('phone') + '</span><strong class="contact-option-label">Llamar</strong> <span class="contact-option-line">al turno de Elena</span></a>' +
-      '<button type="button" class="contact-option" data-ask-open><span class="contact-option-icon" aria-hidden="true">' + icon('message') + '</span><strong class="contact-option-label">Mensaje</strong> <span class="contact-option-line">Escriba al equipo</span></button>' +
-      '<button type="button" class="contact-option secondary-button" data-schedule-open><span class="contact-option-icon" aria-hidden="true">' + icon('calendar') + '</span><strong class="contact-option-label">Visita</strong> <span class="contact-option-line">Ver horarios</span></button>' +
+      '<a class="contact-option primary-button" href="tel:' + escapeHtml(ctx().SHIFT_PHONE) + '"><span class="contact-icon is-call" aria-hidden="true">' + icon('call') + '</span><strong class="contact-option-label">Llamar</strong> <span class="contact-option-line">al turno de Elena</span></a>' +
+      '<button type="button" class="contact-option" data-ask-open><span class="contact-icon is-message" aria-hidden="true">' + icon('message') + '</span><strong class="contact-option-label">Mensaje</strong> <span class="contact-option-line">Escriba al equipo</span></button>' +
+      '<button type="button" class="contact-option secondary-button" data-schedule-open><span class="contact-icon is-visit" aria-hidden="true">' + icon('calendar') + '</span><strong class="contact-option-label">Visita</strong> <span class="contact-option-line">Ver horarios</span></button>' +
       '</div>' +
       V.sheets.scheduleSheet();
   }
