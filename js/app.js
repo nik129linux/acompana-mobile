@@ -608,7 +608,7 @@
 
   function updateFab() {
     if (!app.fab) return;
-    app.fab.hidden = state.role !== 'enfermero';
+    app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient;
   }
 
   function openDemoMenu(button) {
@@ -730,13 +730,31 @@
     renderBottomNav();
   }
 
+  // Without a patient in context, start from whoever's next task is due.
+  function nextDuePatientId() {
+    var due = remainingTasks().slice().sort(function (x, y) { return x.time < y.time ? -1 : x.time > y.time ? 1 : 0; })[0];
+    return due ? due.patientId : PATIENTS[0].id;
+  }
+
+  // Replace the visible view with a fresh render so changes show at once.
+  function refreshActiveView() {
+    var current = app.screen.querySelector('.view.is-active');
+    if (!current) return;
+    var next = createView(viewDefinition(), 'forward');
+    next.classList.remove('from-right');
+    next.classList.add('is-active');
+    current.replaceWith(next);
+    bindVideos(next);
+    updateFab();
+  }
+
   function openRegistrationSheet() {
     if (state.sheetOpen) return;
     state.sheetOpen = true;
     pushLayer('register');
     state.sheetReturnNav = state.activeNav.enfermero === 'registrar' ? 'turno' : state.activeNav.enfermero;
     state.activeNav.enfermero = 'registrar';
-    state.eventPatient = state.detailPatient ? state.detailPatient.id : PATIENTS[0].id;
+    state.eventPatient = state.detailPatient ? state.detailPatient.id : (state.lastEventPatient || nextDuePatientId());
     clearUndo();
     app.registrationLayer.innerHTML = views.sheets.registrationSheet(state.eventPatient);
     app.registrationLayer.classList.add('is-open');
@@ -762,6 +780,10 @@
     app.registrationLayer.classList.remove('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'true');
     renderBottomNav();
+    if (state.eventsDirty) {
+      state.eventsDirty = false;
+      refreshActiveView();
+    }
     window.setTimeout(function () {
       if (!state.sheetOpen) app.registrationLayer.innerHTML = '';
     }, 420);
@@ -1057,10 +1079,17 @@
     var patientBtn = event.target.closest('[data-event-patient]');
     if (patientBtn) {
       state.eventPatient = patientBtn.getAttribute('data-event-patient');
+      state.lastEventPatient = state.eventPatient;
       var allBtns = app.registrationLayer.querySelectorAll('[data-event-patient]');
       allBtns.forEach(function (b) {
-        b.setAttribute('aria-pressed', String(b.getAttribute('data-event-patient') === state.eventPatient));
+        var on = b.getAttribute('data-event-patient') === state.eventPatient;
+        b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('is-selected', on);
       });
+      if (window.AcompanaMotion) {
+        window.AcompanaMotion.press(patientBtn);
+        window.AcompanaMotion.pop(patientBtn.querySelector('.chip-icon') || patientBtn, { from: 0.6, duration: 460 });
+      }
       return;
     }
     var undo = event.target.closest('[data-undo-event]');
@@ -1125,6 +1154,7 @@
     var evs = loadEvents();
     var id = 'evt-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     var entry = { id: id, patientId: patientId, kind: kind, text: text, time: nowHHMM(), source: source };
+    state.eventsDirty = true;
     evs.push(entry);
     saveEvents(evs);
     state.eventUndo = id;
@@ -1194,6 +1224,10 @@
       dictationFallback('Este navegador no permite dictar. Escribe el evento.');
       return;
     }
+    if (navigator.brave) {
+      dictationFallback('Brave bloquea el dictado por voz. Abre la app en Chrome o escribe el evento.');
+      return;
+    }
     if (window.isSecureContext === false) {
       dictationFallback('El micrófono solo funciona con la app instalada (localhost o https). Escribe el evento.');
       return;
@@ -1225,7 +1259,7 @@
         'service-not-allowed': 'El micrófono solo funciona con la app instalada (localhost o https). Escribe el evento.',
         'no-speech': 'No te escuché. Toca de nuevo o escribe el evento.',
         'audio-capture': 'No encontré un micrófono. Escribe el evento.',
-        'network': 'Dictar necesita conexión. Escribe el evento.'
+        'network': 'El servicio de voz no respondió (en Brave está bloqueado). Usa Chrome o escribe el evento.'
       };
       if (code === 'aborted') { setDictateState(false); return; }
       dictationFallback(messages[code] || 'No se pudo dictar. Escribe el evento.');
@@ -1643,12 +1677,32 @@
     });
   }
 
-  function copyHandover() {
+  function handoverNote() {
     var get = function (key) {
       var field = app.aiLayer.querySelector('[data-handover-' + key + ']');
       return field ? field.value.trim() : '';
     };
-    var note = 'Situación: ' + get('s') + '\nAntecedentes: ' + get('b') + '\nEvaluación: ' + get('a') + '\nRecomendación: ' + get('r');
+    return 'Situación: ' + get('s') + '\nAntecedentes: ' + get('b') + '\nEvaluación: ' + get('a') + '\nRecomendación: ' + get('r');
+  }
+
+  // Compartir: the Android share sheet (WhatsApp, Gmail, Teams...). Where it
+  // is not available, fall back to copying.
+  function shareHandover() {
+    var note = handoverNote();
+    var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
+    if (navigator.share) {
+      navigator.share({ title: 'Nota de entrega (SBAR)', text: note }).then(function () {
+        if (feedback) feedback.textContent = 'Nota enviada.';
+      }, function () {
+        // dismissed by the nurse: nothing to report
+      });
+      return;
+    }
+    copyHandover();
+  }
+
+  function copyHandover() {
+    var note = handoverNote();
     var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
     var done = function () {
       if (feedback) feedback.textContent = 'Nota copiada. Puedes pegarla donde la necesites.';
@@ -1775,6 +1829,10 @@
     }
     if (event.target.closest('[data-handover-copy]')) {
       copyHandover();
+      return;
+    }
+    if (event.target.closest('[data-handover-share]')) {
+      shareHandover();
       return;
     }
     var yes = event.target.closest('[data-consent-yes]');

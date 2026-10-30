@@ -285,3 +285,75 @@
 @media (prefers-reduced-motion: reduce) {
   .snack-timer, .dictate-button.is-listening .mic-bubble { animation: none; }
 }
+
+/* Nav: the two nurse tabs sit symmetric around the centered "+". */
+.phone[data-role="enfermero"] .bottom-nav {
+  display: grid;
+  grid-template-columns: 1fr 96px 1fr;
+  column-gap: 0;
+}
+
+.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(1) { grid-column: 1; }
+.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(2) { grid-column: 3; }
+
+/* Patient detail: "Registrar evento" docks just above the bottom bar. */
+.phone[data-role="enfermero"] .view[data-view-key="nurse-detail"] { padding-bottom: 0; }
+
+.detail-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: var(--space-2) calc(var(--space-5) * -1) 0;
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  background: linear-gradient(to top, var(--canvas) 70%, color-mix(in srgb, var(--canvas) 0%, transparent));
+}
+
+/* Critical patient: red only as an accent. */
+.detail-alert {
+  border-radius: var(--radius-card);
+  background: var(--grad-critical);
+  color: var(--on-primary);
+  font-weight: 500;
+}
+
+.detail-alert .urgent-icon {
+  background: var(--alert);
+  color: var(--on-primary);
+}
+
+.pulse-dot {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--alert);
+}
+
+.pulse-dot::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--alert);
+  content: "";
+  animation: pulse-ring 1.6s var(--ease-enter) infinite;
+}
+
+@keyframes pulse-ring {
+  from { opacity: 0.7; transform: scale(1); }
+  to { opacity: 0; transform: scale(2.6); }
+}
+
+/* SBAR actions: generate on its own row, then Copiar | Compartir. */
+.ai-sheet .ai-actions [data-handover-generate] { grid-column: 1 / -1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot::after { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patient-card,
+  .list-card,
+  .hero-card { animation: none; }
+}

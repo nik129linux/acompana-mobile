@@ -121,7 +121,7 @@
 .hero-stack::before { bottom: 8px; width: 92%; opacity: 0.45; }
 .hero-stack::after { bottom: 0; width: 84%; opacity: 0.22; }
 .hero-stack.is-critical::before,
-.hero-stack.is-critical::after { background: var(--grad-alert); }
+.hero-stack.is-critical::after { background: var(--grad-critical); }
 
 .hero-card {
   position: relative;
@@ -135,7 +135,8 @@
   box-shadow: var(--elevation-2);
 }
 
-.hero-stack.is-critical .hero-card { background: var(--grad-alert); }
+.hero-stack.is-critical .hero-card { background: var(--grad-critical); }
+.hero-stack.is-critical .hero-media { background: var(--alert); color: var(--on-primary); }
 
 .hero-row {
   display: flex;

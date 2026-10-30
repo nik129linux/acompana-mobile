@@ -93,7 +93,8 @@ async function box(locator) {
     // 4. System Back closes detail and sheets, never the app.
     await page.locator('[data-patient="mg"]').first().click();
     await page.waitForTimeout(600);
-    assert(await page.locator('[data-fab-register]').isVisible(), 'FAB visible on patient detail');
+    // Patient detail has its own docked "Registrar evento" (FAB hidden there, Nico 2026-10-30).
+    assert(await page.locator('[data-fab-register]').isVisible() || await page.locator('.view.is-active [data-open-register]').isVisible(), 'a register action is visible on patient detail');
     await page.goBack();
     await page.waitForTimeout(600);
     assert(page.url().startsWith(origin), 'Back stayed in the app');

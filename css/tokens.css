@@ -82,6 +82,10 @@
     color-mix(in srgb, var(--color-alert-500) 40%, var(--color-alert-700)) 0%,
     var(--color-alert-700) 100%);
   --grad-warm: linear-gradient(135deg, var(--color-warm-400) 0%, var(--color-warm-500) 100%);
+  /* Critical = calm deep navy; red is only an accent (dot, badge), never a slab. */
+  --grad-critical: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-primary-500) 34%, var(--color-neutral-950)) 0%,
+    color-mix(in srgb, var(--color-primary-500) 14%, var(--color-neutral-950)) 100%);
   --on-gradient-soft: color-mix(in srgb, var(--color-neutral-0) 80%, transparent);
   --glass-on-gradient: color-mix(in srgb, var(--color-neutral-0) 16%, transparent);
 

@@ -51,7 +51,7 @@
   function urgentCard(patient) {
     return '<div class="hero-stack is-critical"><article class="hero-card urgent-card patient-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
       '<div class="hero-row"><span class="hero-media" aria-hidden="true">' + icon('pulse') + '</span>' +
-      '<div class="hero-copy"><p class="hero-title urgent-name">' + escapeHtml(patient.name) + '</p><span class="hero-sub urgent-meta">' + escapeHtml(patient.room) + ' · alerta de signos vitales</span></div></div>' +
+      '<div class="hero-copy"><p class="hero-title urgent-name">' + escapeHtml(patient.name) + '</p><span class="hero-sub urgent-meta"><span class="pulse-dot" aria-hidden="true"></span> ' + escapeHtml(patient.room) + ' · alerta de signos vitales</span></div></div>' +
       '<button type="button" class="glass-pill urgent-action" data-patient="' + escapeHtml(patient.id) + '" aria-label="Revisar ahora a ' + escapeHtml(patient.name) + '">' + icon('alert') + 'Revisar ahora · protocolo abierto</button>' +
       '</article></div>';
   }

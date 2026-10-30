@@ -46,7 +46,8 @@
       '<label class="handover-field field">Recomendación<span class="field-box"><textarea data-handover-r rows="2" maxlength="200"></textarea></span></label>' +
       '<div class="ai-actions"><span class="source-badge" data-handover-badge>Plantilla</span>' +
       '<button type="button" class="secondary-button btn btn-secondary" data-handover-generate>Generar borrador</button>' +
-      '<button type="button" class="primary-button btn btn-primary" data-handover-copy>Copiar nota</button></div>' +
+      '<button type="button" class="btn btn-tonal" data-handover-copy>' + icon('copy') + 'Copiar</button>' +
+      '<button type="button" class="primary-button btn btn-primary" data-handover-share>' + icon('message') + 'Compartir</button></div>' +
       '<p class="tray-feedback ai-feedback" data-ai-feedback aria-live="polite"></p></section>';
   }
 
