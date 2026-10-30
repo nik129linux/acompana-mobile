@@ -557,6 +557,16 @@
     // Reader timelines: once the fresh view is in the DOM, fill its logged
     // lines with cached or fresh server translations (only with consent).
     applyTimelineTranslations(next, state.role);
+    staggerContactOptions(next);
+  }
+
+  // New reader lists enter with the shared motion helper (js/motion.js).
+  function staggerContactOptions(view) {
+    if (!view || !view.querySelector) return;
+    var list = view.querySelector('.contact-options');
+    var motion = window.AcompanaMotion;
+    if (!list || !motion || !motion.stagger) return;
+    motion.stagger(list, '.contact-option', { step: getStaggerMs(), delay: 80 });
   }
 
   function renderBottomNav() {
@@ -883,6 +893,13 @@
     var askSend = event.target.closest('[data-ask-send]');
     if (askSend) {
       sendAsk();
+      return;
+    }
+
+    // "Mensaje" on Contacto opens the existing family ask box on the home view.
+    var askOpen = event.target.closest('[data-ask-open]');
+    if (askOpen) {
+      openFamilyAsk();
       return;
     }
 
@@ -1578,6 +1595,19 @@
     }, function () {
       showAsk(box, askLocal(question).answer, 'rules', null);
     });
+  }
+
+  // Contacto > "Mensaje": open the family home and take the reader to the ask box.
+  function openFamilyAsk() {
+    state.detailPatient = null;
+    state.activeNav.familia = HOME_NAV.familia;
+    renderRoute('forward', true);
+    window.setTimeout(function () {
+      var input = app.screen.querySelector('[data-ask-input]');
+      if (!input) return;
+      if (input.scrollIntoView) input.scrollIntoView({ block: 'center' });
+      if (input.focus) input.focus({ preventScroll: true });
+    }, 360);
   }
 
   function sendAsk() {
