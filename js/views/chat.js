@@ -61,7 +61,6 @@
 
   function composer(channel) {
     return '<div class="chat-composer">' +
-      '<span class="chat-input-label">Mensaje</span>' +
       '<div class="chat-input-row"><input type="text" class="ask-input chat-input" data-chat-input maxlength="600" placeholder="Escriba un mensaje" aria-label="Escriba un mensaje">' +
       '<button type="button" class="btn btn-primary chat-send" data-chat-send data-chat-channel-send="' + escapeHtml(channel) + '" aria-label="Enviar mensaje">' + icon('arrow') + '</button></div></div>';
   }

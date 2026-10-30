@@ -153,6 +153,7 @@ async function open(browser, url, secure) {
     await nurse.waitForTimeout(500);
     await nurse.locator('[data-handover-sent] .success-check').waitFor({ state: 'attached', timeout: 2000 });
     assert.strictEqual(await nurse.locator('[data-handover-s]').inputValue(), '', 'fields clear after sending');
+    assert.strictEqual(await nurse.locator('[data-handover-badge] source[src*="ai-static"]').count(), 2, 'Bloub rests after sending');
     await nurse.locator('.ai-sheet').evaluate((n) => { n.scrollTop = n.scrollHeight; });
     await nurse.waitForTimeout(100);
     const closeBox = await nurse.locator('.ai-sheet [data-ai-close]').boundingBox();
@@ -196,6 +197,14 @@ async function open(browser, url, secure) {
     await nurse.waitForTimeout(400);
     await nurse.locator('[data-chat-channel="familia"]').click();
     await nurse.waitForTimeout(300);
+    for (let i = 0; i < 25; i += 1) await api(base, '/api/chat', { channel: 'familia', patientId: 'mg', author: 'Familia', text: 'Mensaje ' + i });
+    await nurse.locator('[data-chat-thread] .chat-message:has-text("Mensaje 24")').waitFor({ state: 'attached', timeout: 8000 });
+    const box = await nurse.locator('[data-chat-input]').boundingBox();
+    const navTop = (await nurse.locator('.bottom-nav').boundingBox()).y;
+    assert(box.y + box.height <= navTop, 'composer sits above the nav with a long thread');
+    await nurse.locator('[data-chat-thread]').evaluate((n) => { n.scrollTop = 0; });
+    await nurse.waitForTimeout(100);
+    assert.deepStrictEqual(await nurse.locator('[data-chat-input]').boundingBox(), box, 'composer stays put when scrolling');
     await nurse.locator('[data-chat-input]').fill('Sí, a las 4 está bien');
     await nurse.locator('[data-chat-send]').click();
     await nurse.locator('[data-chat-input]').fill('escribiendo');

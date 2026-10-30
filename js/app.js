@@ -495,7 +495,7 @@
         return { key: 'nurse-detail', className: 'is-detail', inner: views.nurse.renderNurseDetail(state.detailPatient) };
       }
       if (state.activeNav[state.role] === 'chat') {
-        return { key: 'nurse-chat', className: 'is-home', inner: views.chat.renderNurseChat() };
+        return { key: 'nurse-chat', className: 'is-home is-chat', inner: views.chat.renderNurseChat() };
       }
       if (state.activeNav[state.role] === 'pendientes') {
         return { key: 'nurse-pending', className: 'is-home', inner: views.nurse.renderPending() };
@@ -509,7 +509,7 @@
     }
     if (state.activeNav[state.role] === 'contacto') {
       return state.familyChatOpen
-        ? { key: 'family-chat', className: 'is-home', inner: views.chat.renderFamilyChat() }
+        ? { key: 'family-chat', className: 'is-home is-chat', inner: views.chat.renderFamilyChat() }
         : { key: 'family-contact', className: 'is-home', inner: views.family.renderContact() };
     }
     return { key: 'family-home', className: 'is-home', inner: views.family.renderFamily() };
@@ -623,6 +623,7 @@
     // lines with cached or fresh server translations (only with consent).
     applyTimelineTranslations(next, state.role);
     staggerContactOptions(next);
+    refreshChatThread();
   }
 
   // New reader lists enter with the shared motion helper (js/motion.js).
@@ -785,6 +786,7 @@
     current.replaceWith(next);
     bindVideos(next);
     updateFab();
+    refreshChatThread();
   }
 
   function openRegistrationSheet() {
@@ -1946,6 +1948,9 @@
       rememberChatMessage(message);
       fields.forEach(function (field) { field.value = ''; });
       if (feedback) feedback.textContent = 'Nota enviada al equipo.';
+      // The draft is gone, so Bloub goes back to rest.
+      setBadge(app.aiLayer.querySelector('[data-handover-badge]'), 'rules');
+      setBadge(app.screen.querySelector('[data-handover-home-badge]'), 'rules');
       showHandoverSent();
     }, function () {
       if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';

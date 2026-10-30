@@ -340,10 +340,18 @@
   margin-bottom: var(--space-4);
 }
 
+/* WhatsApp layout: the thread scrolls, the composer never leaves the screen. */
+.view.is-chat {
+  overflow: hidden;
+}
+
+.view.is-chat > .chat-thread {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 .chat-thread {
   display: flex;
-  min-height: 180px;
-  max-height: 48vh;
   padding: var(--space-2) 0;
   overflow-y: auto;
   flex-direction: column;
@@ -443,14 +451,8 @@
 
 .chat-composer {
   display: grid;
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
   gap: var(--space-1);
-}
-
-.chat-input-label {
-  color: var(--body);
-  font-size: var(--text-caption);
-  font-weight: 500;
 }
 
 .chat-input-row {

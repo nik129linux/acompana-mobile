@@ -212,6 +212,6 @@
 }
 
 .phone[data-role="familia"] {
-  --accent: var(--family-text);
-  --accent-soft: var(--family-soft);
+  --accent: var(--nurse-text);
+  --accent-soft: var(--nurse-soft);
 }
