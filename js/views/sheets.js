@@ -44,7 +44,7 @@
       '<label class="handover-field field">Antecedentes<span class="field-box"><textarea data-handover-b rows="2" maxlength="200"></textarea></span></label>' +
       '<label class="handover-field field">Evaluación<span class="field-box"><textarea data-handover-a rows="2" maxlength="200"></textarea></span></label>' +
       '<label class="handover-field field">Recomendación<span class="field-box"><textarea data-handover-r rows="2" maxlength="200"></textarea></span></label>' +
-      '<div class="ai-actions"><span class="source-badge" data-handover-badge>Plantilla</span>' +
+      '<div class="ai-actions"><span class="ai-source" data-handover-badge aria-label="Plantilla">' + '<span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span>' + '</span>' +
       '<button type="button" class="secondary-button btn btn-secondary" data-handover-generate>Generar borrador</button>' +
       '<button type="button" class="btn btn-tonal" data-handover-copy>' + icon('copy') + 'Copiar</button>' +
       '<button type="button" class="primary-button btn btn-primary" data-handover-chat>' + icon('message') + 'Enviar al equipo</button></div>' +

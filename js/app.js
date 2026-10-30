@@ -1433,7 +1433,7 @@
   // below mirror them so the prototype still works from file:// with no
   // server. Model calls run ONLY on an explicit tap, with a 12s timeout,
   // and falls back silently to the on-device template. A badge always
-  // shows which source produced the text: "Plantilla" or "IA".
+  // shows which source produced the text: Bloub, by its clip.
   var AI_BASE =
     (location.protocol === 'http:' || location.protocol === 'https:')
       ? location.origin
@@ -1716,20 +1716,19 @@
     return { answer: SAFE_ANSWER_OFFLINE };
   }
 
-  function setBadge(element, source, model) {
+  // Bloub shows the source instead of a label: preparar with AI, static without.
+  function setBadge(element, source) {
     if (!element) return;
-    if (source === 'ollama') {
-      element.textContent = 'IA · ' + model;
-      element.classList.add('is-live');
-    } else {
-      element.textContent = 'Plantilla';
-      element.classList.remove('is-live');
-    }
+    var fromAi = source === 'ollama';
+    element.setAttribute('aria-label', fromAi ? 'Borrador con IA' : 'Plantilla');
+    element.innerHTML = aiMark(fromAi ? 'ai-preparar' : 'ai-static', 'Bloub');
+    bindVideos(element);
   }
 
 
   function openHandoverSheet() {
     app.aiLayer.innerHTML = views.sheets.handoverSheet();
+    bindVideos(app.aiLayer);
     app.aiLayer.classList.add('is-open');
     app.aiLayer.setAttribute('aria-hidden', 'false');
     pushLayer('ai');
@@ -1757,8 +1756,8 @@
     set('b', draft.b);
     set('a', draft.a);
     set('r', draft.r);
-    setBadge(app.aiLayer.querySelector('[data-handover-badge]'), source, model);
-    setBadge(app.screen.querySelector('[data-handover-home-badge]'), source, model);
+    setBadge(app.aiLayer.querySelector('[data-handover-badge]'), source);
+    setBadge(app.screen.querySelector('[data-handover-home-badge]'), source);
   }
 
   function generateHandover() {
@@ -1779,6 +1778,7 @@
   }
 
   function handoverViaServer() {
+    setBadge(app.aiLayer.querySelector('[data-handover-badge]'), 'ollama');
     aiRequest('/api/handover', { events: dayEvents() }).then(function (data) {
       fillHandover({ s: data.s, b: data.b, a: data.a, r: data.r }, data.source, data.model);
     }, function () {
@@ -2100,13 +2100,13 @@
   function showAsk(box, text, source, model) {
     box.classList.remove('is-empty', 'is-thinking');
     var fromAi = source === 'ollama';
-    box.innerHTML = (fromAi ? aiMark('ai-answer', 'Respuesta de IA') + '<span class="sr-only">Respuesta de IA: </span>' : '') +
+    box.innerHTML = aiMark(fromAi ? 'ai-answer' : 'ai-static', 'Bloub') +
+      '<span class="sr-only">' + (fromAi ? 'Respuesta de IA: ' : 'Respuesta automática: ') + '</span>' +
       '<span class="ask-text">' + escapeHtml(text) + '</span>';
-    box.classList.toggle('has-mark', fromAi);
-    if (fromAi) bindVideos(box);
+    box.classList.add('has-mark');
+    bindVideos(box);
     var badge = app.screen.querySelector('[data-ask-badge]');
-    if (badge) badge.hidden = fromAi;
-    if (!fromAi) setBadge(badge, source, model);
+    if (badge) badge.hidden = true;
   }
 
   function askViaServer(question, box) {

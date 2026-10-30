@@ -38,6 +38,12 @@
   color: var(--accent);
 }
 
+/* Neutral on every reader: the family accent reads as yellow text here. */
+.source-badge.timeline-source.is-live {
+  background: var(--sand);
+  color: var(--muted);
+}
+
 .ask-row {
   display: flex;
   gap: var(--space-2);
@@ -87,6 +93,15 @@
 
 .ask-answer.is-thinking .ask-text {
   color: var(--muted);
+}
+
+.ai-source {
+  display: inline-flex;
+  align-self: flex-start;
+}
+
+.ai-source[hidden] {
+  display: none;
 }
 
 /* White disc, like the mascots: the video stays white in the dark theme too. */

@@ -43,7 +43,7 @@
       '<div class="section-head"><h2 class="section-label">Hoy</h2><span class="section-link">Sin datos clínicos</span></div>' + timeline(familyDayTimeline(patient)) +
       '<div class="section-head"><h2 class="section-label">Así funciona</h2><span class="section-link">Dos ideas sencillas</span></div>' +
       '<div class="onboarding-list">' + onboardingCard('onboarding-1', 'Lo que sigue', 'Vea el próximo paso del turno.') + onboardingCard('onboarding-2', 'Cómo pedir ayuda', 'Escriba al equipo cuando necesite algo.') + '</div>' +
-      '<div class="ai-card"><strong>¿Tiene una duda?</strong><span>Pregunte con tranquilidad. Le respondemos solo con lo que se ve del turno.</span><div class="ask-row"><input type="text" class="ask-input" data-ask-input maxlength="300" placeholder="¿Cómo pasó la noche?" aria-label="Escriba su pregunta"><button type="button" class="primary-button" data-ask-send>Preguntar</button></div><div class="ask-answer is-empty" data-ask-answer aria-live="polite"></div><span class="source-badge" data-ask-badge>Plantilla</span></div>';
+      '<div class="ai-card"><strong>¿Tiene una duda?</strong><span>Pregunte con tranquilidad. Le respondemos solo con lo que se ve del turno.</span><div class="ask-row"><input type="text" class="ask-input" data-ask-input maxlength="300" placeholder="¿Cómo pasó la noche?" aria-label="Escriba su pregunta"><button type="button" class="primary-button" data-ask-send>Preguntar</button></div><div class="ask-answer is-empty" data-ask-answer aria-live="polite"></div><span class="ai-source" data-ask-badge aria-label="Plantilla">' + '<span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span>' + '</span></div>';
   }
 
   function renderContact() {
