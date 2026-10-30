@@ -917,6 +917,12 @@
       return;
     }
 
+    var familyShare = event.target.closest('[data-share-family]');
+    if (familyShare) {
+      if (state.detailPatient) shareWithFamily(state.detailPatient);
+      return;
+    }
+
     var openRegister = event.target.closest('[data-open-register]');
     if (openRegister) {
       if (state.detailPatient) state.eventPatient = state.detailPatient.id;
@@ -1677,6 +1683,48 @@
     });
   }
 
+  // "Avisar a la familia": a WhatsApp-ready message built only from the family
+  // phrases (never clinical values), plus a link that opens the family view.
+  var TASK_KIND = { medication: 'medication', position: 'position', round: 'round' };
+
+  function familyMessage(patient) {
+    var lines = [];
+    TASKS.forEach(function (task) {
+      if (task.patientId !== patient.id || !isConfirmed(task.id)) return;
+      var phrase = EVENT_KIND_PHRASES_FAMILIA[TASK_KIND[task.id]];
+      if (phrase && lines.indexOf(phrase) === -1) lines.push(phrase);
+    });
+    loadEvents().forEach(function (e) {
+      if (e.patientId !== patient.id) return;
+      var phrase = EVENT_KIND_PHRASES_FAMILIA[e.kind];
+      if (phrase && lines.indexOf(phrase) === -1) lines.push(phrase);
+    });
+    if (!lines.length) lines.push('El equipo está pendiente y no hay novedades que reportar');
+    var base = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : 'http://localhost:8787/';
+    var link = base + '?ver=familia';
+    var text = 'Hola, familia de ' + patient.name + '.\n' +
+      'Resumen del turno de hoy (' + patient.room + '):\n' +
+      lines.map(function (line) { return '• ' + line; }).join('\n') + '\n' +
+      'Horario de visita: hoy de 3:00 a 5:00 p. m.\n' +
+      'Pueden ver las novedades en Acompaña: ' + link + '\n' +
+      '— Elena, enfermera de turno';
+    return { text: text, url: link };
+  }
+
+  function shareWithFamily(patient) {
+    var message = familyMessage(patient);
+    if (navigator.share) {
+      navigator.share({ title: 'Acompaña · ' + patient.name, text: message.text }).then(function () {
+        showEventFeedback('Mensaje listo para la familia');
+      }, function () {
+        // dismissed: nothing to report
+      });
+      return;
+    }
+    // Desktop demo: WhatsApp Web lets the nurse pick the family chat.
+    window.open('https://wa.me/?text=' + encodeURIComponent(message.text), '_blank', 'noopener');
+  }
+
   function handoverNote() {
     var get = function (key) {
       var field = app.aiLayer.querySelector('[data-handover-' + key + ']');
@@ -1946,6 +1994,9 @@
     initReducedMotion();
     initSplash();
     renderBottomNav();
+    // Links shared with the family open straight in their view.
+    var ver = new URLSearchParams(location.search).get('ver');
+    if (ver && ROLE_INDEX[ver] !== undefined && ver !== state.role) updateRole(ver);
     window.setTimeout(animatePendingCount, 400);
   }
 

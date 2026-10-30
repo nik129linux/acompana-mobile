@@ -186,6 +186,7 @@
           '<span class="shift-copy"><strong>' + escapeHtml(r.title) + '</strong>' + (r.note ? '<span>' + escapeHtml(r.note) + '</span>' : '') + '</span>' +
           '<span class="shift-status">' + escapeHtml(r.status) + '</span></li>';
       }).join('') + '</ol></section>' +
+      '<button type="button" class="btn btn-secondary family-share" data-share-family>' + icon('message') + 'Avisar a la familia</button>' +
       '<div class="detail-cta"><button type="button" class="btn btn-primary" data-open-register>Registrar evento</button></div></div>';
   }
 

@@ -357,3 +357,28 @@
   .list-card,
   .hero-card { animation: none; }
 }
+
+/* "Avisar a la familia" sits under the shift list, quieter than the CTA. */
+.family-share { margin-top: var(--space-2); }
+
+/* Confirm checks: white at rest, blue once done. */
+.task-card .task-action.tap-confirm {
+  border: 1.5px solid var(--stone-border);
+  background: var(--white);
+  color: var(--nurse-text);
+  box-shadow: var(--elevation-1);
+}
+
+.task-card .task-action.tap-confirm:hover {
+  border-color: var(--nurse);
+  background: var(--white);
+  filter: none;
+}
+
+.task-card.is-confirming .task-action.tap-confirm,
+.task-card .task-action.tap-confirm.is-done {
+  border-color: transparent;
+  background: var(--grad-primary);
+  color: var(--on-primary);
+  box-shadow: var(--elevation-2);
+}
