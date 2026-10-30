@@ -99,7 +99,7 @@ async function sheets(browser) {
   await page.locator('[data-handover-open]').first().click();
   await page.waitForTimeout(500);
   assert(await page.locator('.ai-sheet .field').count() >= 4, 'SBAR fields use the field component');
-  assert(await page.locator('.ai-sheet [data-handover-share].btn-primary, .ai-sheet [data-handover-copy].btn-primary').count() === 1, 'one primary action (Compartir) in the SBAR sheet');
+  assert(await page.locator('.ai-sheet [data-handover-chat].btn-primary, .ai-sheet [data-handover-copy].btn-primary').count() === 1, 'one primary action (Enviar al equipo) in the SBAR sheet');
   ok('sheets: SBAR sheet uses fields and buttons');
   assert.deepStrictEqual(page.errors, []);
   await page.close();

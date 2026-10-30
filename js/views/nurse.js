@@ -73,7 +73,7 @@
       '<div class="ai-card list-card sbar-card"><span class="media-square" aria-hidden="true">' + icon('note') + '</span>' +
       '<span class="list-copy"><strong class="list-title">Nota de entrega (SBAR)</strong><span class="list-meta">Borrador del turno que puedes editar antes de copiar.</span>' +
       '<span class="source-badge" data-handover-home-badge>Plantilla</span></span>' +
-      '<div class="ai-actions"><button type="button" class="btn btn-tonal sbar-open" data-handover-open>Preparar</button></div></div>';
+      '<div class="ai-actions"><button type="button" class="btn btn-tonal sbar-open" data-handover-open>Preparar entrega</button></div></div>';
   }
 
   function taskPlace(task) {

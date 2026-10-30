@@ -72,3 +72,16 @@ chmod 600 ~/.config/acompana/ollama-key
 With a key and no `OLLAMA_URL`, the server calls `https://ollama.com/api` with
 `gemma4:31b`. `OLLAMA_API_KEY` in the environment also works and wins over the file.
 The key never reaches the browser: the phone only talks to this server.
+
+## Shared shift + in-app chat (in memory)
+
+- `POST /api/events` `{id,patientId,kind,text,time}`: idempotent by `id`.
+- `POST /api/events/delete` `{id}`: undo; `/api/sync` returns the deleted ids.
+- `POST /api/chat` `{channel:'familia'|'equipo',patientId,author,text}`: 400 on bad
+  channel, empty text or more than 600 chars. Replies `{ok,message}`.
+- `GET /api/sync?reader=enfermero|familia|paciente&since=<seq>`: incremental feed
+  `{seq,events,messages,deleted}`. Family and patient readers get empty event text
+  and only the `familia` channel; a missing reader defaults to the family-safe feed.
+- Optional HTTPS: if `~/.config/acompana/tls/key.pem` and `cert.pem` exist, the same
+  handler also listens on port 8443 and the startup log prints the https URLs.
+  Without certificates it behaves exactly as before.

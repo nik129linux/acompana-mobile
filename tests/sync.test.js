@@ -105,7 +105,7 @@ async function open(browser, url, secure) {
     await family.waitForTimeout(800);
     assert(askBody, 'ask reached the server');
     const askFacts = JSON.parse(askBody).facts.join(' ');
-    assert(/medic/i.test(askFacts), 'family AI facts include the logged medication phrase: ' + askFacts);
+    assert(/Tratamiento cumplido/.test(askFacts), 'family AI facts include the logged medication phrase: ' + askFacts);
     assert(!/Enoxaparina/i.test(askFacts));
     ok('family AI facts come from the logged events');
 
@@ -151,6 +151,35 @@ async function open(browser, url, secure) {
     const fam = await api(base, '/api/sync?reader=familia');
     assert(!JSON.stringify(fam.data).includes('90/55'));
     ok('SBAR goes to the team chat only');
+
+    const fit = await family.locator('[data-chat-send]').boundingBox();
+    assert(fit && fit.x + fit.width <= 390, 'send button stays on screen');
+    // A full SBAR is not cut, and a reply shows while the composer keeps focus.
+    const long = 'x'.repeat(190);
+    const full = 'Situación: ' + long + '\nAntecedentes: ' + long + '\nEvaluación: ' + long + '\nRecomendación: ' + long + ' FIN';
+    assert.strictEqual((await api(base, '/api/chat', { channel: 'equipo', patientId: 'mg', author: 'Elena', text: full })).status, 200);
+    assert((await api(base, '/api/events/delete', { id: 'unknown' })).status === 200, 'unknown delete does not block the push queue');
+    await nurse.keyboard.press('Escape');
+    await nurse.waitForTimeout(400);
+    await nurse.locator('.bottom-nav [data-nav="chat"]').click();
+    await nurse.waitForTimeout(400);
+    await nurse.locator('[data-chat-channel="familia"]').click();
+    await nurse.waitForTimeout(300);
+    await nurse.locator('[data-chat-input]').fill('Sí, a las 4 está bien');
+    await nurse.locator('[data-chat-send]').click();
+    await nurse.locator('[data-chat-input]').fill('escribiendo');
+    await nurse.locator('[data-chat-input]').focus();
+    await api(base, '/api/chat', { channel: 'familia', patientId: 'mg', author: 'Familia', text: 'Gracias, Elena' });
+    await nurse.locator('[data-chat-thread] .chat-message:has-text("Gracias, Elena")').waitFor({ timeout: 8000 });
+    assert.strictEqual(await nurse.locator('[data-chat-input]').inputValue(), 'escribiendo', 'draft survives an incoming message');
+    assert.strictEqual(await nurse.locator('[data-chat-thread] .chat-message:has-text("a las 4 está bien")').count(), 1, 'own message shown once');
+    ok('chat: replies arrive while typing, no duplicates');
+
+    // Server restart: the seq drops, and clients must resync instead of going deaf.
+    resetShared();
+    await api(base, '/api/chat', { channel: 'familia', patientId: 'mg', author: 'Familia', text: 'Tras reinicio' });
+    await nurse.locator('[data-chat-thread] .chat-message:has-text("Tras reinicio")').waitFor({ timeout: 12000 });
+    ok('sync: recovers after a server restart');
 
     assert.deepStrictEqual(nurse.errors.concat(family.errors), [], 'no page errors');
     ok('no page errors');

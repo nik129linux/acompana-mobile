@@ -334,3 +334,179 @@
   background: var(--grad-primary);
   color: var(--on-primary);
 }
+
+/* ---- In-app chat (family + nurse team thread) ---- */
+.chat-tabs {
+  margin-bottom: var(--space-4);
+}
+
+.chat-thread {
+  display: flex;
+  min-height: 180px;
+  max-height: 48vh;
+  padding: var(--space-2) 0;
+  overflow-y: auto;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chat-message {
+  display: flex;
+  max-width: 82%;
+  padding: 10px var(--space-3);
+  border-radius: 16px 16px 16px 4px;
+  background: var(--stone);
+  color: var(--ink);
+  box-shadow: var(--elevation-1);
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 2px;
+}
+
+.chat-message.is-own {
+  border-radius: 16px 16px 4px 16px;
+  background: var(--grad-primary);
+  color: var(--on-primary);
+  align-self: flex-end;
+}
+
+.chat-author {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.chat-message.is-own .chat-author,
+.chat-message.is-own .chat-time {
+  color: var(--on-gradient-soft);
+}
+
+.chat-text {
+  margin: 0;
+  font-size: var(--text-small);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-time {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-empty {
+  display: grid;
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--stone);
+  color: var(--muted);
+  text-align: center;
+  place-items: center;
+  gap: var(--space-1);
+}
+
+.chat-empty strong {
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.chat-empty span {
+  font-size: var(--text-small);
+}
+
+.chat-empty-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-container);
+  color: var(--accent);
+  place-items: center;
+}
+
+.chat-empty-icon .icon-svg {
+  width: 24px;
+  height: 24px;
+}
+
+.chat-offline {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm, 12px);
+  background: var(--sand);
+  color: var(--body);
+  font-size: var(--text-caption);
+}
+
+.chat-composer {
+  display: grid;
+  margin-top: var(--space-4);
+  gap: var(--space-1);
+}
+
+.chat-input-label {
+  color: var(--body);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+.chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chat-input {
+  width: 0;
+  min-width: 0;
+  min-height: 52px;
+  padding: 12px var(--space-3);
+  border: 1.5px solid var(--stone-border);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  flex: 1 1 auto;
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+}
+
+.chat-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.chat-send {
+  flex: 0 0 56px;
+  width: 56px;
+  min-width: 0;
+  padding: 0;
+  gap: var(--space-1);
+}
+
+/* Nurse: a floating chat shortcut beside the raised "+", so the two tabs
+   stay symmetric around the center. */
+.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] {
+  position: absolute;
+  top: -60px;
+  right: var(--space-4);
+  display: grid;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--accent);
+  box-shadow: var(--elevation-2);
+  place-items: center;
+}
+
+.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] span:last-child {
+  display: none;
+}
+
+.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] .icon-svg {
+  width: 24px;
+  height: 24px;
+}

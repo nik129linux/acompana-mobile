@@ -91,18 +91,17 @@ const selected = (page) => page.locator('[data-event-patient][aria-pressed="true
     assert(Math.abs((center - (t0.x + t0.width / 2)) - ((t1.x + t1.width / 2) - center)) <= 4, 'tabs sit symmetric around the +');
     ok('nav: centered + and symmetric tabs');
 
-    // 5. SBAR can be shared (Web Share) and still copied.
-    await page.evaluate(() => { window.__shared = null; navigator.share = (data) => { window.__shared = data; return Promise.resolve(); }; });
+    // 5. SBAR goes to the team chat in-app, and can still be copied.
     await page.locator('[data-handover-open]').first().click();
     await page.waitForTimeout(500);
-    const share = page.locator('[data-handover-share]');
-    assert(await share.isVisible(), 'SBAR has a Compartir button');
-    await share.click();
+    const send = page.locator('[data-handover-chat]');
+    assert(await send.isVisible(), 'SBAR has an "Enviar al equipo" button');
+    assert(await send.evaluate((n) => n.classList.contains('btn-primary')), 'it is the primary action');
+    await send.click();
     await page.waitForTimeout(300);
-    const shared = await page.evaluate(() => window.__shared);
-    assert(shared && /Situación/.test(shared.text), 'Compartir sends the note through the system share sheet');
+    assert(/Sin conexión|enviada/i.test(await page.locator('[data-ai-feedback]').textContent()), 'sending reports its state');
     assert(await page.locator('[data-handover-copy]').isVisible(), 'Copiar stays');
-    ok('SBAR: share and copy');
+    ok('SBAR: team chat and copy');
     assert.deepStrictEqual(page.errors, []);
     await page.close();
 

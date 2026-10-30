@@ -54,15 +54,16 @@ async function fresh(browser, url) {
     await btn.click();
     await page.waitForTimeout(300);
     const shared = await page.evaluate(() => window.__shared);
-    assert(shared && shared.text, 'opens the system share sheet with a message');
-    const text = shared.text;
+    assert.strictEqual(shared, null, 'no system share sheet');
+    assert(/Mensaje enviado a la familia|Sin conexión/.test(await page.locator('#snackbar').textContent()), 'shows in-app feedback');
+    const text = await page.evaluate(() => window.__acompana.familyMessage({ id: 'mg', name: 'María González', room: 'Hab. 304-B' }).text);
     assert(/familia de María/i.test(text), 'addressed to María\'s family');
     assert(/visita/i.test(text), 'includes visiting hours');
     assert(/Tratamiento cumplido|medicamento/i.test(text), 'includes today\'s plain-language events');
     // Case-sensitive on purpose: \b treats "ñ" as a boundary, so /PA\b/i hits "Acompaña".
     assert(!/[Ee]noxaparina|\d\s?mg\b|\bSC\b|90\/55|[Tt]aquicardia|\bPA \d/.test(text), 'never clinical values or drug names');
-    assert(/ver=familia/.test(text + ' ' + (shared.url || '')), 'carries a link to the family view');
-    ok('Avisar a la familia: family-safe message with a family link');
+    assert(!/ver=familia|wa\.me|https?:\/\//.test(text), 'no link line in the in-app message');
+    ok('Avisar a la familia: family-safe message posted in the app');
     assert.deepStrictEqual(page.errors, []);
     await page.close();
 

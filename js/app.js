@@ -107,7 +107,8 @@
   var NAV_BY_ROLE = {
     enfermero: [
       { key: 'turno', label: 'Turno', icon: 'list' },
-      { key: 'pendientes', label: 'Pendientes', icon: 'clock' }
+      { key: 'pendientes', label: 'Pendientes', icon: 'clock' },
+      { key: 'chat', label: 'Chat', icon: 'message' }
     ],
     paciente: [
       { key: 'estado', label: 'Mi estado', icon: 'heart' },
@@ -144,8 +145,17 @@
     feedbackTimer: null,
     eventPatient: null,
     eventUndo: null,
-    eventUndoTimer: null
+    eventUndoTimer: null,
+    chatChannel: 'familia',
+    familyChatOpen: false
   };
+
+  // Shared shift (server) + local chat mirror. The server owns ordering;
+  // events merge into acompana-events by id, chat stays in memory.
+  var syncState = { seq: 0, timer: null };
+  var chatMessages = [];
+  var pushQueue = [];
+  var pushing = false;
 
   // placeholder: confirm in field
   var SHIFT_PHONE = ''; // TODO: insert the shift phone (empty opens the dialer blank, never a stranger)
@@ -214,8 +224,10 @@
 
   function undoEvent() {
     if (!state.eventUndo) return;
-    var events = loadEvents().filter(function (entry) { return entry.id !== state.eventUndo; });
+    var removedId = state.eventUndo;
+    var events = loadEvents().filter(function (entry) { return entry.id !== removedId; });
     saveEvents(events);
+    pushDelete(removedId);
     state.eventUndo = null;
     if (state.eventUndoTimer) {
       window.clearTimeout(state.eventUndoTimer);
@@ -482,6 +494,9 @@
       if (state.detailPatient) {
         return { key: 'nurse-detail', className: 'is-detail', inner: views.nurse.renderNurseDetail(state.detailPatient) };
       }
+      if (state.activeNav[state.role] === 'chat') {
+        return { key: 'nurse-chat', className: 'is-home', inner: views.chat.renderNurseChat() };
+      }
       if (state.activeNav[state.role] === 'pendientes') {
         return { key: 'nurse-pending', className: 'is-home', inner: views.nurse.renderPending() };
       }
@@ -492,9 +507,12 @@
         ? { key: 'patient-questions', className: 'is-home', inner: views.patient.renderQuestions() }
         : { key: 'patient-home', className: 'is-home', inner: views.patient.renderPatient() };
     }
-    return state.activeNav[state.role] === 'contacto'
-      ? { key: 'family-contact', className: 'is-home', inner: views.family.renderContact() }
-      : { key: 'family-home', className: 'is-home', inner: views.family.renderFamily() };
+    if (state.activeNav[state.role] === 'contacto') {
+      return state.familyChatOpen
+        ? { key: 'family-chat', className: 'is-home', inner: views.chat.renderFamilyChat() }
+        : { key: 'family-contact', className: 'is-home', inner: views.family.renderContact() };
+    }
+    return { key: 'family-home', className: 'is-home', inner: views.family.renderFamily() };
   }
 
   function createView(definition, direction) {
@@ -620,7 +638,7 @@
     var items = NAV_BY_ROLE[state.role];
     app.bottomNav.innerHTML = items.map(function (item) {
       var active = item.key === state.activeNav[state.role];
-      return '<button type="button" class="nav-item' + (active ? ' is-active' : '') + '" data-nav="' + escapeHtml(item.key) + '" aria-pressed="' + String(active) + '"><span class="nav-icon">' + icon(item.icon) + '</span><span>' + escapeHtml(item.label) + '</span></button>';
+      return '<button type="button" class="nav-item' + (active ? ' is-active' : '') + '" data-nav="' + escapeHtml(item.key) + '" aria-label="' + escapeHtml(item.label) + '" aria-pressed="' + String(active) + '"><span class="nav-icon">' + icon(item.icon) + '</span><span>' + escapeHtml(item.label) + '</span></button>';
     }).join('');
     updateFab();
   }
@@ -628,6 +646,8 @@
   function updateFab() {
     if (!app.fab) return;
     app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient;
+    var chatNav = app.bottomNav.querySelector('[data-nav="chat"]');
+    if (chatNav) chatNav.hidden = !!state.detailPatient;
   }
 
   function openDemoMenu(button) {
@@ -916,6 +936,9 @@
       var role = viewAs.getAttribute('data-view-as');
       closeDemoMenu();
       updateRole(role);
+      // Each reader gets a different feed: read it again from the start.
+      syncState.seq = 0;
+      pollSync();
       return;
     }
 
@@ -965,6 +988,40 @@
     var askOpen = event.target.closest('[data-ask-open]');
     if (askOpen) {
       openFamilyAsk();
+      return;
+    }
+
+    var chatOpen = event.target.closest('[data-chat-open]');
+    if (chatOpen) {
+      state.familyChatOpen = true;
+      state.activeNav.familia = 'contacto';
+      renderRoute('forward', true);
+      return;
+    }
+
+    var chatBack = event.target.closest('[data-chat-back]');
+    if (chatBack) {
+      state.familyChatOpen = false;
+      renderRoute('back', true);
+      return;
+    }
+
+    var chatChannel = event.target.closest('[data-chat-channel]');
+    if (chatChannel) {
+      state.chatChannel = chatChannel.getAttribute('data-chat-channel');
+      // Same view key: swap in place so the old thread never lingers beside
+      // the new one (duplicate messages during the transition).
+      if (state.role === 'enfermero' && state.activeNav.enfermero === 'chat' && !state.detailPatient) {
+        refreshActiveView();
+      } else {
+        renderRoute('forward', true);
+      }
+      return;
+    }
+
+    var chatSend = event.target.closest('[data-chat-send]');
+    if (chatSend) {
+      sendChat(chatSend.getAttribute('data-chat-channel-send'));
       return;
     }
 
@@ -1081,6 +1138,7 @@
     var oldKey = state.activeNav[state.role];
     if (oldKey === key && !state.detailPatient) return;
     state.activeNav[state.role] = key;
+    if (state.role === 'familia') state.familyChatOpen = false;
     state.detailPatient = null;
     if (state.role === 'enfermero' && key === 'pendientes') state.pendingTab = 'pending';
     if (state.role === 'enfermero') closeRegistrationSheet(false);
@@ -1182,6 +1240,7 @@
     state.eventsDirty = true;
     evs.push(entry);
     saveEvents(evs);
+    pushEvent(entry);
     state.eventUndo = id;
     if (state.eventUndoTimer) window.clearTimeout(state.eventUndoTimer);
     // Spanish agreement: "Medicación/Ronda registrada", "Cambio/Otro evento registrado".
@@ -1254,7 +1313,7 @@
       return;
     }
     if (window.isSecureContext === false) {
-      dictationFallback('El micrófono solo funciona con la app instalada (localhost o https). Escribe el evento.');
+      dictationFallback('El micrófono necesita abrir la app por https. Escribe el evento.');
       return;
     }
     var recog = new SpeechRecognition();
@@ -1281,7 +1340,7 @@
       var code = event && event.error;
       var messages = {
         'not-allowed': 'Permite el micrófono para dictar, o escribe el evento.',
-        'service-not-allowed': 'El micrófono solo funciona con la app instalada (localhost o https). Escribe el evento.',
+        'service-not-allowed': 'El micrófono necesita abrir la app por https. Escribe el evento.',
         'no-speech': 'No te escuché. Toca de nuevo o escribe el evento.',
         'audio-capture': 'No encontré un micrófono. Escribe el evento.',
         'network': 'El servicio de voz no respondió (en Brave está bloqueado). Usa Chrome o escribe el evento.'
@@ -1372,7 +1431,7 @@
   // ---- Local AI bridge: handover (SBAR) + family Q&A ----
   // server/server.js owns the rules, grounding and guardrails. The helpers
   // below mirror them so the prototype still works from file:// with no
-  // server. Every fetch runs ONLY on an explicit tap, with a 12s timeout,
+  // server. Model calls run ONLY on an explicit tap, with a 12s timeout,
   // and falls back silently to the on-device template. A badge always
   // shows which source produced the text: "Plantilla" or "IA".
   var AI_BASE =
@@ -1555,13 +1614,33 @@
   }
 
 
+  // Plain phrases for the patient's family: confirmed tasks plus logged
+  // events, exactly the source familyMessage uses. No clinical values.
+  function familyEventPhrases(patient) {
+    var lines = [];
+    TASKS.forEach(function (task) {
+      if (task.patientId !== patient.id || !isConfirmed(task.id)) return;
+      var phrase = EVENT_KIND_PHRASES_FAMILIA[TASK_KIND[task.id]];
+      if (phrase && lines.indexOf(phrase) === -1) lines.push(phrase);
+    });
+    loadEvents().forEach(function (e) {
+      if (e.patientId !== patient.id) return;
+      var phrase = EVENT_KIND_PHRASES_FAMILIA[e.kind];
+      if (phrase && lines.indexOf(phrase) === -1) lines.push(phrase);
+    });
+    return lines;
+  }
+
   function familyFacts() {
-    return [
-      'Tratamiento de la mañana cumplido.',
-      'El equipo está con ella, sin novedad que reportar.',
-      'Horario de visita: 15:00.',
-      'La enfermera vuelve a la 1:00 p. m.'
-    ];
+    var patient = patientById(FAMILY_PATIENT_ID);
+    var phrases = patient ? familyEventPhrases(patient) : [];
+    var facts = phrases.map(function (phrase) { return phrase + '.'; });
+    facts.push('Horario de visita: hoy de 3:00 a 5:00 p. m.');
+    facts.push('La enfermera vuelve a la 1:00 p. m.');
+    if (!phrases.length) {
+      facts.unshift('El equipo está pendiente y no hay novedades que reportar.');
+    }
+    return facts;
   }
 
   function clipAi(text, max) {
@@ -1707,41 +1786,233 @@
   var TASK_KIND = { medication: 'medication', position: 'position', round: 'round' };
 
   function familyMessage(patient) {
-    var lines = [];
-    TASKS.forEach(function (task) {
-      if (task.patientId !== patient.id || !isConfirmed(task.id)) return;
-      var phrase = EVENT_KIND_PHRASES_FAMILIA[TASK_KIND[task.id]];
-      if (phrase && lines.indexOf(phrase) === -1) lines.push(phrase);
-    });
-    loadEvents().forEach(function (e) {
-      if (e.patientId !== patient.id) return;
-      var phrase = EVENT_KIND_PHRASES_FAMILIA[e.kind];
-      if (phrase && lines.indexOf(phrase) === -1) lines.push(phrase);
-    });
+    var lines = familyEventPhrases(patient);
     if (!lines.length) lines.push('El equipo está pendiente y no hay novedades que reportar');
-    var base = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : 'http://localhost:8787/';
-    var link = base + '?ver=familia';
     var text = 'Hola, familia de ' + patient.name + '.\n' +
       'Resumen del turno de hoy (' + patient.room + '):\n' +
       lines.map(function (line) { return '• ' + line; }).join('\n') + '\n' +
       'Horario de visita: hoy de 3:00 a 5:00 p. m.\n' +
-      'Pueden ver las novedades en Acompaña: ' + link + '\n' +
       '— Elena, enfermera de turno';
-    return { text: text, url: link };
+    return { text: text };
   }
 
+  // "Avisar a la familia" now lands in the family chat inside the app.
   function shareWithFamily(patient) {
-    var message = familyMessage(patient);
-    if (navigator.share) {
-      navigator.share({ title: 'Acompaña · ' + patient.name, text: message.text }).then(function () {
-        showEventFeedback('Mensaje listo para la familia');
-      }, function () {
-        // dismissed: nothing to report
-      });
+    var text = familyMessage(patient).text;
+    if (!canSync()) {
+      showSnack('Sin conexión. El mensaje no se envió.');
       return;
     }
-    // Desktop demo: WhatsApp Web lets the nurse pick the family chat.
-    window.open('https://wa.me/?text=' + encodeURIComponent(message.text), '_blank', 'noopener');
+    postChat('familia', text, 'Elena', patient.id).then(function (message) {
+      rememberChatMessage(message);
+      showSnack('Mensaje enviado a la familia');
+      refreshChatThread();
+    }, function () {
+      showSnack('Sin conexión. El mensaje no se envió.');
+    });
+  }
+
+  // ---- Shared shift: push local events, poll /api/sync, in-app chat ----
+  function canSync() {
+    return location.protocol === 'http:' || location.protocol === 'https:';
+  }
+
+  var snackTimer = null;
+  function showSnack(message) {
+    var bar = app.snackbar;
+    if (!bar) return;
+    bar.textContent = '';
+    var line = document.createElement('div');
+    line.className = 'tray-feedback-line';
+    line.textContent = message;
+    bar.appendChild(line);
+    bar.classList.add('is-visible');
+    if (snackTimer) window.clearTimeout(snackTimer);
+    snackTimer = window.setTimeout(function () {
+      if (bar.textContent === message) hideEventFeedback();
+    }, 2600);
+  }
+
+  function postChat(channel, text, author, patientId) {
+    return aiRequest('/api/chat', {
+      channel: channel,
+      patientId: patientId || '',
+      author: author,
+      text: text
+    }).then(function (data) {
+      return data && data.message ? data.message : null;
+    });
+  }
+
+  // A poll can bring a message back before its own POST resolves.
+  function rememberChatMessage(message) {
+    if (!message || !message.id) return false;
+    var known = chatMessages.some(function (item) { return item.id === message.id; });
+    if (!known) chatMessages.push(message);
+    return !known;
+  }
+
+  // Only the thread is replaced, so the composer keeps its focus and keyboard.
+  function refreshChatThread() {
+    var thread = app.screen.querySelector('[data-chat-thread]');
+    if (!thread) return false;
+    thread.innerHTML = views.chat.threadBody(thread.getAttribute('data-chat-thread'));
+    thread.scrollTop = thread.scrollHeight;
+    return true;
+  }
+
+  function sendChat(channel) {
+    var input = app.screen.querySelector('[data-chat-input]');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    if (!canSync()) {
+      showSnack('Sin conexión. El mensaje no se envió.');
+      return;
+    }
+    var isFamily = state.role === 'familia';
+    var patientId = isFamily ? FAMILY_PATIENT_ID :
+      (state.detailPatient ? state.detailPatient.id : FAMILY_PATIENT_ID);
+    input.value = '';
+    postChat(channel || 'familia', text, isFamily ? 'Familia' : 'Elena', patientId).then(function (message) {
+      rememberChatMessage(message);
+      refreshChatThread();
+    }, function () {
+      showSnack('Sin conexión. El mensaje no se envió.');
+    });
+  }
+
+  function sendHandoverToTeam() {
+    var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
+    if (!canSync()) {
+      if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';
+      return;
+    }
+    var patientId = state.detailPatient ? state.detailPatient.id : FAMILY_PATIENT_ID;
+    var note = handoverNote();
+    postChat('equipo', note, 'Elena', patientId).then(function (message) {
+      rememberChatMessage(message);
+      if (feedback) feedback.textContent = 'Nota enviada al equipo.';
+    }, function () {
+      if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';
+    });
+  }
+
+  function pushEvent(entry) {
+    pushQueue.push({ type: 'event', event: entry });
+    flushPushes();
+  }
+
+  function pushDelete(id) {
+    pushQueue.push({ type: 'delete', id: id });
+    flushPushes();
+  }
+
+  function flushPushes() {
+    if (!canSync() || pushing || !pushQueue.length) return;
+    pushing = true;
+    var item = pushQueue[0];
+    var next = function () {
+      pushing = false;
+      pushQueue.shift();
+      if (pushQueue.length) flushPushes();
+    };
+    var fail = function () {
+      // Keep it queued: the next poll retries.
+      pushing = false;
+    };
+    if (item.type === 'event') aiRequest('/api/events', item.event).then(next, fail);
+    else aiRequest('/api/events/delete', { id: item.id }).then(next, fail);
+  }
+
+  function readerForSync() {
+    return state.role === 'enfermero' ? 'enfermero' : state.role;
+  }
+
+  // Merge by id: the family feed carries empty text, which never overwrites a
+  // text this device already has. Returns true when something changed.
+  function mergeShared(data) {
+    if (!data || typeof data !== 'object') return false;
+    var changed = false;
+    var events = loadEvents();
+    var byId = {};
+    events.forEach(function (entry) { byId[entry.id] = entry; });
+    (data.events || []).forEach(function (incoming) {
+      if (!incoming || !incoming.id) return;
+      var existing = byId[incoming.id];
+      if (existing) {
+        if (incoming.kind && incoming.kind !== existing.kind) {
+          existing.kind = incoming.kind;
+          changed = true;
+        }
+        if (incoming.text && incoming.text !== existing.text) {
+          existing.text = incoming.text;
+          changed = true;
+        }
+        if (incoming.time && !existing.time) {
+          existing.time = incoming.time;
+          changed = true;
+        }
+        return;
+      }
+      var entry = {
+        id: incoming.id,
+        patientId: incoming.patientId || '',
+        kind: incoming.kind || 'other',
+        text: incoming.text || '',
+        time: incoming.time || ''
+      };
+      events.push(entry);
+      byId[entry.id] = entry;
+      changed = true;
+    });
+    (data.deleted || []).forEach(function (id) {
+      var before = events.length;
+      events = events.filter(function (entry) { return entry.id !== id; });
+      if (events.length !== before) changed = true;
+    });
+    if (changed) saveEvents(events);
+    (data.messages || []).forEach(function (message) {
+      if (rememberChatMessage(message)) changed = true;
+    });
+    return changed;
+  }
+
+  function inputFocused() {
+    var active = document.activeElement;
+    return Boolean(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
+  }
+
+  function pollSync() {
+    if (!canSync() || document.hidden) return;
+    flushPushes();
+    aiRequest('/api/sync?reader=' + encodeURIComponent(readerForSync()) + '&since=' + syncState.seq)
+      .then(function (data) {
+        // The store is in memory: a lower seq means the server restarted.
+        if (data && typeof data.seq === 'number' && data.seq < syncState.seq) {
+          // Its message ids restart too, so the old thread can't be kept.
+          syncState.seq = 0;
+          chatMessages = [];
+          refreshChatThread();
+          return;
+        }
+        var changed = mergeShared(data);
+        if (data && typeof data.seq === 'number') syncState.seq = data.seq;
+        if (!changed) return;
+        if (!refreshChatThread() && !inputFocused()) refreshActiveView();
+      }, function () {
+        // Silent: file:// and offline keep working from local data.
+      });
+  }
+
+  function startSync() {
+    if (!canSync()) return;
+    pollSync();
+    if (syncState.timer) window.clearInterval(syncState.timer);
+    syncState.timer = window.setInterval(pollSync, 4000);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) pollSync();
+    });
   }
 
   function handoverNote() {
@@ -1750,22 +2021,6 @@
       return field ? field.value.trim() : '';
     };
     return 'Situación: ' + get('s') + '\nAntecedentes: ' + get('b') + '\nEvaluación: ' + get('a') + '\nRecomendación: ' + get('r');
-  }
-
-  // Compartir: the Android share sheet (WhatsApp, Gmail, Teams...). Where it
-  // is not available, fall back to copying.
-  function shareHandover() {
-    var note = handoverNote();
-    var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
-    if (navigator.share) {
-      navigator.share({ title: 'Nota de entrega (SBAR)', text: note }).then(function () {
-        if (feedback) feedback.textContent = 'Nota enviada.';
-      }, function () {
-        // dismissed by the nurse: nothing to report
-      });
-      return;
-    }
-    copyHandover();
   }
 
   function copyHandover() {
@@ -1898,8 +2153,8 @@
       copyHandover();
       return;
     }
-    if (event.target.closest('[data-handover-share]')) {
-      shareHandover();
+    if (event.target.closest('[data-handover-chat]')) {
+      sendHandoverToTeam();
       return;
     }
     var yes = event.target.closest('[data-consent-yes]');
@@ -1933,7 +2188,7 @@
   }
 
   // Expose dayEvents for SBAR integration (used by tests).
-  window.__acompana = { dayEvents: dayEvents };
+  window.__acompana = { dayEvents: dayEvents, familyMessage: familyMessage };
 
   // ---- Split view renderers: shared helpers reachable from js/views/*.js ----
   var views = window.AcompanaViews;
@@ -1954,7 +2209,13 @@
     FAMILY_PATIENT_ID: FAMILY_PATIENT_ID,
     SHIFT_PHONE: SHIFT_PHONE,
     EVENT_KIND_PHRASES: EVENT_KIND_PHRASES,
-    EVENT_KIND_PHRASES_FAMILIA: EVENT_KIND_PHRASES_FAMILIA
+    EVENT_KIND_PHRASES_FAMILIA: EVENT_KIND_PHRASES_FAMILIA,
+    getChatMessages: function (channel) {
+      return chatMessages.filter(function (message) { return message.channel === channel; });
+    },
+    getChatChannel: function () { return state.chatChannel; },
+    getRole: function () { return state.role; },
+    chatOffline: function () { return !canSync(); }
   };
   views.ctx.sheets = views.sheets;
 
@@ -1999,6 +2260,12 @@
         sendAsk();
         return;
       }
+      if (event.key === 'Enter' && event.target && event.target.matches && event.target.matches('[data-chat-input]')) {
+        event.preventDefault();
+        var chatButton = app.screen.querySelector('[data-chat-send]');
+        if (chatButton) sendChat(chatButton.getAttribute('data-chat-channel-send'));
+        return;
+      }
       if (event.key !== 'Escape') return;
       if (document.querySelector('.demo-menu.is-open')) closeDemoMenu();
       else if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
@@ -2013,6 +2280,7 @@
     initReducedMotion();
     initSplash();
     renderBottomNav();
+    startSync();
     // Links shared with the family open straight in their view.
     var ver = new URLSearchParams(location.search).get('ver');
     if (ver && ROLE_INDEX[ver] !== undefined && ver !== state.role) updateRole(ver);

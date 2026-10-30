@@ -531,6 +531,98 @@ function resetNurseQuestions() {
 }
 
 // ---------------------------------------------------------------------------
+// Shared shift: events + in-app chat with one global, increasing sequence.
+// In memory only (prototype scope); resetShared() gives every test a clean run.
+// ---------------------------------------------------------------------------
+
+let sharedEvents = [];
+let sharedMessages = [];
+let sharedDeleted = [];
+let sharedSeq = 0;
+let nextMessageId = 1;
+
+function addSharedEvent(body) {
+  const source = body && typeof body === 'object' ? body : {};
+  if (!source.id) return null;
+  const existing = sharedEvents.find((item) => item.id === String(source.id));
+  if (existing) return existing;
+  const event = {
+    id: String(source.id),
+    patientId: String(source.patientId || ''),
+    kind: String(source.kind || 'other'),
+    text: String(source.text || '').slice(0, 600),
+    time: String(source.time || ''),
+    seq: ++sharedSeq
+  };
+  sharedEvents.push(event);
+  return event;
+}
+
+function deleteSharedEvent(id) {
+  const index = sharedEvents.findIndex((item) => item.id === String(id));
+  if (index === -1) return false;
+  sharedEvents.splice(index, 1);
+  sharedSeq += 1;
+  sharedDeleted.push({ id: String(id), seq: sharedSeq });
+  return true;
+}
+
+const CHAT_CHANNELS = ['familia', 'equipo'];
+// A full SBAR note (4 fields of 200 chars plus labels) must fit the team channel.
+const CHAT_MAX = { familia: 600, equipo: 1000 };
+
+function addChatMessage(body) {
+  const source = body && typeof body === 'object' ? body : {};
+  const channel = source.channel;
+  const text = typeof source.text === 'string' ? source.text.trim() : '';
+  if (CHAT_CHANNELS.indexOf(channel) === -1) return null;
+  if (!text || text.length > CHAT_MAX[channel]) return null;
+  const message = {
+    id: 'msg-' + nextMessageId++,
+    channel: channel,
+    patientId: String(source.patientId || ''),
+    author: String(source.author || ''),
+    text: text,
+    time: new Date().toISOString(),
+    seq: ++sharedSeq
+  };
+  sharedMessages.push(message);
+  return message;
+}
+
+// reader=familia (and paciente, or a missing reader) never receives clinical
+// event text nor the team channel. Only the nurse feed is complete.
+function sharedSnapshot(reader, since) {
+  const familySafe = reader !== 'enfermero';
+  const after = Number(since) || 0;
+  const events = sharedEvents
+    .filter((item) => item.seq > after)
+    .map((item) => ({
+      id: item.id,
+      patientId: item.patientId,
+      kind: item.kind,
+      text: familySafe ? '' : item.text,
+      time: item.time,
+      seq: item.seq
+    }));
+  const messages = sharedMessages.filter(
+    (item) => item.seq > after && (!familySafe || item.channel === 'familia')
+  );
+  const deleted = sharedDeleted
+    .filter((item) => item.seq > after)
+    .map((item) => item.id);
+  return { seq: sharedSeq, events, messages, deleted };
+}
+
+function resetShared() {
+  sharedEvents = [];
+  sharedMessages = [];
+  sharedDeleted = [];
+  sharedSeq = 0;
+  nextMessageId = 1;
+}
+
+// ---------------------------------------------------------------------------
 // Orchestration: rules -> Ollama -> rules
 // ---------------------------------------------------------------------------
 
@@ -726,9 +818,8 @@ function readBody(req) {
   });
 }
 
-function createServer(ollamaClient) {
-  const client = ollamaClient === undefined ? ai.createClient() : ollamaClient;
-  return http.createServer(async (req, res) => {
+function createRequestHandler(client) {
+  return async function (req, res) {
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
@@ -810,6 +901,34 @@ function createServer(ollamaClient) {
         sendJson(res, 200, result);
         return;
       }
+      if (req.method === 'POST' && url.pathname === '/api/events') {
+        const body = JSON.parse(await readBody(req));
+        const event = addSharedEvent(body);
+        if (!event) { sendJson(res, 400, { ok: false, error: 'bad event' }); return; }
+        sendJson(res, 200, { ok: true, event });
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/events/delete') {
+        const body = JSON.parse(await readBody(req));
+        // 200 even for an unknown id: a client retries failures, and an event the
+        // server no longer has (restart) must not block its queue.
+        const ok = deleteSharedEvent(body && body.id);
+        sendJson(res, 200, { ok });
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/chat') {
+        const body = JSON.parse(await readBody(req));
+        const message = addChatMessage(body);
+        if (!message) { sendJson(res, 400, { ok: false, error: 'bad message' }); return; }
+        sendJson(res, 200, { ok: true, message });
+        return;
+      }
+      if (req.method === 'GET' && url.pathname === '/api/sync') {
+        const reader = url.searchParams.get('reader');
+        const since = url.searchParams.get('since');
+        sendJson(res, 200, sharedSnapshot(reader, since));
+        return;
+      }
       // Static frontend: only for GET, everything else 404.
       if (req.method === 'GET') {
         serveStatic(res, url.pathname);
@@ -819,11 +938,19 @@ function createServer(ollamaClient) {
     } catch (error) {
       sendJson(res, 400, { ok: false, error: 'bad request' });
     }
-  });
+  };
+}
+
+function createServer(ollamaClient) {
+  const client = ollamaClient === undefined ? ai.createClient() : ollamaClient;
+  return http.createServer(createRequestHandler(client));
 }
 
 if (require.main === module) {
-  createServer().listen(PORT, HOST, () => {
+  const client = ai.createClient();
+  const handler = createRequestHandler(client);
+  const printUrls = function (protocol) {
+    const port = protocol === 'https' ? 8443 : PORT;
     const ifaces = os.networkInterfaces();
     const lan = [];
     for (const name of Object.keys(ifaces)) {
@@ -833,9 +960,25 @@ if (require.main === module) {
     }
     // eslint-disable-next-line no-console
     console.log('Acompaña backend on:');
-    if (HOST === '0.0.0.0') console.log('  http://localhost:' + PORT);
-    for (const ip of lan) console.log('  http://' + ip + ':' + PORT);
-  });
+    if (HOST === '0.0.0.0') console.log('  ' + protocol + '://localhost:' + port);
+    for (const ip of lan) console.log('  ' + protocol + '://' + ip + ':' + port);
+  };
+  http.createServer(handler).listen(PORT, HOST, () => printUrls('http'));
+  const tlsDir = path.join(os.homedir(), '.config', 'acompana', 'tls');
+  const keyPath = path.join(tlsDir, 'key.pem');
+  const certPath = path.join(tlsDir, 'cert.pem');
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    try {
+      const https = require('https');
+      https.createServer({
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+      }, handler).listen(8443, HOST, () => printUrls('https'));
+    } catch (tlsError) {
+      // eslint-disable-next-line no-console
+      console.error('https disabled: ' + tlsError.message);
+    }
+  }
 }
 
 module.exports = {
@@ -863,6 +1006,12 @@ module.exports = {
   addNurseQuestion,
   resolveNurseQuestion,
   resetNurseQuestions,
+  addSharedEvent,
+  deleteSharedEvent,
+  addChatMessage,
+  sharedSnapshot,
+  resetShared,
+  createRequestHandler,
   handleHandover,
   handleAsk,
   translateRules,
