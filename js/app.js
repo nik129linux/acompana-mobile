@@ -1912,17 +1912,41 @@
     });
   }
 
+  // Centered over the sheet whatever its scroll; it clears itself.
+  var handoverSentTimer = null;
+  function showHandoverSent() {
+    var old = app.aiLayer.querySelector('[data-handover-sent]');
+    if (old) old.remove();
+    var card = document.createElement('div');
+    card.className = 'handover-sent';
+    card.setAttribute('data-handover-sent', '');
+    card.setAttribute('aria-hidden', 'true');
+    card.innerHTML = '<span class="success-check" data-success-check>' + icon('check') + '</span><strong>Nota enviada</strong>';
+    app.aiLayer.appendChild(card);
+    popSuccessCheck(app.aiLayer);
+    if (handoverSentTimer) window.clearTimeout(handoverSentTimer);
+    handoverSentTimer = window.setTimeout(function () { card.remove(); }, 1600);
+  }
+
   function sendHandoverToTeam() {
     var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
     if (!canSync()) {
       if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';
       return;
     }
+    var fields = app.aiLayer.querySelectorAll('.handover-field textarea');
+    var hasText = Array.prototype.some.call(fields, function (field) { return field.value.trim(); });
+    if (!hasText) {
+      if (feedback) feedback.textContent = 'Escribe la nota antes de enviarla.';
+      return;
+    }
     var patientId = state.detailPatient ? state.detailPatient.id : FAMILY_PATIENT_ID;
     var note = handoverNote();
     postChat('equipo', note, 'Elena', patientId).then(function (message) {
       rememberChatMessage(message);
+      fields.forEach(function (field) { field.value = ''; });
       if (feedback) feedback.textContent = 'Nota enviada al equipo.';
+      showHandoverSent();
     }, function () {
       if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';
     });

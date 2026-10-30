@@ -149,6 +149,18 @@ async function open(browser, url, secure) {
     await nurse.locator('[data-handover-s]').fill('Paciente estable, PA 90/55');
     await nurse.locator('[data-handover-chat]').click();
     await nurse.waitForTimeout(500);
+    await nurse.locator('[data-handover-sent] .success-check').waitFor({ state: 'attached', timeout: 2000 });
+    assert.strictEqual(await nurse.locator('[data-handover-s]').inputValue(), '', 'fields clear after sending');
+    await nurse.locator('.ai-sheet').evaluate((n) => { n.scrollTop = n.scrollHeight; });
+    await nurse.waitForTimeout(100);
+    const closeBox = await nurse.locator('.ai-sheet [data-ai-close]').boundingBox();
+    const sheetBox = await nurse.locator('.ai-sheet').boundingBox();
+    assert(closeBox.y >= sheetBox.y - 1, 'close button stays visible when scrolled');
+    const before2 = (await api(base, '/api/sync?reader=enfermero')).data.messages.length;
+    await nurse.locator('[data-handover-chat]').click();
+    await nurse.waitForTimeout(300);
+    assert.strictEqual((await api(base, '/api/sync?reader=enfermero')).data.messages.length, before2, 'an empty note is not sent');
+    await nurse.locator('.ai-sheet [data-ai-close]').click();
     const team = await api(base, '/api/sync?reader=enfermero');
     assert(team.data.messages.some((m) => m.channel === 'equipo' && m.text.includes('PA 90/55')), 'SBAR is in the team channel');
     const fam = await api(base, '/api/sync?reader=familia');
