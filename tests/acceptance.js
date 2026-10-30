@@ -226,7 +226,14 @@ function contrastRatio(foreground, background) {
   const familyAccentColor = await page.locator('.role-tab.is-active').evaluate(node => getComputedStyle(node).color);
   const familyIconColor = await page.locator('.visit-icon').evaluate(node => getComputedStyle(node).color);
   assert(contrastRatio(familyAccentColor, 'rgb(251, 250, 249)') >= 4.5, 'family accent text contrast is below 4.5:1');
-  assert(contrastRatio(familyIconColor, 'rgb(255, 255, 255)') >= 4.5, 'family icon contrast is below 4.5:1');
+  // The visit icon is white on its own filled circle (Nico 2026-10-30): compare
+  // against that circle, using its darkest-contrast gradient stop.
+  const visitBg = await page.locator('.visit-icon').evaluate(node => {
+    const s = getComputedStyle(node);
+    const stops = s.backgroundImage.match(/color\([^)]*\)|rgba?\([^)]*\)/g);
+    return stops && stops.length ? stops : [s.backgroundColor];
+  });
+  for (const stop of visitBg) assert(contrastRatio(familyIconColor, stop) >= 3, 'family icon contrast on its circle is below 3:1 (non-text icon)');
   assert(await page.locator('.phone').evaluate(node => getComputedStyle(node).getPropertyValue('--family').trim().length > 0), 'family fill token missing');
   assert(familyCopy.includes('acompañarla') && familyCopy.includes('con ella'), 'family copy does not agree with María');
   assert(!familyCopy.match(/acompañarlo|con él/), 'family copy uses masculine pronouns for María');

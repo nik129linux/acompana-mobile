@@ -26,10 +26,10 @@
       '<p class="view-copy">Aquí ve lo que va pasando, en palabras sencillas.</p>' +
       '<div class="hero-stack"><article class="hero-card next-card">' +
       '<div class="hero-row"><div class="hero-copy"><p class="hero-title">Lo que sigue</p><span class="hero-sub">La enfermera vuelve a hacer la ronda <span class="time-nowrap">a la 1:00 p. m.</span></span></div>' +
-      '<span class="next-mascot" data-mascot aria-hidden="true"><span class="video-slot next-mascot-slot">' +
+      '<span class="mascot-disc"><span class="next-mascot" data-mascot aria-hidden="true"><span class="video-slot next-mascot-slot">' +
       '<video class="loop" autoplay muted loop playsinline preload="metadata" poster="media/onboarding-1.jpg" aria-hidden="true">' +
       '<source src="media/onboarding-1.webm" type="video/webm"><source src="media/onboarding-1.mp4" type="video/mp4">' +
-      '</video><span class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></span></span></span></div>' +
+      '</video><span class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></span></span></span></span></div>' +
       '<div class="glass-pill">' + icon('clock') + 'Ronda de control · <span class="time-nowrap">1:00 p. m.</span></div>' +
       '</article></div>' +
       '<div class="section-head"><h2 class="section-label">Qué pasó hoy</h2><span class="section-link">En simple</span></div>' + timeline(patientDayTimeline()) +
