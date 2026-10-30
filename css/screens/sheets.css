@@ -1,0 +1,177 @@
+/* Sheets area (Medixin "My Appointment"): registration, SBAR, schedule, consent. Tokens only. */
+
+.registration-sheet,
+.ai-sheet,
+.schedule-sheet {
+  background: var(--white);
+  border-radius: 28px 28px 0 0;
+  box-shadow: var(--elevation-2);
+}
+
+.registration-sheet {
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-5) var(--space-6);
+}
+
+.registration-sheet .sheet-handle,
+.ai-sheet .sheet-handle,
+.schedule-sheet .sheet-handle {
+  width: 40px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--stone-border);
+}
+
+.registration-sheet .sheet-title,
+.ai-sheet .sheet-title,
+.schedule-sheet .sheet-title {
+  font-size: var(--text-section);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.registration-sheet .event-patient-picker {
+  margin: var(--space-1) calc(var(--space-5) * -1);
+  padding: var(--space-1) var(--space-5) var(--space-2);
+}
+
+.registration-sheet .event-patient-btn {
+  min-height: 48px;
+}
+
+.registration-sheet .event-patient-btn .chip-icon {
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.registration-sheet .chip.is-selected,
+.registration-sheet .chip[aria-pressed="true"] {
+  background: var(--nurse);
+  color: var(--on-primary);
+}
+
+.registration-sheet .chip.is-selected .chip-icon,
+.registration-sheet .chip[aria-pressed="true"] .chip-icon {
+  background: var(--glass-on-gradient);
+  color: var(--on-primary);
+}
+
+.registration-sheet .quick-events {
+  gap: var(--space-3);
+}
+
+.registration-sheet .event-chip.list-card {
+  min-height: 88px;
+  padding: var(--space-3);
+  border: 0;
+  text-align: left;
+}
+
+.registration-sheet .event-chip .list-copy {
+  gap: 2px;
+}
+
+.registration-sheet .event-chip .list-title {
+  font-size: var(--text-small);
+}
+
+.registration-sheet .event-chip .list-meta {
+  font-size: var(--text-caption);
+}
+
+.registration-sheet .other-event-field.field {
+  gap: var(--space-2);
+}
+
+.registration-sheet .field-name {
+  color: var(--ink);
+  font-size: var(--text-small);
+  font-weight: 500;
+}
+
+.registration-sheet .field-box .field-input,
+.registration-sheet .field-box .other-text-input {
+  min-height: 52px;
+}
+
+.registration-sheet .other-event-actions .btn {
+  width: auto;
+  min-width: 140px;
+}
+
+.registration-sheet .dictate-button.btn-tonal {
+  width: 100%;
+  min-height: 56px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.registration-sheet .dictate-button .mic-bubble {
+  background: var(--white);
+  color: var(--on-primary-container);
+}
+
+.registration-sheet .event-proposal.list-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.ai-sheet {
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5) var(--space-6);
+}
+
+.ai-sheet .handover-field.field {
+  gap: var(--space-2);
+}
+
+.ai-sheet .ai-actions {
+  margin-top: var(--space-3);
+}
+
+.ai-sheet .ai-actions .btn {
+  flex: 1;
+}
+
+.ai-sheet .consent-box.list-card,
+.consent-box.list-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  background: var(--stone);
+}
+
+.consent-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.consent-row .btn {
+  flex: 1;
+}
+
+.schedule-sheet {
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5) var(--space-6);
+}
+
+.schedule-sheet .schedule-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.schedule-sheet .schedule-row.list-card {
+  min-height: 88px;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registration-sheet,
+  .ai-sheet,
+  .schedule-sheet {
+    transform: none;
+  }
+}
