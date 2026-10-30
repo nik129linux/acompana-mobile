@@ -484,9 +484,13 @@ function buildAskPayload(question, facts) {
 
 const ASK_PROMPT =
   'You answer a hospital patient family question in warm plain neutral Colombian Spanish ' +
-  '("usted"). The FACTS below are the only allowed source. Never diagnose, prognose, ' +
-  'give doses or advise medication. If FACTS lack the answer, return {"refuse":true}. ' +
-  'Otherwise return JSON {"answer":"..."}, max 220 chars, grounded only in FACTS. FACTS: ';
+  '("usted"), like a kind nurse. The FACTS below are the only allowed source. Never diagnose, ' +
+  'prognose, give doses or advise medication. Broad questions ("how is she", "how was the ' +
+  'night", "any news") are normal: answer with what FACTS do say about today, and when they ' +
+  'do not cover the exact thing asked, say so briefly and offer the nurse. Never invent ' +
+  'details, times or numbers. Return {"refuse":true} only when FACTS have nothing related ' +
+  'to the question. Otherwise return JSON {"answer":"..."}, 1-2 short sentences, max 220 ' +
+  'chars. FACTS: ';
 
 function validAskAnswer(answer, sourceText) {
   if (typeof answer !== 'string') return false;
@@ -653,27 +657,24 @@ async function handleAsk(question, facts, ollamaClient) {
     addNurseQuestion(question);
     return { answer: SAFE_MESSAGE, source: 'rules', model: null, createdQuestion: true };
   }
-  const direct = answerFamilyRules(question, list);
-  if (direct) {
-    return { answer: direct, source: 'rules', model: null, createdQuestion: false };
-  }
+  // The model phrases the answer; the keyword rules only stand in when it can't.
   if (ollamaClient) {
     try {
       const model = await ai.activeModel(ollamaClient);
       if (model) {
         const payload = buildAskPayload(question, list);
         const out = await ai.generateJson(ollamaClient, model, ASK_PROMPT + JSON.stringify(payload));
-        if (out && out.refuse === true) {
-          addNurseQuestion(question);
-          return { answer: SAFE_MESSAGE, source: 'ollama', model, createdQuestion: true };
-        }
         if (out && validAskAnswer(out.answer, source)) {
           return { answer: out.answer.trim(), source: 'ollama', model, createdQuestion: false };
         }
       }
     } catch (_) {
-      // fall through to the safe message below
+      // fall through to the rules below
     }
+  }
+  const direct = answerFamilyRules(question, list);
+  if (direct) {
+    return { answer: direct, source: 'rules', model: null, createdQuestion: false };
   }
   addNurseQuestion(question);
   return { answer: SAFE_MESSAGE, source: 'rules', model: null, createdQuestion: true };

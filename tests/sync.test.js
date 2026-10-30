@@ -154,6 +154,19 @@ async function open(browser, url, secure) {
 
     const fit = await family.locator('[data-chat-send]').boundingBox();
     assert(fit && fit.x + fit.width <= 390, 'send button stays on screen');
+    // The sender sees the state of every message, including a failed send.
+    await family.locator('[data-chat-input]').fill('Confirmo la visita');
+    await family.locator('[data-chat-send]').click();
+    await family.locator('.chat-message:has-text("Confirmo la visita") .chat-status.is-sent').waitFor({ state: 'attached', timeout: 4000 });
+    assert.strictEqual(await family.locator('[data-chat-input]').inputValue(), '', 'composer clears after a send');
+    await family.route('**/api/chat', (route) => route.abort());
+    await family.locator('[data-chat-input]').fill('Sin red');
+    await family.locator('[data-chat-send]').click();
+    await family.locator('.chat-message:has-text("Sin red") .chat-status.is-failed').waitFor({ state: 'attached', timeout: 4000 });
+    assert.strictEqual(await family.locator('[data-chat-input]').inputValue(), 'Sin red', 'a failed send keeps the text');
+    await family.unroute('**/api/chat');
+    ok('chat: sending, sent and failed are visible to the sender');
+
     // A full SBAR is not cut, and a reply shows while the composer keeps focus.
     const long = 'x'.repeat(190);
     const full = 'Situación: ' + long + '\nAntecedentes: ' + long + '\nEvaluación: ' + long + '\nRecomendación: ' + long + ' FIN';

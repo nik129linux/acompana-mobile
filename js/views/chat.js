@@ -13,13 +13,21 @@
     return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
   }
 
+  // Every own message says where it stands: sending, sent, or not sent.
+  function statusHtml(status) {
+    if (status === 'sending') return '<span class="chat-status is-sending" role="status">Enviando…</span>';
+    if (status === 'failed') return '<span class="chat-status is-failed" role="alert">No se envió</span>';
+    return '<span class="chat-status is-sent">' + icon('check') + 'Enviado</span>';
+  }
+
   // Own messages sit on the right; every line is escaped before it is markup.
   function messageHtml(message, ownAuthor) {
     var own = message.author && message.author === ownAuthor;
     return '<article class="chat-message' + (own ? ' is-own' : '') + '" data-chat-id="' + escapeHtml(message.id) + '">' +
       '<span class="chat-author">' + escapeHtml(message.author || '') + '</span>' +
       '<p class="chat-text">' + escapeHtml(message.text || '') + '</p>' +
-      (clock(message.time) ? '<span class="chat-time">' + escapeHtml(clock(message.time)) + '</span>' : '') +
+      '<span class="chat-meta">' + (clock(message.time) ? '<span class="chat-time">' + escapeHtml(clock(message.time)) + '</span>' : '') +
+      (own ? statusHtml(message.status) : '') + '</span>' +
       '</article>';
   }
 

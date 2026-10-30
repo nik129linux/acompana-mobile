@@ -377,6 +377,7 @@
 }
 
 .chat-message.is-own .chat-author,
+.chat-message.is-own .chat-status,
 .chat-message.is-own .chat-time {
   color: var(--on-gradient-soft);
 }
@@ -509,4 +510,42 @@
 .phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] .icon-svg {
   width: 24px;
   height: 24px;
+}
+
+/* Chat send status: the sender always sees where the message stands. */
+.chat-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.chat-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+.chat-status svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chat-status.is-sent {
+  animation: chat-sent var(--duration-enter) var(--ease-enter);
+}
+
+.chat-status.is-failed {
+  font-weight: 600;
+}
+
+@keyframes chat-sent {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-status.is-sent { animation: none; }
 }

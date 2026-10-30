@@ -1634,12 +1634,17 @@
   function familyFacts() {
     var patient = patientById(FAMILY_PATIENT_ID);
     var phrases = patient ? familyEventPhrases(patient) : [];
-    var facts = phrases.map(function (phrase) { return phrase + '.'; });
+    // Same lines the family reads on Qué pasa, then what was logged today.
+    var facts = [
+      'Tratamiento de la mañana cumplido.',
+      'El equipo está con ' + (patient ? patient.pronoun : 'ella') + ', sin novedad que reportar.'
+    ];
+    phrases.forEach(function (phrase) {
+      var fact = phrase + '.';
+      if (facts.indexOf(fact) === -1) facts.push(fact);
+    });
     facts.push('Horario de visita: hoy de 3:00 a 5:00 p. m.');
     facts.push('La enfermera vuelve a la 1:00 p. m.');
-    if (!phrases.length) {
-      facts.unshift('El equipo está pendiente y no hay novedades que reportar.');
-    }
     return facts;
   }
 
@@ -1805,7 +1810,7 @@
     }
     postChat('familia', text, 'Elena', patient.id).then(function (message) {
       rememberChatMessage(message);
-      showSnack('Mensaje enviado a la familia');
+      showSnack('Mensaje enviado a la familia', true);
       refreshChatThread();
     }, function () {
       showSnack('Sin conexión. El mensaje no se envió.');
@@ -1818,13 +1823,22 @@
   }
 
   var snackTimer = null;
-  function showSnack(message) {
+  function showSnack(message, success) {
     var bar = app.snackbar;
     if (!bar) return;
     bar.textContent = '';
     var line = document.createElement('div');
     line.className = 'tray-feedback-line';
-    line.textContent = message;
+    if (success) {
+      var badge = document.createElement('span');
+      badge.className = 'snack-check';
+      badge.setAttribute('aria-hidden', 'true');
+      badge.innerHTML = icon('check');
+      line.appendChild(badge);
+    }
+    var copy = document.createElement('span');
+    copy.textContent = message;
+    line.appendChild(copy);
     bar.appendChild(line);
     bar.classList.add('is-visible');
     if (snackTimer) window.clearTimeout(snackTimer);
@@ -1873,11 +1887,27 @@
     var isFamily = state.role === 'familia';
     var patientId = isFamily ? FAMILY_PATIENT_ID :
       (state.detailPatient ? state.detailPatient.id : FAMILY_PATIENT_ID);
+    var author = isFamily ? 'Familia' : 'Elena';
+    // The bubble appears at once and its status line tracks the send.
+    var pending = {
+      id: 'local-' + Date.now(),
+      channel: channel || 'familia',
+      author: author,
+      text: text,
+      time: new Date().toISOString(),
+      status: 'sending'
+    };
+    chatMessages.push(pending);
     input.value = '';
-    postChat(channel || 'familia', text, isFamily ? 'Familia' : 'Elena', patientId).then(function (message) {
+    refreshChatThread();
+    postChat(pending.channel, text, author, patientId).then(function (message) {
+      chatMessages.splice(chatMessages.indexOf(pending), 1);
       rememberChatMessage(message);
       refreshChatThread();
     }, function () {
+      pending.status = 'failed';
+      refreshChatThread();
+      if (!input.value) input.value = text;
       showSnack('Sin conexión. El mensaje no se envió.');
     });
   }
@@ -2038,15 +2068,32 @@
     }
   }
 
+  // The AI mark is an animation, not a label. AI_MARK_SLOT names the media/ files.
+  var AI_MARK_SLOT = 'empty';
+
+  function aiMark(label) {
+    return '<span class="ai-mark" aria-hidden="true">' + videoSlot(AI_MARK_SLOT, label) + '</span>';
+  }
+
   function showAsk(box, text, source, model) {
-    box.classList.remove('is-empty');
-    box.textContent = text;
-    setBadge(app.screen.querySelector('[data-ask-badge]'), source, model);
+    box.classList.remove('is-empty', 'is-thinking');
+    var fromAi = source === 'ollama';
+    box.innerHTML = (fromAi ? aiMark('Respuesta de IA') + '<span class="sr-only">Respuesta de IA: </span>' : '') +
+      '<span class="ask-text">' + escapeHtml(text) + '</span>';
+    box.classList.toggle('has-mark', fromAi);
+    if (fromAi) bindVideos(box);
+    var badge = app.screen.querySelector('[data-ask-badge]');
+    if (badge) badge.hidden = fromAi;
+    if (!fromAi) setBadge(badge, source, model);
   }
 
   function askViaServer(question, box) {
     box.classList.remove('is-empty');
-    box.textContent = 'Preguntando…';
+    box.classList.add('is-thinking', 'has-mark');
+    box.innerHTML = aiMark('Buscando la respuesta') + '<span class="ask-text">Buscando en el turno…</span>';
+    bindVideos(box);
+    var badge = app.screen.querySelector('[data-ask-badge]');
+    if (badge) badge.hidden = true;
     aiRequest('/api/ask', { question: question, facts: familyFacts() }).then(function (data) {
       showAsk(box, data.answer, data.source, data.model);
     }, function () {
