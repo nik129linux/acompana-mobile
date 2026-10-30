@@ -5,7 +5,6 @@
 // NEVER caches /api/* (network only). Versioned cache name.
 
 var CACHE = 'acompana-pwa-v15';
-  '/css/screens/readers.css',
 
 var SHELL = [
   '/',
