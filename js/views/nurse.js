@@ -173,7 +173,7 @@
       : '';
     return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title detail-name">' + escapeHtml(patient.name) + '</h1></div></div>' +
       '<section class="detail-hero" aria-labelledby="detail-hero-name"><span class="media-square detail-avatar" aria-hidden="true">' + escapeHtml(patient.initials) + '</span>' +
-      '<div class="detail-hero-copy"><p id="detail-hero-name" class="detail-hero-name">' + escapeHtml(patient.name) + '</p><span class="detail-room">' + escapeHtml(patient.room) + '</span></div></section>' + alert +
+      '<div class="detail-hero-copy"><p id="detail-hero-name" class="detail-hero-name">' + escapeHtml(patient.room) + '</p><span class="detail-room">' + (patient.status === 'critical' ? 'Alerta abierta · revisar signos' : 'En seguimiento · sin alertas') + '</span></div></section>' + alert +
       '<div class="stat-tiles detail-stats"><article class="stat-tile"><span>Pendientes</span><strong>' + pendingCount + '</strong></article><article class="stat-tile is-warm"><span>Hechos hoy</span><strong>' + doneCount + '</strong></article></div>' +
       '<section class="detail-block clinical-block" aria-labelledby="clinical-title"><h2 id="clinical-title" class="detail-section-title">Valor clínico</h2>' +
       '<div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button>' +

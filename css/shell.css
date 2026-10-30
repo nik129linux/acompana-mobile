@@ -107,3 +107,22 @@
 
 /* The mascot art has a white ground: keep its disc white in both themes. */
 .greet-bar .avatar { background: var(--on-primary); box-shadow: var(--elevation-1); }
+
+/* Legacy section labels speak the Medixin header voice everywhere. */
+.section-label,
+.detail-section-title {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Names and task titles wrap; they are never cut with an ellipsis. */
+.list-title,
+.task-title,
+.patient-name {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
