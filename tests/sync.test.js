@@ -109,6 +109,9 @@ async function open(browser, url, secure) {
     assert(!/Enoxaparina/i.test(askFacts));
     ok('family AI facts come from the logged events');
 
+    assert.deepStrictEqual(await Promise.all(['ai-answer.mp4', 'ai-answer.webm', 'ai-answer.jpg', 'ai-thinking.mp4', 'ai-thinking.webm', 'ai-thinking.jpg']
+      .map((f) => fetch(base + '/media/' + f).then((r) => r.status))), [200, 200, 200, 200, 200, 200], 'AI mark media is served');
+
     // Avisar a la familia lands in chat, no OS share and no wa.me.
     await nurse.locator('[data-patient="mg"]').first().click();
     await nurse.waitForTimeout(500);

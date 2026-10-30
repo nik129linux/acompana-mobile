@@ -2068,17 +2068,15 @@
     }
   }
 
-  // The AI mark is an animation, not a label. AI_MARK_SLOT names the media/ files.
-  var AI_MARK_SLOT = 'empty';
-
-  function aiMark(label) {
-    return '<span class="ai-mark" aria-hidden="true">' + videoSlot(AI_MARK_SLOT, label) + '</span>';
+  // The AI mark is Bloub, not a label: dots while it looks, the cloud once it answers.
+  function aiMark(slot, label) {
+    return '<span class="ai-mark" aria-hidden="true">' + videoSlot(slot, label) + '</span>';
   }
 
   function showAsk(box, text, source, model) {
     box.classList.remove('is-empty', 'is-thinking');
     var fromAi = source === 'ollama';
-    box.innerHTML = (fromAi ? aiMark('Respuesta de IA') + '<span class="sr-only">Respuesta de IA: </span>' : '') +
+    box.innerHTML = (fromAi ? aiMark('ai-answer', 'Respuesta de IA') + '<span class="sr-only">Respuesta de IA: </span>' : '') +
       '<span class="ask-text">' + escapeHtml(text) + '</span>';
     box.classList.toggle('has-mark', fromAi);
     if (fromAi) bindVideos(box);
@@ -2090,7 +2088,7 @@
   function askViaServer(question, box) {
     box.classList.remove('is-empty');
     box.classList.add('is-thinking', 'has-mark');
-    box.innerHTML = aiMark('Buscando la respuesta') + '<span class="ask-text">Buscando en el turno…</span>';
+    box.innerHTML = aiMark('ai-thinking', 'Buscando la respuesta') + '<span class="ask-text">Buscando en el turno…</span>';
     bindVideos(box);
     var badge = app.screen.querySelector('[data-ask-badge]');
     if (badge) badge.hidden = true;
