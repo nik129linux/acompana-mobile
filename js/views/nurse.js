@@ -25,7 +25,12 @@
     return '<span class="badge badge-ready">Listo</span>';
   }
 
-  var KIND_ICON = { medication: 'pill', position: 'bed', round: 'stethoscope' };
+  var KIND_ICON = { medication: 'pill', position: 'move', round: 'ruler', other: 'note' };
+  var KIND_LABEL = { medication: 'Medicación', position: 'Cambio de posición', round: 'Ronda', other: 'Otro evento' };
+
+  function pendingTab() {
+    return ctx().getPendingTab ? ctx().getPendingTab() : 'pending';
+  }
 
   function patientCard(patient) {
     var task = taskForPatient(patient.id);
@@ -71,12 +76,52 @@
       '<div class="ai-actions"><button type="button" class="btn btn-tonal sbar-open" data-handover-open>Preparar</button></div></div>';
   }
 
+  function taskPlace(task) {
+    var patient = ctx().patientById(task.patientId);
+    return patient ? patient.name + ' · ' + patient.room : task.note;
+  }
+
   function taskCard(task) {
-    return '<article class="task-card" data-task-card="' + escapeHtml(task.id) + '">' +
-      '<span class="task-icon">' + icon(task.icon) + '</span>' +
-      '<span class="task-copy"><span class="task-time">' + escapeHtml(task.time) + '</span><span class="task-title">' + escapeHtml(task.title) + '</span><span class="task-note">' + escapeHtml(task.note) + '</span></span>' +
+    return '<article class="task-card list-card" data-task-card="' + escapeHtml(task.id) + '">' +
+      '<span class="media-square task-media" aria-hidden="true">' + icon(task.icon) + '</span>' +
+      '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(task.title) + '</span>' +
+      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(task.time) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
       '<button type="button" class="task-action tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="Confirmar ' + escapeHtml(task.title) + '"><svg class="confirm-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="m7 16 6 6L25 9"></path></svg><span class="confirm-label">Listo</span></button>' +
       '</article>';
+  }
+
+  function doneTaskCard(task) {
+    return '<article class="task-card list-card is-done" data-done-task="' + escapeHtml(task.id) + '">' +
+      '<span class="media-square task-media" aria-hidden="true">' + icon(task.icon) + '</span>' +
+      '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(task.title) + '</span>' +
+      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(task.time) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
+      '<span class="status-pill is-done">' + icon('check') + 'Hecho</span></article>';
+  }
+
+  function doneEventCard(entry) {
+    var patient = ctx().patientById(entry.patientId);
+    return '<article class="task-card list-card is-done" data-done-event="' + escapeHtml(entry.id) + '">' +
+      '<span class="media-square task-media" aria-hidden="true">' + icon(KIND_ICON[entry.kind] || 'note') + '</span>' +
+      '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(entry.text || KIND_LABEL[entry.kind] || 'Evento') + '</span>' +
+      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(entry.time) + '</span>' + (patient ? '<span class="task-patient">' + escapeHtml(patient.name + ' · ' + patient.room) + '</span>' : '') + '</span></span>' +
+      '<span class="status-pill is-done">Registrado</span></article>';
+  }
+
+  function doneList() {
+    var completed = ctx().TASKS.filter(function (task) { return isConfirmed(task.id); });
+    var events = loadEvents();
+    if (!completed.length && !events.length) return '<p class="done-empty">Aún no hay nada hecho</p>';
+    return '<div class="pending-list done-list">' + completed.map(doneTaskCard).join('') + events.map(doneEventCard).join('') + '</div>';
+  }
+
+  function segment(tab, label) {
+    var active = pendingTab() === tab;
+    return '<button type="button" class="segment' + (active ? ' is-active' : '') + '" role="tab" aria-selected="' + String(active) + '" data-pending-tab="' + tab + '">' + label + '</button>';
+  }
+
+  function summaryRow(task) {
+    return '<li class="summary-row"><span class="summary-icon" aria-hidden="true">' + icon('check') + '</span>' +
+      '<span class="summary-copy"><strong>' + escapeHtml(task.title) + '</strong><span>' + escapeHtml(task.time) + ' · ' + escapeHtml(taskPlace(task)) + '</span></span></li>';
   }
 
   function renderEmptyPending() {
@@ -85,39 +130,51 @@
     for (var index = 1; index <= 12; index += 1) {
       pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * stagger) + 'ms"></span>';
     }
+    var completed = ctx().TASKS.filter(function (task) { return isConfirmed(task.id); });
     return '<div class="empty-state" data-empty-state>' +
       '<div class="confetti-layer" aria-hidden="true">' + pieces + '</div>' +
+      '<span class="success-check" data-success-check aria-hidden="true">' + icon('check') + '</span>' +
+      '<h2>Todo al día</h2><p>No queda nada pendiente. Puedes respirar un momento.</p>' +
+      '<ul class="summary-card summary-rows">' + completed.map(summaryRow).join('') + '</ul>' +
+      '<button type="button" class="empty-state-link" data-go-home>Volver al turno ' + icon('chevron') + '</button>' +
       videoSlot('empty', 'Doctora flotando tranquila') +
-      '<span class="completion-mark">' + icon('check') + '</span>' +
-      '<h2>Todo confirmado</h2><p>El turno está al día. Puedes respirar un momento.</p>' +
-      '<button type="button" class="accent-link empty-state-link" data-go-home>Volver al turno ' + icon('chevron') + '</button>' +
       '</div>';
   }
 
   function renderPending() {
     var pending = remainingTasks();
     if (!pending.length) return renderEmptyPending();
-    return '<div class="view-header"><div class="view-header-copy"><p class="view-subtitle">Turno de Elena</p><h1 class="view-title small-title">Pendientes</h1></div></div>' +
-      '<div class="pending-summary"><div class="pending-summary-copy"><strong>Lo que falta</strong><span>Confirma cada evento con un toque.</span></div><span class="pending-count" data-pending-count>' + pending.length + '</span></div>' +
-      '<div class="section-heading"><h2 class="section-label">En este momento</h2><span class="section-meta">Orden por hora</span></div>' +
-      '<div class="task-list">' + pending.map(taskCard).join('') + '</div>' +
-      '<div class="ai-card"><strong>Preguntas de la familia</strong><span>Si una familia dejó una duda desde su vista, aparece aquí.</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>Revisar preguntas</button></div><div data-nurse-questions></div></div>';
+    var done = pendingTab() === 'done';
+    return '<div class="view-header"><div class="view-header-copy"><h1 class="view-title small-title screen-title">Pendientes</h1></div></div>' +
+      '<div class="segmented" role="tablist" aria-label="Pendientes y hechas">' + segment('pending', 'Pendientes') + segment('done', 'Hechas') + '</div>' +
+      (done
+        ? '<div class="section-head pending-head"><h2>Hechas</h2><span class="status-pill is-done">' + (ctx().TASKS.filter(function (task) { return isConfirmed(task.id); }).length + loadEvents().length) + ' registros</span></div>' + doneList()
+        : '<div class="section-head pending-head"><h2>Lo que falta</h2><span class="status-pill" data-pending-count><strong>' + pending.length + '</strong>&nbsp;pendientes</span></div>' +
+          '<div class="section-heading"><h2 class="section-label">En este momento</h2><span class="section-meta">Orden por hora</span></div>' +
+          '<div class="pending-list">' + pending.map(taskCard).join('') + '</div>' +
+          '<div class="ai-card"><strong>Preguntas de la familia</strong><span>Si una familia dejó una duda desde su vista, aparece aquí.</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>Revisar preguntas</button></div><div data-nurse-questions></div></div>');
   }
 
   function renderNurseDetail(patient) {
     var kindLabels = { medication: 'Medicación', position: 'Cambio de posición', round: 'Ronda', other: 'Otro evento' };
     // One chronological shift list: planned tasks and what the nurse logged.
-    var rows = ctx().TASKS.filter(function (task) { return task.patientId === patient.id; }).map(function (task) {
+    var patientTasks = ctx().TASKS.filter(function (task) { return task.patientId === patient.id; });
+    var patientEvents = loadEvents().filter(function (entry) { return entry.patientId === patient.id; });
+    var pendingCount = patientTasks.filter(function (task) { return !isConfirmed(task.id); }).length;
+    var doneCount = patientTasks.filter(function (task) { return isConfirmed(task.id); }).length + patientEvents.length;
+    var rows = patientTasks.map(function (task) {
       var done = isConfirmed(task.id);
       return { time: task.time, title: task.title, note: '', status: done ? 'Hecho' : 'Pendiente', done: done };
-    }).concat(loadEvents().filter(function (e) { return e.patientId === patient.id; }).map(function (e) {
-      return { time: e.time, title: kindLabels[e.kind] || 'Evento', note: e.text, status: 'Registrado', done: true };
+    }).concat(patientEvents.map(function (entry) {
+      return { time: entry.time, title: kindLabels[entry.kind] || 'Evento', note: entry.text, status: 'Registrado', done: true };
     })).sort(function (x, y) { return x.time < y.time ? -1 : x.time > y.time ? 1 : 0; });
     var alert = patient.status === 'critical'
       ? '<div class="detail-alert detail-status" role="status"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span>Alerta de signos vitales · protocolo abierto</span></div>'
       : '';
     return '<div class="detail-view"><div class="view-header"><button type="button" class="icon-button back-button back-btn" data-back="enfermero" aria-label="Volver al turno"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title detail-name">' + escapeHtml(patient.name) + '</h1></div></div>' +
-      '<p class="detail-room">' + escapeHtml(patient.room) + '</p>' + alert +
+      '<section class="detail-hero" aria-labelledby="detail-hero-name"><span class="media-square detail-avatar" aria-hidden="true">' + escapeHtml(patient.initials) + '</span>' +
+      '<div class="detail-hero-copy"><p id="detail-hero-name" class="detail-hero-name">' + escapeHtml(patient.name) + '</p><span class="detail-room">' + escapeHtml(patient.room) + '</span></div></section>' + alert +
+      '<div class="stat-tiles detail-stats"><article class="stat-tile"><span>Pendientes</span><strong>' + pendingCount + '</strong></article><article class="stat-tile is-warm"><span>Hechos hoy</span><strong>' + doneCount + '</strong></article></div>' +
       '<section class="detail-block clinical-block" aria-labelledby="clinical-title"><h2 id="clinical-title" class="detail-section-title">Valor clínico</h2>' +
       '<div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' + escapeHtml(patient.clinical) + '</button>' +
       '<button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button></div>' +
@@ -127,7 +184,8 @@
         return '<li class="shift-row' + (r.done ? ' is-done' : '') + '"><span class="shift-time">' + escapeHtml(r.time) + '</span>' +
           '<span class="shift-copy"><strong>' + escapeHtml(r.title) + '</strong>' + (r.note ? '<span>' + escapeHtml(r.note) + '</span>' : '') + '</span>' +
           '<span class="shift-status">' + escapeHtml(r.status) + '</span></li>';
-      }).join('') + '</ol></section></div>';
+      }).join('') + '</ol></section>' +
+      '<div class="detail-cta"><button type="button" class="btn btn-primary" data-open-register>Registrar evento</button></div></div>';
   }
 
   V.nurse = {

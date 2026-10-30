@@ -121,6 +121,7 @@
       familia: HOME_NAV.familia
     },
     confirmed: {},
+    pendingTab: 'pending',
     sheetOpen: false,
     sheetReturnNav: 'turno',
     faqOpen: {},
@@ -513,6 +514,11 @@
     return definition.key;
   }
 
+  function popSuccessCheck(container) {
+    var check = container ? container.querySelector('.success-check') : null;
+    if (check && window.AcompanaMotion) window.AcompanaMotion.pop(check);
+  }
+
   function renderRoute(direction, force) {
     if (state.role === 'enfermero' && state.activeNav[state.role] === 'registrar' && !state.sheetOpen) {
       openRegistrationSheet();
@@ -531,6 +537,7 @@
         next.classList.remove('from-left', 'from-right');
         next.classList.add('is-active');
         bindVideos(next);
+        popSuccessCheck(next);
       });
     } else {
       app.screen.appendChild(next);
@@ -540,6 +547,7 @@
         next.classList.remove('from-left', 'from-right');
         next.classList.add('is-active');
         bindVideos(next);
+        popSuccessCheck(next);
         window.setTimeout(function () {
           if (current.parentNode) current.remove();
         }, 320);
@@ -778,9 +786,16 @@
     var pieces = '';
     var stagger = getStaggerMs();
     for (var index = 1; index <= 12; index += 1) pieces += '<span class="confetti-piece" style="--confetti-delay:' + (index * stagger) + 'ms"></span>';
-    app.celebrationLayer.innerHTML = '<div class="celebration-card"><div class="celebration-mascot"><img class="celebration-doctor-image" src="media/frames/doctora-white.png" alt="Doctora celebrando"></div><span class="completion-mark">' + icon('check') + '</span><h2>Turno al día</h2><p>Todo confirmado. El equipo puede seguir con tranquilidad.</p><button type="button" class="primary-button" data-close-celebration>Seguir con el turno</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
+    var doneTasks = TASKS.filter(function (task) { return isConfirmed(task.id); });
+    var rows = doneTasks.map(function (task) {
+      var patient = patientById(task.patientId);
+      return '<li class="summary-row"><span class="summary-icon" aria-hidden="true">' + icon('check') + '</span>' +
+        '<span class="summary-copy"><strong>' + escapeHtml(task.title) + '</strong><span>' + escapeHtml(task.time) + ' · ' + escapeHtml(patient ? patient.name : task.note) + '</span></span></li>';
+    }).join('');
+    app.celebrationLayer.innerHTML = '<div class="celebration-card"><span class="success-check" data-success-check aria-hidden="true">' + icon('check') + '</span><h2>Todo al día</h2><p>Todo confirmado. El equipo puede seguir con tranquilidad.</p><ul class="summary-card summary-rows">' + rows + '</ul><div class="celebration-mascot"><img class="celebration-doctor-image" src="media/frames/doctora-white.png" alt="Doctora celebrando"></div><button type="button" class="btn btn-primary" data-close-celebration>Volver al turno</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
     app.celebrationLayer.classList.add('is-visible');
     app.celebrationLayer.setAttribute('aria-hidden', 'false');
+    popSuccessCheck(app.celebrationLayer);
     var closeButton = app.celebrationLayer.querySelector('[data-close-celebration]');
     if (closeButton) closeButton.focus();
     state.completionTimer = window.setTimeout(hideCompletion, 3200);
@@ -839,6 +854,23 @@
     if (menuTheme) {
       if (window.acompanaTheme) window.acompanaTheme.toggle(event);
       closeDemoMenu();
+      return;
+    }
+
+    var pendingTab = event.target.closest('[data-pending-tab]');
+    if (pendingTab) {
+      var tab = pendingTab.getAttribute('data-pending-tab');
+      if (state.pendingTab !== tab) {
+        state.pendingTab = tab;
+        renderRoute('forward', true);
+      }
+      return;
+    }
+
+    var openRegister = event.target.closest('[data-open-register]');
+    if (openRegister) {
+      if (state.detailPatient) state.eventPatient = state.detailPatient.id;
+      openRegistrationSheet();
       return;
     }
 
@@ -968,6 +1000,7 @@
     if (oldKey === key && !state.detailPatient) return;
     state.activeNav[state.role] = key;
     state.detailPatient = null;
+    if (state.role === 'enfermero' && key === 'pendientes') state.pendingTab = 'pending';
     if (state.role === 'enfermero') closeRegistrationSheet(false);
     var oldIndex = NAV_BY_ROLE[state.role].findIndex(function (item) { return item.key === oldKey; });
     var newIndex = NAV_BY_ROLE[state.role].findIndex(function (item) { return item.key === key; });
@@ -1677,6 +1710,7 @@
     loadEvents: loadEvents,
     isConfirmed: isConfirmed,
     remainingTasks: remainingTasks,
+    getPendingTab: function () { return state.pendingTab; },
     patientById: patientById,
     PATIENTS: PATIENTS,
     TASKS: TASKS,
