@@ -176,8 +176,12 @@
       '<div class="detail-hero-copy"><p id="detail-hero-name" class="detail-hero-name">' + escapeHtml(patient.room) + '</p><span class="detail-room">' + (patient.status === 'critical' ? 'Alerta abierta · revisar signos' : 'En seguimiento · sin alertas') + '</span></div></section>' + alert +
       '<div class="stat-tiles detail-stats"><article class="stat-tile"><span>Pendientes</span><strong>' + pendingCount + '</strong></article><article class="stat-tile is-warm"><span>Hechos hoy</span><strong>' + doneCount + '</strong></article></div>' +
       '<section class="detail-block clinical-block" aria-labelledby="clinical-title"><h2 id="clinical-title" class="detail-section-title">Valor clínico</h2>' +
-      '<div class="clinical-panel"><button type="button" class="clinical-value' + (patient.status === 'critical' ? ' is-critical-value' : '') + '" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' +
-        patient.clinical.split(/\s*[·,]\s*/).map(function (part) { return '<span class="clinical-line">' + escapeHtml(part) + '</span>'; }).join('') + '</button>' +
+      '<div class="clinical-panel"><button type="button" class="clinical-value" data-reveal aria-label="Mostrar el valor clínico" aria-expanded="false">' +
+        (patient.vitals || []).map(function (v) {
+          return '<span class="vital-tile' + (v.alert ? ' is-alert' : '') + (v.wide ? ' is-wide' : '') + '">' +
+            '<span class="vital-label">' + (v.alert ? '<span class="pulse-dot" aria-hidden="true"></span>' : '') + escapeHtml(v.label) + '</span>' +
+            '<span class="vital-value">' + escapeHtml(v.value) + (v.unit ? ' <small>' + escapeHtml(v.unit) + '</small>' : '') + '</span></span>';
+        }).join('') + '</button>' +
       '<button type="button" class="reveal-button" data-reveal aria-expanded="false">Mostrar dato clínico ' + icon('eye') + '</button></div>' +
       '<p class="clinical-why">' + icon('shield') + '<span>Oculto porque esta pantalla también se ve desde la cama. La familia recibe solo un resumen del turno, sin valores clínicos.</span></p></section>' +
       '<section class="detail-block" aria-labelledby="shift-title"><h2 id="shift-title" class="detail-section-title">Turno</h2><ol class="shift-list">' +

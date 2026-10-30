@@ -26,6 +26,11 @@
       status: 'critical',
       statusLabel: 'Revisar',
       clinical: 'PA 90/55 · taquicardia 112 · alerta protocolo hipotensión',
+      vitals: [
+        { label: 'Presión arterial', value: '90/55', unit: 'mmHg', alert: true },
+        { label: 'Frecuencia cardiaca', value: '112', unit: 'lpm', alert: true },
+        { label: 'Protocolo', value: 'Hipotensión', unit: 'activo', alert: true, wide: true }
+      ],
       patientText: 'El equipo está pendiente de sus signos',
       familyText: 'Bajo observación, el equipo está con él'
     },
@@ -38,6 +43,11 @@
       status: 'pending',
       statusLabel: 'Medicación 11:00',
       clinical: 'Enoxaparina 40mg SC, vía abdominal, 11:00',
+      vitals: [
+        { label: 'Medicamento', value: 'Enoxaparina', unit: '', wide: true },
+        { label: 'Dosis', value: '40', unit: 'mg SC' },
+        { label: 'Hora', value: '11:00', unit: 'vía abdominal' }
+      ],
       patientText: 'Ya casi le toca el medicamento de la mañana',
       familyText: 'Tratamiento de la mañana en curso'
     },
@@ -50,6 +60,10 @@
       status: 'ready',
       statusLabel: '1 toque',
       clinical: 'Cambio postural decúbito lateral izq. — previsto 11:20',
+      vitals: [
+        { label: 'Posición', value: 'Decúbito lateral', unit: 'izquierdo', wide: true },
+        { label: 'Próximo cambio', value: '11:20', unit: 'previsto' }
+      ],
       patientText: 'Le van a ayudar a cambiar de posición',
       familyText: '—'
     }

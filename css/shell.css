@@ -382,3 +382,68 @@
   color: var(--on-primary);
   box-shadow: var(--elevation-2);
 }
+
+/* Revealed clinical value: vital-sign tiles, not a red slab of text. */
+.clinical-value {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding: 0;
+  background: transparent;
+}
+
+.clinical-value.is-critical-value { background: transparent; }
+
+.vital-tile {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--stone-border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  text-align: left;
+}
+
+.vital-tile.is-wide { grid-column: 1 / -1; }
+
+.vital-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+.vital-value {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.vital-value small {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.vital-tile.is-alert { border-color: color-mix(in srgb, var(--alert) 55%, var(--stone-border)); }
+.vital-tile.is-alert .vital-label { color: var(--alert-text); }
+
+/* Mascot art has a white ground: always on a white disc. */
+.avatar { background: var(--on-primary); box-shadow: var(--elevation-1); }
+
+/* Contacto without orange: Visita on a white disc, neutral active tab. */
+.contact-icon.is-visit {
+  background: var(--on-primary);
+  color: var(--color-primary-500);
+  box-shadow: var(--elevation-1);
+}
+
+.phone[data-role="familia"] .nav-item.is-active { color: var(--ink); }

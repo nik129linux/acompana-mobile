@@ -75,8 +75,14 @@ function lum(c) {
     for (const opt of await options.all()) {
       const icon = opt.locator('.contact-icon');
       assert.strictEqual(await icon.count(), 1, 'each option has a .contact-icon');
-      assert(lum(await icon.evaluate((n) => getComputedStyle(n).color)) > 0.85, 'contact icons are white');
-      assert(/gradient/.test(await icon.evaluate((n) => getComputedStyle(n).backgroundImage)), 'contact icons sit on a gradient disc');
+      if (await icon.evaluate((n) => n.classList.contains('is-visit'))) {
+        // Visita: white disc with a blue icon (Nico 2026-10-30: no orange in Contacto).
+        assert(lum(await icon.evaluate((n) => getComputedStyle(n).backgroundColor)) > 0.85, 'Visita sits on a white disc');
+        assert(lum(await icon.evaluate((n) => getComputedStyle(n).color)) < 0.4, 'Visita icon is blue on white');
+      } else {
+        assert(lum(await icon.evaluate((n) => getComputedStyle(n).color)) > 0.85, 'contact icons are white');
+        assert(/gradient/.test(await icon.evaluate((n) => getComputedStyle(n).backgroundImage)), 'contact icons sit on a gradient disc');
+      }
       const b = await icon.boundingBox();
       assert(b.width >= 48 && b.height >= 48, 'contact icon discs are at least 48px');
     }
