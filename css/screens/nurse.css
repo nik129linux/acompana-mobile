@@ -1,0 +1,361 @@
+/* Nurse screens in the Medixin language: Pendientes ("Appointment Upcoming"),
+   patient detail ("Doctor Details") and the all-done moment ("Appointment
+   Complete"). Layout only; components and tokens carry the visual language. */
+
+/* ---- Pendientes: segmented control + appointment list cards ---- */
+.view[data-view-key="nurse-pending"] {
+  gap: var(--space-4);
+}
+
+.view[data-view-key="nurse-pending"] .screen-title {
+  margin: 0;
+  font-size: var(--text-section);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.view[data-view-key="nurse-pending"] .segmented {
+  margin-bottom: var(--space-1);
+}
+
+.view[data-view-key="nurse-pending"] .segment {
+  min-height: 48px;
+  border-radius: var(--radius-card);
+  font-weight: 600;
+}
+
+.pending-head {
+  margin: var(--space-2) 0 0;
+}
+
+.pending-head > .status-pill {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-head > .status-pill strong {
+  font-weight: 600;
+}
+
+.pending-list,
+.done-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.pending-list .task-card.list-card {
+  min-height: 88px;
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+}
+
+.task-card .media-square.task-media {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+}
+
+.task-card .task-copy.list-copy {
+  gap: 4px;
+}
+
+.task-card .task-title {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-card .task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  min-width: 0;
+}
+
+.task-card .task-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.task-card .task-time .icon-svg {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.task-card .task-patient {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-card .task-action.tap-confirm {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 56px;
+  place-items: center;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  min-height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  color: var(--on-primary);
+  box-shadow: var(--elevation-2);
+}
+
+.task-card .task-action .confirm-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.task-card.is-confirming .task-action {
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+}
+
+.task-card .status-pill {
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.task-card .status-pill .icon-svg {
+  width: 14px;
+  height: 14px;
+}
+
+.task-card.is-done .task-title {
+  color: var(--body);
+}
+
+.done-empty {
+  margin: 0;
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+  color: var(--muted);
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+/* ---- Patient detail: "Doctor Details" ---- */
+.view[data-view-key="nurse-detail"] .detail-name {
+  margin: 0;
+  font-size: var(--text-section);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.detail-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: 0;
+}
+
+.detail-view .detail-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+}
+
+.detail-view .detail-hero .detail-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-size: var(--text-section);
+}
+
+.detail-view .detail-hero-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detail-view .detail-hero-name {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-section);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.detail-view .detail-hero .detail-room {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
+
+.detail-view .detail-alert {
+  margin: 0;
+  border-radius: var(--radius-card);
+}
+
+.detail-view .detail-stats {
+  margin-top: var(--space-1);
+}
+
+.detail-view .stat-tile {
+  min-height: 92px;
+  align-content: center;
+}
+
+.detail-view .detail-block {
+  margin-top: var(--space-3);
+}
+
+.detail-view .clinical-panel {
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+}
+
+.detail-view .shift-list {
+  box-shadow: var(--elevation-1);
+}
+
+.detail-cta {
+  position: sticky;
+  z-index: 4;
+  bottom: 0;
+  margin-top: var(--space-2);
+  padding: var(--space-3) 0 var(--space-2);
+  background: var(--canvas);
+}
+
+.detail-cta .btn-primary {
+  box-shadow: var(--elevation-2);
+}
+
+/* ---- All done: "Appointment Complete" ---- */
+.empty-state .success-check,
+.celebration-card .success-check {
+  flex: 0 0 auto;
+}
+
+.empty-state h2,
+.celebration-card h2 {
+  font-weight: 600;
+}
+
+.summary-card.summary-rows {
+  width: 100%;
+  max-width: 320px;
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--elevation-1);
+  list-style: none;
+  text-align: left;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.summary-row + .summary-row {
+  border-top: 1px solid var(--stone-border);
+}
+
+.summary-icon {
+  display: grid;
+  flex: 0 0 32px;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--patient-soft);
+  color: var(--patient-text);
+}
+
+.summary-icon .icon-svg {
+  width: 18px;
+  height: 18px;
+}
+
+.summary-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.summary-copy strong {
+  color: var(--ink);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.summary-copy span {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-state .summary-card.summary-rows {
+  margin-top: var(--space-2);
+}
+
+.celebration-card .summary-card.summary-rows {
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.celebration-card .success-check {
+  width: 96px;
+  height: 96px;
+}
+
+.celebration-card .success-check .icon-svg {
+  width: 48px;
+  height: 48px;
+}
+
+.celebration-card .celebration-mascot {
+  width: 96px;
+  height: 96px;
+  margin: var(--space-1) 0;
+}
+
+.celebration-card .celebration-doctor-image {
+  width: 96px;
+  height: 96px;
+}
+
+.celebration-card .btn {
+  margin-top: var(--space-1);
+}
