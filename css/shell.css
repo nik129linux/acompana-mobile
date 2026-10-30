@@ -126,3 +126,162 @@
   white-space: normal;
   text-overflow: clip;
 }
+
+/* Centered content must never overflow upward under the app bar. */
+.empty-state { justify-content: safe center; padding-top: var(--space-6); }
+.top-app-bar { z-index: 8; }
+
+/* Snackbar (Medixin-style toast): check badge, message, quiet undo pill and
+   a 5 s countdown line. */
+.snackbar {
+  overflow: hidden;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--ink);
+  color: var(--on-primary);
+  box-shadow: var(--elevation-2);
+}
+
+.snackbar .tray-feedback-line { gap: var(--space-3); }
+
+.snack-check {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--patient);
+  color: var(--on-primary);
+}
+
+.snack-check .icon-svg { width: 18px; height: 18px; stroke-width: 2.2; }
+
+.snackbar .tray-feedback-line > span:not(.snack-check) {
+  flex: 1;
+  font-size: var(--text-small);
+  font-weight: 500;
+}
+
+.snackbar .undo-event-btn {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--glass-on-gradient);
+  color: var(--on-primary);
+  font: 600 var(--text-caption) / 1 var(--font-body);
+  cursor: pointer;
+}
+
+.snackbar .undo-event-btn:active { transform: scale(0.95); }
+.snackbar .undo-event-btn:focus-visible { outline: 2px solid var(--on-primary); outline-offset: 2px; }
+
+.snack-timer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--sky);
+  transform-origin: left center;
+  animation: snack-countdown 5s linear forwards;
+}
+
+@keyframes snack-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Registrar: a logged card answers with a check that pops in. */
+.quick-events [data-quick-event] { position: relative; }
+
+.quick-events .is-logged {
+  background: var(--primary-container);
+  box-shadow: 0 0 0 2px var(--nurse);
+}
+
+.logged-mark {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--nurse);
+  color: var(--on-primary);
+}
+
+.logged-mark .icon-svg { width: 14px; height: 14px; stroke-width: 2.4; }
+
+/* Dictation: visible listening state with live transcript. */
+.dictate-button.is-listening {
+  background: var(--grad-primary);
+  color: var(--on-primary);
+}
+
+.dictate-button.is-listening .mic-bubble {
+  animation: mic-breathe 1.2s var(--ease-enter) infinite alternate;
+}
+
+@keyframes mic-breathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
+}
+
+.dictate-live {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  font-size: var(--text-caption);
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.dictate-note {
+  margin: 0;
+  color: var(--body);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+
+/* Clinical value: readable lines once revealed, a calm masked block before. */
+.clinical-value {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--stone);
+  color: var(--ink);
+  font: 500 var(--text-body) / 1.45 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+.clinical-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.clinical-line::before {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nurse);
+  content: "";
+}
+
+.phone[data-role="enfermero"] .is-critical-value .clinical-line::before { background: var(--alert); }
+.is-critical-value { background: var(--error-container); color: var(--on-error-container); }
+
+@media (prefers-reduced-motion: reduce) {
+  .snack-timer, .dictate-button.is-listening .mic-bubble { animation: none; }
+}

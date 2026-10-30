@@ -216,6 +216,11 @@
     feedback.textContent = '';
     var line = document.createElement('div');
     line.className = 'tray-feedback-line';
+    var badge = document.createElement('span');
+    badge.className = 'snack-check';
+    badge.setAttribute('aria-hidden', 'true');
+    badge.innerHTML = icon('check');
+    line.appendChild(badge);
     var span = document.createElement('span');
     span.textContent = message;
     line.appendChild(span);
@@ -226,7 +231,30 @@
     undo.textContent = 'Deshacer';
     line.appendChild(undo);
     feedback.appendChild(line);
+    var timer = document.createElement('span');
+    timer.className = 'snack-timer';
+    timer.setAttribute('aria-hidden', 'true');
+    feedback.appendChild(timer);
     feedback.classList.add('is-visible');
+    if (window.AcompanaMotion) window.AcompanaMotion.pop(badge, { from: 0.4, duration: 480 });
+  }
+
+  function markLogged(card) {
+    if (!card) return;
+    card.classList.add('is-logged');
+    var mark = document.createElement('span');
+    mark.className = 'logged-mark';
+    mark.setAttribute('aria-hidden', 'true');
+    mark.innerHTML = icon('check');
+    card.appendChild(mark);
+    if (window.AcompanaMotion) {
+      window.AcompanaMotion.press(card);
+      window.AcompanaMotion.pop(mark, { from: 0.3, duration: 520 });
+    }
+    window.setTimeout(function () {
+      card.classList.remove('is-logged');
+      if (mark.parentNode) mark.remove();
+    }, 1400);
   }
 
   function hideEventFeedback() {
@@ -716,8 +744,13 @@
     renderBottomNav();
     bindSheetDrag();
     requestAnimationFrame(function () {
-      var first = app.registrationLayer.querySelector('.event-chip');
-      if (first) first.focus();
+      var title = app.registrationLayer.querySelector('.sheet-title');
+      if (title) {
+        title.setAttribute('tabindex', '-1');
+        title.focus({ preventScroll: true });
+      }
+      var motion = window.AcompanaMotion;
+      if (motion) motion.stagger(app.registrationLayer.querySelector('.registration-sheet'), '.event-patient-picker, .quick-events > *, .dictate-button', { step: 45, delay: 120 });
     });
   }
 
@@ -826,21 +859,6 @@
     feedback.classList.add('is-visible');
     if (state.feedbackTimer) window.clearTimeout(state.feedbackTimer);
     state.feedbackTimer = window.setTimeout(function () { feedback.classList.remove('is-visible'); }, 1800);
-  }
-
-  function toggleListening(button) {
-    state.listening = !state.listening;
-    var copy = button.querySelector('.dictate-copy');
-    if (state.listening) {
-      copy.querySelector('strong').textContent = 'Escuchando';
-      copy.querySelector('small').textContent = 'Toca para detener';
-      button.classList.add('is-listening');
-    } else {
-      copy.querySelector('strong').textContent = 'Dictar evento';
-      copy.querySelector('small').textContent = 'Toca para dictar';
-      button.classList.remove('is-listening');
-      showTrayFeedback('Registro por voz');
-    }
   }
 
   function handleScreenClick(event) {
@@ -1094,6 +1112,7 @@
       var kindMap = { 'Medicación': 'medication', 'Cambio de posición': 'position', 'Ronda': 'round' };
       var kind = kindMap[label] || 'other';
       saveLoggedEvent(state.eventPatient, kind, label, 'quick');
+      markLogged(quick);
       return;
     }
     var dictate = event.target.closest('[data-dictate]');
@@ -1119,63 +1138,125 @@
     }, 5000);
   }
 
+  var KIND_LABELS = { medication: 'Medicación', position: 'Cambio de posición', round: 'Ronda', other: 'Otro evento' };
+  var activeRecognizer = null;
+
+  function showProposal(kind, text) {
+    var proposal = app.registrationLayer.querySelector('[data-event-proposal]');
+    if (!proposal) return;
+    proposal.dataset.pendingKind = kind;
+    proposal.dataset.pendingText = text;
+    proposal.querySelector('[data-proposal-kind]').textContent = KIND_LABELS[kind] || 'Evento';
+    proposal.querySelector('[data-proposal-text]').textContent = text;
+    proposal.classList.add('is-visible');
+    if (window.AcompanaMotion) window.AcompanaMotion.pop(proposal, { from: 0.92, duration: 420 });
+  }
+
+  function setDictateState(listening, live) {
+    var button = app.registrationLayer.querySelector('[data-dictate]');
+    if (!button) return;
+    button.classList.toggle('is-listening', listening);
+    button.setAttribute('aria-pressed', String(listening));
+    var strong = button.querySelector('.dictate-copy strong');
+    var small = button.querySelector('.dictate-copy small');
+    if (strong) strong.textContent = listening ? 'Escuchando… toca para terminar' : 'Dictar evento';
+    if (small) {
+      small.textContent = listening ? (live || 'Habla con normalidad') : 'Toca para dictar';
+      small.classList.toggle('dictate-live', listening);
+    }
+  }
+
+  // Explain why dictation could not run and fall back to typing.
+  function dictationFallback(message) {
+    setDictateState(false);
+    var field = app.registrationLayer.querySelector('[data-other-field]');
+    if (field) field.classList.add('is-visible');
+    var note = app.registrationLayer.querySelector('[data-dictate-note]');
+    if (!note && field) {
+      note = document.createElement('p');
+      note.className = 'dictate-note';
+      note.setAttribute('data-dictate-note', '');
+      note.setAttribute('role', 'status');
+      field.insertBefore(note, field.firstChild);
+    }
+    if (note) note.textContent = message;
+  }
+
   function startDictation() {
-    // Prefer webkitSpeechRecognition (test mock sets this) over the native
-    // SpeechRecognition which may not fire events in headless Chromium.
+    // A second tap while listening stops and keeps what was heard.
+    if (activeRecognizer) {
+      activeRecognizer.stop();
+      return;
+    }
+    // Prefer webkitSpeechRecognition (Chrome, and the test mock).
     var SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
     if (!SpeechRecognition) {
-      var otherF = app.registrationLayer.querySelector('[data-other-field]');
-      if (otherF) otherF.classList.add('is-visible');
+      dictationFallback('Este navegador no permite dictar. Escribe el evento.');
+      return;
+    }
+    if (window.isSecureContext === false) {
+      dictationFallback('El micrófono solo funciona con la app instalada (localhost o https). Escribe el evento.');
       return;
     }
     var recog = new SpeechRecognition();
+    var finalText = '';
+    var gotResult = false;
     recog.lang = 'es-CO';
-    recog.interimResults = false;
+    recog.interimResults = true;
     recog.maxAlternatives = 1;
-    var button = app.registrationLayer.querySelector('[data-dictate]');
-    if (button) button.classList.add('is-listening');
-    var proposal = app.registrationLayer.querySelector('[data-event-proposal]');
+    activeRecognizer = recog;
+    setDictateState(true);
     recog.onresult = function (event) {
-      var transcript = event.results[0][0].transcript;
+      var interim = '';
+      for (var i = event.resultIndex || 0; i < event.results.length; i += 1) {
+        var result = event.results[i];
+        var chunk = result[0].transcript;
+        if (result.isFinal !== false) finalText += chunk;
+        else interim += chunk;
+      }
+      gotResult = true;
+      setDictateState(true, (finalText + ' ' + interim).trim());
+    };
+    recog.onerror = function (event) {
+      activeRecognizer = null;
+      var code = event && event.error;
+      var messages = {
+        'not-allowed': 'Permite el micrófono para dictar, o escribe el evento.',
+        'service-not-allowed': 'El micrófono solo funciona con la app instalada (localhost o https). Escribe el evento.',
+        'no-speech': 'No te escuché. Toca de nuevo o escribe el evento.',
+        'audio-capture': 'No encontré un micrófono. Escribe el evento.',
+        'network': 'Dictar necesita conexión. Escribe el evento.'
+      };
+      if (code === 'aborted') { setDictateState(false); return; }
+      dictationFallback(messages[code] || 'No se pudo dictar. Escribe el evento.');
+    };
+    recog.onend = function () {
+      activeRecognizer = null;
+      setDictateState(false);
+      var transcript = finalText.trim();
+      if (!transcript) {
+        if (!gotResult) return;
+        dictationFallback('No te entendí bien. Toca de nuevo o escribe el evento.');
+        return;
+      }
       if (aiConsent === 'yes') {
         aiRequest('/api/event', { text: transcript }).then(function (result) {
-          if (proposal) {
-            proposal.dataset.pendingKind = result.kind;
-            proposal.dataset.pendingText = result.text || transcript;
-            proposal.querySelector('[data-proposal-kind]').textContent = result.kind;
-            proposal.querySelector('[data-proposal-text]').textContent = result.text || transcript;
-            proposal.classList.add('is-visible');
-          }
+          showProposal(result.kind, result.text || transcript);
         }, function () {
           var r = classifyEventRulesLocal(transcript);
-          if (proposal) {
-            proposal.dataset.pendingKind = r.kind;
-            proposal.dataset.pendingText = r.text;
-            proposal.querySelector('[data-proposal-kind]').textContent = r.kind;
-            proposal.querySelector('[data-proposal-text]').textContent = r.text;
-            proposal.classList.add('is-visible');
-          }
+          showProposal(r.kind, r.text);
         });
       } else {
         var r = classifyEventRulesLocal(transcript);
-        if (proposal) {
-          proposal.dataset.pendingKind = r.kind;
-          proposal.dataset.pendingText = r.text;
-          proposal.querySelector('[data-proposal-kind]').textContent = r.kind;
-          proposal.querySelector('[data-proposal-text]').textContent = r.text;
-          proposal.classList.add('is-visible');
-        }
+        showProposal(r.kind, r.text);
       }
     };
-    recog.onend = function () {
-      if (button) button.classList.remove('is-listening');
-    };
-    recog.onerror = function () {
-      if (button) button.classList.remove('is-listening');
-      var otherF = app.registrationLayer.querySelector('[data-other-field]');
-      if (otherF) otherF.classList.add('is-visible');
-    };
-    recog.start();
+    try {
+      recog.start();
+    } catch (startError) {
+      activeRecognizer = null;
+      dictationFallback('No se pudo abrir el micrófono. Escribe el evento.');
+    }
   }
 
   function initSplash() {
