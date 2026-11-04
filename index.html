@@ -25,7 +25,7 @@
 </head>
 <body>
   <main class="stage" aria-label="Prototipo de app de enfermería">
-    <section class="phone" data-role="enfermero" style="--role-index: 0" aria-label="Vista de la aplicación Acompaña">
+    <section class="phone" data-role="enfermero" style="--role-index: 0" aria-label="Vista de la aplicación Acompaña" data-i18n-label="Vista de la aplicación Acompaña">
       <div class="phone-notch" aria-hidden="true"></div>
       <div class="status-bar" aria-hidden="true">
         <span class="status-time">09:41</span>
@@ -43,11 +43,11 @@
 
       <main id="screen" class="screen" aria-live="polite"></main>
 
-      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación principal"></nav>
+      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación principal" data-i18n-label="Navegación principal"></nav>
 
-      <button type="button" class="fab-register" data-fab-register aria-label="Registrar">
+      <button type="button" class="fab-register" data-fab-register aria-label="Registrar" data-i18n-label="Registrar">
         <span class="fab-register-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>
-        <span class="fab-register-label">Registrar</span>
+        <span class="fab-register-label" data-i18n="Registrar">Registrar</span>
       </button>
 
       <div id="snackbar" class="snackbar" data-tray-feedback role="status" aria-live="polite"></div>
@@ -55,17 +55,19 @@
       <div id="registrationLayer" class="registration-layer" aria-hidden="true"></div>
       <div id="aiLayer" class="ai-layer" aria-hidden="true"></div>
       <div id="celebrationLayer" class="celebration-layer" aria-hidden="true"></div>
-      <div id="splashLayer" class="splash-layer" aria-label="Bienvenida a Acompaña">
+      <div id="errorLayer" class="error-layer" aria-hidden="true"></div>
+      <div id="splashLayer" class="splash-layer" aria-label="Bienvenida a Acompaña" data-i18n-label="Bienvenida a Acompaña">
         <div class="splash-content">
           <div class="splash-mascot" aria-hidden="true"></div>
           <h1 class="splash-wordmark">Acompaña</h1>
-          <p class="splash-tagline">El turno, a la vista. Sin perder lo importante.</p>
-          <button type="button" class="splash-skip" data-splash-skip>Entrar ahora</button>
+          <p class="splash-tagline" data-i18n="El turno, a la vista. Sin perder lo importante.">El turno, a la vista. Sin perder lo importante.</p>
+          <button type="button" class="splash-skip" data-splash-skip data-i18n="Entrar ahora">Entrar ahora</button>
         </div>
       </div>
     </section>
-    <p class="stage-hint">Cambia de rol y toca las tarjetas para explorar el turno.</p>
+    <p class="stage-hint" data-i18n="Cambia de rol y toca las tarjetas para explorar el turno.">Cambia de rol y toca las tarjetas para explorar el turno.</p>
   </main>
+  <script src="js/i18n.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/icons.js" defer></script>
   <script src="js/motion.js" defer></script>

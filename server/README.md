@@ -25,6 +25,11 @@ answers from deterministic rules and reports `"source": "rules"`.
   calling the model. The app shows that exact payload for consent before
   the first real call.
 
+## Language
+
+AI requests carry `lang` (`es` default, `en`). It picks the rule phrases, the model prompt and
+the safe message; the guardrails understand both languages.
+
 ## Provider chain
 
 Rules → Ollama (`POST /api/generate`, `format: "json"`, `stream: false`,

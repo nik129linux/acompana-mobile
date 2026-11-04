@@ -79,20 +79,30 @@ const ASK_MAX = 220;
 // doses, medication advice, anything outside the visible events).
 const SAFE_MESSAGE =
   'No puedo responder eso con la información del turno. Ya dejé su pregunta anotada para la enfermera.';
+const SAFE_MESSAGE_EN =
+  'I cannot answer that from the shift information. I left your question noted for the nurse.';
+
+// The client says which language the reader uses; anything else is Spanish.
+function langOf(value) {
+  return value === 'en' ? 'en' : 'es';
+}
 
 const MED_WORDS = [
   'enoxaparina', 'heparina', 'paracetamol', 'ibuprofeno', 'insulina',
   'morfina', 'tramadol', 'omeprazol', 'furosemida', 'losartan',
   'amoxicilina', 'ceftriaxona', 'dexametasona', 'ondansetron',
   'adrenalina', 'atropina', 'warfarina', 'aspirina', 'salino', 'suero',
-  'oxígeno', 'oxigeno', 'medicamento'
+  'oxígeno', 'oxigeno', 'medicamento',
+  'enoxaparin', 'heparin', 'ibuprofen', 'insulin', 'morphine', 'furosemide',
+  'amoxicillin', 'dexamethasone', 'ondansetron', 'adrenaline', 'atropine',
+  'warfarin', 'aspirin', 'saline', 'oxygen'
 ];
 
 const EVENT_KIND_ENUM = ['medication', 'position', 'round', 'other'];
 const EVENT_KIND_KEYWORDS = {
-  medication: ['enoxaparina', 'heparina', 'paracetamol', 'ibuprofeno', 'insulina', 'morfina', 'tramadol', 'omeprazol', 'furosemida', 'losartan', 'amoxicilina', 'ceftriaxona', 'dexametasona', 'ondansetron', 'adrenalina', 'atropina', 'warfarina', 'aspirina', 'salino', 'suero', 'oxígeno', 'oxigeno', 'medicamento', 'medicina', 'pastilla', 'inyección', 'aplic', 'mg', 'ml'],
-  position: ['posición', 'posicion', 'postural', 'decúbito', 'decubito', 'lateral', 'cambio de posicion', 'cambio de posición', 'levantar', 'sentar', 'mover'],
-  round: ['ronda', 'control', 'signos', 'vitales', 'revis', 'monitoreo']
+  medication: ['enoxaparina', 'heparina', 'paracetamol', 'ibuprofeno', 'insulina', 'morfina', 'tramadol', 'omeprazol', 'furosemida', 'losartan', 'amoxicilina', 'ceftriaxona', 'dexametasona', 'ondansetron', 'adrenalina', 'atropina', 'warfarina', 'aspirina', 'salino', 'suero', 'oxígeno', 'oxigeno', 'medicamento', 'medicina', 'pastilla', 'inyección', 'aplic', 'mg', 'ml', 'enoxaparin', 'heparin', 'insulin', 'morphine', 'medication', 'medicine', 'pill', 'injection'],
+  position: ['posición', 'posicion', 'postural', 'decúbito', 'decubito', 'lateral', 'cambio de posicion', 'cambio de posición', 'levantar', 'sentar', 'mover', 'position', 'turned', 'sat up'],
+  round: ['ronda', 'control', 'signos', 'vitales', 'revis', 'monitoreo', 'round', 'vitals', 'vital signs', 'check']
 };
 
 function classifyEventRules(text) {
@@ -107,9 +117,12 @@ function classifyEventRules(text) {
   return { kind: 'other', text: clip(text, 140), source: 'rules' };
 }
 
-const EVENT_PROMPT =
-  'Clasifica este evento de enfermería. Devuelve JSON {"kind":"medication|position|round|other","text":"texto breve en español neutro"}. ' +
-  'Solo usa números, medicamentos y tiempos que aparezcan en el texto original. Nunca inventes valores. Texto: ';
+const EVENT_PROMPT = {
+  es: 'Clasifica este evento de enfermería. Devuelve JSON {"kind":"medication|position|round|other","text":"texto breve en español neutro"}. ' +
+    'Solo usa números, medicamentos y tiempos que aparezcan en el texto original. Nunca inventes valores. Texto: ',
+  en: 'Classify this nursing event. Return JSON {"kind":"medication|position|round|other","text":"short text in plain English"}. ' +
+    'Only use numbers, medications and times that appear in the original text. Never invent values. Text: '
+};
 
 function validEventDraft(draft) {
   if (!draft || typeof draft !== 'object') return false;
@@ -118,7 +131,7 @@ function validEventDraft(draft) {
   return true;
 }
 
-async function handleEvent(text, ollamaClient) {
+async function handleEvent(text, ollamaClient, lang) {
   const cleanText = String(text || '').trim();
   if (!cleanText || cleanText.length > 600) return classifyEventRules(cleanText || 'evento sin texto');
   const safeText = stripNames(cleanText);
@@ -126,7 +139,7 @@ async function handleEvent(text, ollamaClient) {
   try {
     const model = await ai.activeModel(ollamaClient);
     if (!model) return classifyEventRules(safeText);
-    const draft = await ai.generateJson(ollamaClient, model, EVENT_PROMPT + JSON.stringify({ text: safeText }));
+    const draft = await ai.generateJson(ollamaClient, model, EVENT_PROMPT[langOf(lang)] + JSON.stringify({ text: safeText }));
     if (!validEventDraft(draft)) return classifyEventRules(safeText);
     const ok = isGrounded(draft.text, safeText, []);
     if (!ok) return classifyEventRules(safeText);
@@ -138,7 +151,8 @@ async function handleEvent(text, ollamaClient) {
 const UNIT_WORDS = ['mg', 'ml', 'mcg', 'g', 'ui', 'sc', 'iv', 'im', 'vo'];
 const NUMBER_WORDS = {
   uno: '1', una: '1', un: '1', dos: '2', tres: '3', cuatro: '4',
-  cinco: '5', seis: '6', siete: '7', ocho: '8', nueve: '9', diez: '10'
+  cinco: '5', seis: '6', siete: '7', ocho: '8', nueve: '9', diez: '10',
+  two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10'
 };
 
 // ---------------------------------------------------------------------------
@@ -266,6 +280,8 @@ function isGrounded(output, sourceText, extraDigits) {
 // Nurse handover (SBAR): deterministic rules fallback
 // ---------------------------------------------------------------------------
 
+const ALERT_RE = /\bPA\b|\bBP\b|taquicardia|tachycardia|hipotensi|hypotens|alert|protocol/i;
+
 function cleanEvents(events) {
   if (!Array.isArray(events)) return [];
   return events
@@ -289,36 +305,70 @@ function handoverCounts(events) {
 }
 
 function findVitals(list) {
-  return list.find((e) => /\bPA\b|taquicardia|hipotensi|alerta|protocolo/i.test(e.text)) ||
-    list.find((e) => /signos|vitales/i.test(e.text));
+  return list.find((e) => ALERT_RE.test(e.text)) ||
+    list.find((e) => /signos|vitales|vital signs|vitals/i.test(e.text));
 }
 
-function buildHandoverRules(events) {
+const HANDOVER_LINES = {
+  es: {
+    empty: 'Turno sin eventos registrados todavía.',
+    ready: (done, total) => 'Turno: ' + done + ' de ' + total + ' eventos listos.',
+    left: (pending, times) => ' Faltan ' + pending + ': ' + times + '.',
+    clear: ' Nada pendiente.',
+    noTime: 'sin hora',
+    thisShift: 'turno actual',
+    given: (text, time) => 'Aplicado: ' + text + ' (' + time + ').',
+    noMed: 'Sin medicación aplicada en el turno.',
+    posture: ' Cambio postural hecho.',
+    review: (text) => 'En revisión: ' + text + '.',
+    noAlert: 'Sin alertas en lo registrado.',
+    confirm: (pending) => ' Quedan ' + pending + ' por confirmar.',
+    nextHour: 'próxima hora',
+    recheck: (time) => 'Completa lo pendiente y revalora signos en la ronda de las ' + time + '.',
+    note: 'Completa lo pendiente y deja nota en el turno.',
+    upToDate: 'Turno al día. Deja nota breve para el siguiente turno.'
+  },
+  en: {
+    empty: 'No events logged this shift yet.',
+    ready: (done, total) => 'Shift: ' + done + ' of ' + total + ' events done.',
+    left: (pending, times) => ' ' + pending + ' left: ' + times + '.',
+    clear: ' Nothing left to do.',
+    noTime: 'no time',
+    thisShift: 'this shift',
+    given: (text, time) => 'Given: ' + text + ' (' + time + ').',
+    noMed: 'No medication given this shift.',
+    posture: ' Position change done.',
+    review: (text) => 'Under review: ' + text + '.',
+    noAlert: 'No alerts in the log.',
+    confirm: (pending) => ' ' + pending + ' left to confirm.',
+    nextHour: 'next hour',
+    recheck: (time) => 'Finish what is left and recheck vitals at the ' + time + ' round.',
+    note: 'Finish what is left and leave a note on the shift.',
+    upToDate: 'Shift up to date. Leave a short note for the next shift.'
+  }
+};
+
+function buildHandoverRules(events, lang) {
+  const say = HANDOVER_LINES[langOf(lang)];
   const list = cleanEvents(events);
   const { total, done, pending } = handoverCounts(list);
   const pend = list.filter((e) => !e.done);
-  const pendTimes = pend.map((e) => e.time || 'sin hora').join(', ');
+  const pendTimes = pend.map((e) => e.time || say.noTime).join(', ');
   const vitals = findVitals(list);
-  const med = list.find((e) => e.done && /mg\b|ml\b|medicamento|enoxaparina|aplic/i.test(e.text));
-  const postureDone = list.some((e) => e.done && /postural|cambio de posici/i.test(e.text));
-  const round = list.find((e) => /ronda/i.test(e.text));
+  const med = list.find((e) => e.done && /mg\b|ml\b|medicamento|medication|enoxaparin|aplic|given/i.test(e.text));
+  const postureDone = list.some((e) => e.done && /postural|cambio de posici|position change/i.test(e.text));
+  const round = list.find((e) => /ronda|round/i.test(e.text));
 
   const situation = total === 0
-    ? 'Turno sin eventos registrados todavía.'
-    : 'Turno: ' + done + ' de ' + total + ' eventos listos.' +
-      (pending > 0 ? ' Faltan ' + pending + ': ' + pendTimes + '.' : ' Nada pendiente.');
-  const background = med
-    ? 'Aplicado: ' + med.text + ' (' + (med.time || 'turno actual') + ').' +
-      (postureDone ? ' Cambio postural hecho.' : '')
-    : 'Sin medicación aplicada en el turno.' + (postureDone ? ' Cambio postural hecho.' : '');
-  const assessment = vitals
-    ? 'En revisión: ' + vitals.text + '.' + (pending > 0 ? ' Quedan ' + pending + ' por confirmar.' : '')
-    : 'Sin alertas en lo registrado.' + (pending > 0 ? ' Quedan ' + pending + ' por confirmar.' : '');
+    ? say.empty
+    : say.ready(done, total) + (pending > 0 ? say.left(pending, pendTimes) : say.clear);
+  const posture = postureDone ? say.posture : '';
+  const toConfirm = pending > 0 ? say.confirm(pending) : '';
+  const background = (med ? say.given(med.text, med.time || say.thisShift) : say.noMed) + posture;
+  const assessment = (vitals ? say.review(vitals.text) : say.noAlert) + toConfirm;
   const recommendation = pending > 0
-    ? (round
-      ? 'Completa lo pendiente y revalora signos en la ronda de las ' + (round.time || 'próxima hora') + '.'
-      : 'Completa lo pendiente y deja nota en el turno.')
-    : 'Turno al día. Deja nota breve para el siguiente turno.';
+    ? (round ? say.recheck(round.time || say.nextHour) : say.note)
+    : say.upToDate;
 
   return {
     s: clip(situation, HANDOVER_MAX),
@@ -330,17 +380,16 @@ function buildHandoverRules(events) {
 
 // Exact aggregate payload shown for consent and sent to Ollama.
 // Names/rooms/titles never leave this function toward the model.
-const ALERT_RE = /\bPA\b|taquicardia|hipotensi|alerta|protocolo/i;
 
 function openAlerts(list) {
   return list.filter((e) => !e.done && ALERT_RE.test(e.text));
 }
 
-function buildHandoverPayload(events) {
+function buildHandoverPayload(events, lang) {
   const list = cleanEvents(events);
   const { total, done, pending } = handoverCounts(list);
   const alerts = openAlerts(list);
-  const vitals = alerts[0] || list.find((e) => /signos|vitales/i.test(e.text));
+  const vitals = alerts[0] || list.find((e) => /signos|vitales|vital signs|vitals/i.test(e.text));
   return {
     task: 'handover',
     counts: { total, done, pending },
@@ -351,7 +400,7 @@ function buildHandoverPayload(events) {
     applied: list
       .filter((e) => e.done)
       .map((e) => stripNames(((e.time ? e.time + ' ' : '') + e.text)).slice(0, 120)),
-    schema: 'Return JSON {"s","b","a","r"}; each max 200 chars, Spanish, nurse "tu". Use ONLY numbers, times and medication names present above. Items in "pending" are NOT done yet. "a" must name every item in "alerts".'
+    schema: 'Return JSON {"s","b","a","r"}; each max 200 chars, ' + (langOf(lang) === 'en' ? 'plain English' : 'Spanish, nurse "tu"') + '. Use ONLY numbers, times and medication names present above. Items in "pending" are NOT done yet. "a" must name every item in "alerts".'
   };
 }
 
@@ -370,9 +419,9 @@ function validHandoverDraft(draft) {
 // Truth checks the grounding check can't see: every number can be real and the
 // sentence still false. Reject drafts that (1) skip an open alert in the
 // assessment or (2) call a pending task done.
-const DONE_CLAIM_RE = /cumpli|realiz|hech[oa]s?\b|aplicad|complet|termin|ya se/i;
-const STILL_OPEN_RE = /pendiente|falta|por hacer|no se ha|sin hacer|queda/i;
-const STOPWORDS = new Set(['programada', 'programado', 'previsto', 'prevista', 'control', 'durante', 'despues']);
+const DONE_CLAIM_RE = /cumpli|realiz|hech[oa]s?\b|aplicad|complet|termin|ya se|\bdone\b|\bgiven\b|finished|administered/i;
+const STILL_OPEN_RE = /pendiente|falta|por hacer|no se ha|sin hacer|queda|\bleft\b|to do|not yet|still open|\bfinish\b/i;
+const STOPWORDS = new Set(['programada', 'programado', 'previsto', 'prevista', 'control', 'durante', 'despues', 'planned', 'scheduled']);
 
 function keywords(text) {
   return String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -410,9 +459,13 @@ function truthfulHandover(draft, list) {
   return namesOpenAlerts(draft, list) && !claimsPendingDone(draft, list);
 }
 
+const HANDOVER_VOICE = {
+  es: 'in neutral Colombian Spanish, addressing the incoming nurse as "tu"',
+  en: 'in plain English, addressing the incoming nurse directly'
+};
+
 const HANDOVER_PROMPT =
-  'You draft a nursing shift handover (SBAR) in neutral Colombian Spanish, ' +
-  'addressing the incoming nurse as "tu". FACTS below are the only allowed source. ' +
+  ' FACTS below are the only allowed source. ' +
   'Return JSON {"s":situation,"b":background,"a":assessment,"r":recommendation}, ' +
   'each 1-200 chars. Cite ONLY numbers, times and medication names present in FACTS. ' +
   'Never invent values. Items under "pending" are NOT done: never say they were done. ' +
@@ -423,10 +476,10 @@ const HANDOVER_PROMPT =
 // ---------------------------------------------------------------------------
 
 const REFUSAL_RE =
-  /diagn[oó]st|pron[oó]st|c[áa]ncer|tumor|grave|morir|muerte|curar|se va a|cu[áa]nto (tiempo|falta|vive)|dosis|cu[áa]ntos?\s*(mg|ml|gramos)|qu[ée] medicamento|qu[ée] pastilla|qu[ée] droga|debo darle|le (doy|damos|puedo dar)|recomienda|aconseja|deber[íi]a tomar|resultados? (de |del )?(examen|sangre|laboratorio)|alta m[ée]dica|cu[áa]ndo sale|anestesia|cirug[íi]a|presi[óo]n arterial|fiebre|az[úu]car/i;
+  /diagn[oó]st|pron[oó]st|c[áa]ncer|tumor|grave|morir|muerte|curar|se va a|cu[áa]nto (tiempo|falta|vive)|dosis|cu[áa]ntos?\s*(mg|ml|gramos)|qu[ée] medicamento|qu[ée] pastilla|qu[ée] droga|debo darle|le (doy|damos|puedo dar)|recomienda|aconseja|deber[íi]a tomar|resultados? (de |del )?(examen|sangre|laboratorio)|alta m[ée]dica|cu[áa]ndo sale|anestesia|cirug[íi]a|presi[óo]n arterial|fiebre|az[úu]car|diagnos|prognos|cancer|tumou?r|serious|\bdie\b|dying|death|\bcure\b|will (she|he) (get|be|recover)|how long|dose|dosage|what (medicine|medication|pill|drug)|should (i|we) give|recommend|advise|test results?|discharge|anesthesia|surgery|blood pressure|fever|sugar/i;
 
 const ADVICE_RE =
-  /\b(diagn[oó]stico|pron[oó]stico|dosis|receto|recomiendo|deber[íi]a|tome |dele |suministre|inyecte|grave|cr[íi]tico|curar[áa]|mejorar[áa]|empeorar[áa]|mg\b|ml\b|comprimidos?|pastillas? para|antibi[oó]tico)/i;
+  /\b(diagn[oó]stico|pron[oó]stico|dosis|receto|recomiendo|deber[íi]a|tome |dele |suministre|inyecte|grave|cr[íi]tico|curar[áa]|mejorar[áa]|empeorar[áa]|mg\b|ml\b|comprimidos?|pastillas? para|antibi[oó]tico|diagnos|prognos|dose|prescribe|i recommend|should (take|get|have)|give (her|him)|inject|serious|critical|will (improve|worsen|recover)|tablets?|pills? for|antibiotic)/i;
 
 function isRefusal(question) {
   return REFUSAL_RE.test(String(question || ''));
@@ -448,43 +501,47 @@ function answerFamilyRules(question, facts) {
   const q = String(question || '').toLowerCase();
   const source = cleanFacts(facts).join(' | ');
   if (!source) return null;
-  if (/visit|horario|cu[áa]ndo (puedo|puede|vamos|ir|venir|ver|entrar)|verlo|verla|venir|entrar|hora de/.test(q)) {
-    const visit = cleanFacts(facts).find((f) => /visita/i.test(f));
+  if (/visit|horario|cu[áa]ndo (puedo|puede|vamos|ir|venir|ver|entrar)|verlo|verla|venir|entrar|hora de|when can|come in/.test(q)) {
+    const visit = cleanFacts(facts).find((f) => /visit/i.test(f));
     if (visit && isGrounded(visit, source, [])) return clip(visit, ASK_MAX);
     return null;
   }
-  if (/ronda|enfermera|vuelve|vuelven|qui[ée]n (la|lo) cuida|cuida/.test(q)) {
-    const round = cleanFacts(facts).find((f) => /ronda|enfermera|vuelve/i.test(f));
+  if (/ronda|enfermera|vuelve|vuelven|qui[ée]n (la|lo) cuida|cuida|round|nurse|come back|caring/.test(q)) {
+    const round = cleanFacts(facts).find((f) => /ronda|enfermera|vuelve|nurse/i.test(f));
     if (round && isGrounded(round, source, [])) return clip(round, ASK_MAX);
     return null;
   }
-  if (/noche|durmi|madrugada|c[óo]mo pas|c[óo]mo est|c[óo]mo sigue|c[óo]mo amaneci|descans|tranquil/.test(q)) {
-    const calm = cleanFacts(facts).find((f) => /tranquil|sin novedad|normalidad|equipo/i.test(f));
+  if (/noche|durmi|madrugada|c[óo]mo pas|c[óo]mo est|c[óo]mo sigue|c[óo]mo amaneci|descans|tranquil|night|how is|how was|sleep|rest/.test(q)) {
+    const calm = cleanFacts(facts).find((f) => /tranquil|sin novedad|normalidad|equipo|team|nothing new/i.test(f));
     if (calm && isGrounded(calm, source, [])) return clip(calm, ASK_MAX);
     return null;
   }
-  if (/medicamento|medicina|tratamiento|pastilla|inyecci|suero|remedio/.test(q)) {
-    const med = cleanFacts(facts).find((f) => /tratamiento|medicamento|cumplido/i.test(f));
+  if (/medicamento|medicina|tratamiento|pastilla|inyecci|suero|remedio|medicine|medication|treatment|pill/.test(q)) {
+    const med = cleanFacts(facts).find((f) => /tratamiento|medicamento|cumplido|treatment/i.test(f));
     if (med && isGrounded(med, source, [])) return clip(med, ASK_MAX);
     return null;
   }
   return null;
 }
 
-function buildAskPayload(question, facts) {
+function buildAskPayload(question, facts, lang) {
   return {
     task: 'family-qa',
     question: stripNames(String(question || '').slice(0, 300)),
     facts: cleanFacts(facts).map((f) => stripNames(f).slice(0, 200)),
-    schema: 'Answer in warm plain Spanish ("usted"), max 220 chars, using ONLY the facts above. ' +
+    schema: 'Answer in ' + (langOf(lang) === 'en' ? 'warm plain English' : 'warm plain Spanish ("usted")') + ', max 220 chars, using ONLY the facts above. ' +
       'If the facts lack the answer, return {"refuse":true}. Never diagnose, prognose, dose or advise medication. ' +
       'Return JSON {"answer":"..."} or {"refuse":true}.'
   };
 }
 
+const ASK_VOICE = {
+  es: 'warm plain neutral Colombian Spanish ("usted")',
+  en: 'warm plain English'
+};
+
 const ASK_PROMPT =
-  'You answer a hospital patient family question in warm plain neutral Colombian Spanish ' +
-  '("usted"), like a kind nurse. The FACTS below are the only allowed source. Never diagnose, ' +
+  ', like a kind nurse. The FACTS below are the only allowed source. Never diagnose, ' +
   'prognose, give doses or advise medication. Broad questions ("how is she", "how was the ' +
   'night", "any news") are normal: answer with what FACTS do say about today, and when they ' +
   'do not cover the exact thing asked, say so briefly and offer the nurse. Never invent ' +
@@ -630,17 +687,18 @@ function resetShared() {
 // Orchestration: rules -> Ollama -> rules
 // ---------------------------------------------------------------------------
 
-async function handleHandover(events, ollamaClient) {
+async function handleHandover(events, ollamaClient, lang) {
   const list = cleanEvents(events);
-  const rules = buildHandoverRules(list);
+  const rules = buildHandoverRules(list, lang);
   const source = eventSource(list);
   const extras = handoverExtras(list);
   if (!ollamaClient) return { ...rules, source: 'rules', model: null };
   try {
     const model = await ai.activeModel(ollamaClient);
     if (!model) return { ...rules, source: 'rules', model: null };
-    const payload = buildHandoverPayload(list);
-    const draft = await ai.generateJson(ollamaClient, model, HANDOVER_PROMPT + JSON.stringify(payload));
+    const payload = buildHandoverPayload(list, lang);
+    const prompt = 'You draft a nursing shift handover (SBAR) ' + HANDOVER_VOICE[langOf(lang)] + '.' + HANDOVER_PROMPT;
+    const draft = await ai.generateJson(ollamaClient, model, prompt + JSON.stringify(payload));
     if (!validHandoverDraft(draft)) return { ...rules, source: 'rules', model: null };
     const ok = ['s', 'b', 'a', 'r'].every((k) => isGrounded(draft[k], source, extras));
     if (!ok || !truthfulHandover(draft, list)) return { ...rules, source: 'rules', model: null };
@@ -650,20 +708,22 @@ async function handleHandover(events, ollamaClient) {
   }
 }
 
-async function handleAsk(question, facts, ollamaClient) {
+async function handleAsk(question, facts, ollamaClient, lang) {
+  const safeMessage = langOf(lang) === 'en' ? SAFE_MESSAGE_EN : SAFE_MESSAGE;
   const list = cleanFacts(facts);
   const source = list.join(' | ');
   if (isRefusal(question)) {
     addNurseQuestion(question);
-    return { answer: SAFE_MESSAGE, source: 'rules', model: null, createdQuestion: true };
+    return { answer: safeMessage, source: 'rules', model: null, createdQuestion: true };
   }
   // The model phrases the answer; the keyword rules only stand in when it can't.
   if (ollamaClient) {
     try {
       const model = await ai.activeModel(ollamaClient);
       if (model) {
-        const payload = buildAskPayload(question, list);
-        const out = await ai.generateJson(ollamaClient, model, ASK_PROMPT + JSON.stringify(payload));
+        const payload = buildAskPayload(question, list, lang);
+        const prompt = 'You answer a hospital patient family question in ' + ASK_VOICE[langOf(lang)] + ASK_PROMPT;
+        const out = await ai.generateJson(ollamaClient, model, prompt + JSON.stringify(payload));
         if (out && validAskAnswer(out.answer, source)) {
           return { answer: out.answer.trim(), source: 'ollama', model, createdQuestion: false };
         }
@@ -677,7 +737,7 @@ async function handleAsk(question, facts, ollamaClient) {
     return { answer: direct, source: 'rules', model: null, createdQuestion: false };
   }
   addNurseQuestion(question);
-  return { answer: SAFE_MESSAGE, source: 'rules', model: null, createdQuestion: true };
+  return { answer: safeMessage, source: 'rules', model: null, createdQuestion: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -705,8 +765,23 @@ const RULE_PHRASES = {
   }
 };
 
-function translateRules(event, reader) {
-  const phrases = RULE_PHRASES[reader] || {};
+const RULE_PHRASES_EN = {
+  paciente: {
+    medication: 'You were given your medication',
+    position: 'They helped you change position',
+    round: 'The nurse came by to check on you',
+    other: null
+  },
+  familia: {
+    medication: 'Treatment done',
+    position: null,
+    round: 'The team came by to check',
+    other: null
+  }
+};
+
+function translateRules(event, reader, lang) {
+  const phrases = (langOf(lang) === 'en' ? RULE_PHRASES_EN : RULE_PHRASES)[reader] || {};
   const kind = event && event.kind;
   const text = kind && Object.prototype.hasOwnProperty.call(phrases, kind)
     ? phrases[kind]
@@ -715,11 +790,11 @@ function translateRules(event, reader) {
 }
 
 // Safety gates applied to any model phrasing before a reader sees it.
-const TRANSLATE_UNIT_RE = /\b(?:mg|ml|sc|dosis)\b|\binyecc/i;
-const TRANSLATE_ALARM_RE = /grave|diagn|pron[oó]st|deber[ií]a/i;
+const TRANSLATE_UNIT_RE = /\b(?:mg|ml|sc|dosis|dose)\b|\binyecc|\binjection/i;
+const TRANSLATE_ALARM_RE = /grave|diagn|pron[oó]st|prognos|deber[ií]a|should|serious/i;
 // Where and how a drug went in is clinical detail, never plain language.
-const TRANSLATE_BODY_RE = /abdom|brazo|pierna|muslo|nalga|gl[uú]te|vena|intraven|subcut|\bv[ií]a\b|\boral\b|\bboca\b/i;
-const TRANSLATE_STEM_OK = new Set(['cambi', 'posic', 'ronda', 'medic', 'enfer', 'revis', 'aplic']);
+const TRANSLATE_BODY_RE = /abdom|brazo|pierna|muslo|nalga|gl[uú]te|vena|intraven|subcut|\bv[ií]a\b|\boral\b|\bboca\b|\barm\b|\bleg\b|thigh|buttock|\bvein\b|\bmouth\b/i;
+const TRANSLATE_STEM_OK = new Set(['cambi', 'posic', 'ronda', 'medic', 'enfer', 'revis', 'aplic', 'given', 'chang', 'posit', 'round', 'nurse', 'check', 'treat']);
 
 // 5-letter stems so "abdomen" still matches the record's "abdominal".
 function stems(text) {
@@ -749,35 +824,42 @@ function validTranslateText(raw, eventText) {
   return true;
 }
 
-const TRANSLATE_PROMPT =
-  'Translate one nursing event into exactly one short plain sentence in neutral ' +
-  'Colombian Spanish. If reader is "paciente", speak to the patient as "usted". ' +
-  'If reader is "familia", speak to a relative about the patient in third person ' +
-  '(never "usted" for the patient). Reassuring and concrete. No names, no numbers, ' +
+const TRANSLATE_PROMPT = {
+  es: 'Translate one nursing event into exactly one short plain sentence in neutral ' +
+    'Colombian Spanish. If reader is "paciente", speak to the patient as "usted". ' +
+    'If reader is "familia", speak to a relative about the patient in third person ' +
+    '(never "usted" for the patient). ',
+  en: 'Translate one nursing event into exactly one short sentence in plain English. ' +
+    'If reader is "paciente", speak to the patient as "you". ' +
+    'If reader is "familia", speak to a relative about the patient in third person. '
+};
+const TRANSLATE_RULES =
+  'Reassuring and concrete. No names, no numbers, ' +
   'no doses, no drug names, no body parts, no route (where or how it was given), ' +
   'no advice, no diagnosis. Return JSON {"text":"..."}. EVENT: ';
 
-function buildTranslatePayload(event, reader) {
+function buildTranslatePayload(event, reader, lang) {
   return {
     task: 'translate',
     reader,
     kind: event.kind,
     event: stripNames(String(event.text || '').slice(0, 600)),
-    schema: 'Return JSON {"text":"..."}: one short sentence, Spanish, "usted", ' +
-      'no names, no numbers, no drug names, no advice.'
+    schema: 'Return JSON {"text":"..."}: one short sentence, ' +
+      (langOf(lang) === 'en' ? 'English' : 'Spanish, "usted"') + ', no names, no numbers, no drug names, no advice.'
   };
 }
 
-async function handleTranslate(event, reader, ollamaClient) {
-  const rules = translateRules(event, reader);
+async function handleTranslate(event, reader, ollamaClient, lang) {
+  const rules = translateRules(event, reader, lang);
   // Family hidden details and free-text events never reach the model at all.
   if (!rules.text) return rules;
   if (!ollamaClient) return rules;
   try {
     const model = await ai.activeModel(ollamaClient);
     if (!model) return rules;
-    const payload = buildTranslatePayload(event, reader);
-    const draft = await ai.generateJson(ollamaClient, model, TRANSLATE_PROMPT + JSON.stringify(payload));
+    const payload = buildTranslatePayload(event, reader, lang);
+    const prompt = TRANSLATE_PROMPT[langOf(lang)] + TRANSLATE_RULES;
+    const draft = await ai.generateJson(ollamaClient, model, prompt + JSON.stringify(payload));
     if (!draft || !validTranslateText(draft.text, event && event.text)) return rules;
     return { text: draft.text.trim(), source: 'ollama', model };
   } catch (_) {
@@ -859,10 +941,10 @@ function createRequestHandler(client) {
       if (req.method === 'POST' && url.pathname === '/api/handover') {
         const body = JSON.parse(await readBody(req));
         if (body && body.dryRun === true) {
-          sendJson(res, 200, { payload: buildHandoverPayload(cleanEvents(body.events)) });
+          sendJson(res, 200, { payload: buildHandoverPayload(cleanEvents(body.events), body.lang) });
           return;
         }
-        const result = await handleHandover(body && body.events, client);
+        const result = await handleHandover(body && body.events, client, body && body.lang);
         sendJson(res, 200, result);
         return;
       }
@@ -870,11 +952,11 @@ function createRequestHandler(client) {
         const body = JSON.parse(await readBody(req));
         if (body && body.dryRun === true) {
           sendJson(res, 200, {
-            payload: buildAskPayload(body.question || '', cleanFacts(body.facts))
+            payload: buildAskPayload(body.question || '', cleanFacts(body.facts), body.lang)
           });
           return;
         }
-        const result = await handleAsk(body && body.question, body && body.facts, client);
+        const result = await handleAsk(body && body.question, body && body.facts, client, body && body.lang);
         sendJson(res, 200, result);
         return;
       }
@@ -888,7 +970,7 @@ function createRequestHandler(client) {
           text.trim().length >= 1 && text.length <= 600;
         if (!ok) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
         const result = await handleTranslate(
-          { kind: event.kind, text: text.trim() }, reader, client
+          { kind: event.kind, text: text.trim() }, reader, client, body.lang
         );
         sendJson(res, 200, result);
         return;
@@ -898,7 +980,7 @@ function createRequestHandler(client) {
         const text = body && typeof body.text === 'string' ? body.text.trim() : '';
         if (!text) { sendJson(res, 400, { ok: false, error: 'empty text' }); return; }
         if (text.length > 600) { sendJson(res, 400, { ok: false, error: 'text too long' }); return; }
-        const result = await handleEvent(text, client);
+        const result = await handleEvent(text, client, body.lang);
         sendJson(res, 200, result);
         return;
       }

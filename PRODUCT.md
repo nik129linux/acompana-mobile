@@ -33,14 +33,14 @@ The product is the translation, not the form: one care event told three ways (ra
 - Registration: quick events (Medicación, Cambio de posición, Ronda), free text ("Otro evento"), and dictation (speech-to-text, then the AI proposes; the nurse confirms before anything is saved). Events persist on the device.
 - AI is narrow: it structures what the nurse marks or dictates and translates it into plain language. It never diagnoses, doses, or advises. Model: gemma4:31b through the Ollama cloud API, called only from the local server; deterministic rules are the fallback. SBAR drafts are rejected if they omit an open alert or call a pending task done.
 - Clinical values stay hidden behind a deliberate tap on the nurse side; never shown raw to patient or family.
-- Delivered as an installable web app (PWA) served by a local Node server; no accounts, no sync between devices.
+- Delivered as an installable web app (PWA) served by a local Node server; no accounts. Events, confirmed tasks and chat sync between devices through that server, in memory.
 - Course rule: every raw color lives in `css/tokens.css`; the professor changes `--color-primary-500` and checks both light and dark themes.
 - Field interviews (nurses, recently hospitalized patients/families in Pasto/Nariño) have NOT been done. Interview-dependent facts stay marked "POR CONFIRMAR EN CAMPO". This does not block the demo.
 
 ## Brand Commitments
 
 - Name: Acompaña.
-- UI copy in Spanish, neutral Colombian, no voseo: "tú" to the nurse, "usted" to patient and family. Code in English.
+- UI copy in Spanish (default, neutral Colombian, no voseo: "tú" to the nurse, "usted" to patient and family) and English, switched from the ⋮ menu. The Spanish sentence is the key in `js/i18n.js`. Code in English.
 - A doctor mascot exists (frames and processed video loops in `media/`).
 - Never put a claim in the UI that the app can't back up (e.g. no "IA" label on rule-based output).
 

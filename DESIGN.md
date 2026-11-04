@@ -22,7 +22,7 @@ Calm by default; red appears only when a patient is clinically critical.
 | Text | `--ink` (titles) · `--body` (copy) · `--muted` (meta) | Never gray text on colored fills: use `--on-primary` / `--on-gradient-soft` |
 | On gradient | `--on-primary`, `--on-gradient-soft`, `--glass-on-gradient` | Text and inner chips inside gradient cards |
 | Critical | `--grad-alert`, `--error-container`, `--on-error-container`, `--error-fill` | Only Carlos / clinical alerts |
-| Roles | `--accent` (auto per reader): nurse blue, patient `--patient-text` green, family `--family-text` amber | Reader-specific accents, active nav per role |
+| Roles | `--accent` (auto per reader): nurse blue, patient `--patient-text` (same blue as the nurse, Nico 2026-10-31), family `--family-text` amber | Reader-specific accents, active nav per role |
 | Borders | `--stone-border` | Hairlines, outline inputs |
 Contract: the professor changes `--color-primary-500` and checks light **and** dark; everything blue
 must follow it. Every text pair ≥ 4.5:1 (tests enforce it).
@@ -70,8 +70,9 @@ everywhere except buttons and "VER TODO".
   active = `--accent`. Nurse nav has the **center raised "+"** (56px circle, `--grad-primary`, white
   plus, lifted 16px above the bar) = `[data-fab-register]` "Registrar".
 - **Bottom sheet**: white, top radius 28, drag handle 40×4 `--stone-border`, title 20/600.
-- **Success screen**: glossy check (asset `media/check.png`, CSS fallback: green radial sphere with
-  white Hugeicon tick), title 22/600, summary card with icon rows, primary + secondary buttons.
+- **Success screen**: flat primary disc with a heavy white Hugeicons `CheckIcon`, the twin of the error X, title 22/600, summary card with icon rows, primary + secondary buttons.
+- **Error state**: the check's opposite. Centered card with a 128px red disc and a drawn white X, title, one line with the recovery, primary "Reintentar", secondary "Cerrar". Real failed sends land here; the menu can show it on demand.
+- **Draft loading bar**: 6px primary bar in the pinned sheet header. It creeps to 90%, closes when the text lands, and holds at least 700ms so it never flashes.
 - **Snackbar**: `--ink` background, white text, radius 14, undo link in `--sky`.
 - **Icons**: Hugeicons stroke-rounded only, through `icon(name)` (`js/icons.js`), 1.5 stroke,
   `currentColor`. Never emoji or unicode glyphs as icons.

@@ -12,8 +12,6 @@
   --color-sky-400: #49c5e9;
   --color-warm-400: #ffab53;
   --color-warm-500: #f7a458;
-  --color-patient-500: #25ac5f;
-  --color-patient-700: #1b7f46;
   --color-family-400: #fdbc20;
   --color-family-800: #8f5c00;
   --color-alert-500: #eb5c58;
@@ -52,8 +50,8 @@
   --stone-border: color-mix(in srgb, var(--color-primary-500) 12%, var(--color-neutral-0));
   --nurse: var(--color-primary-500);
   --nurse-text: color-mix(in srgb, var(--color-primary-500) 88%, var(--color-neutral-950));
-  --patient: var(--color-patient-500);
-  --patient-text: var(--color-patient-700);
+  --patient: var(--nurse);
+  --patient-text: var(--nurse-text);
   --family: var(--color-family-400);
   --family-text: var(--color-family-800);
   --sky: var(--color-sky-300);
@@ -67,6 +65,7 @@
   --family-soft: color-mix(in srgb, var(--family) calc(var(--tint) * 1.6), var(--white));
   --critical-soft: color-mix(in srgb, var(--alert) 9%, var(--white));
   --primary-container: color-mix(in srgb, var(--nurse) 12%, var(--white));
+  --primary-container-hover: color-mix(in srgb, var(--nurse) 20%, var(--white));
   --on-primary-container: color-mix(in srgb, var(--nurse) 70%, var(--color-neutral-950));
   --on-primary: var(--color-neutral-0);
   --error-container: color-mix(in srgb, var(--alert) 12%, var(--white));
@@ -89,6 +88,8 @@
   --on-gradient-soft: color-mix(in srgb, var(--color-neutral-0) 80%, transparent);
   --glass-on-gradient: color-mix(in srgb, var(--color-neutral-0) 16%, transparent);
 
+  --snackbar-fill: var(--ink);
+  --on-snackbar: var(--on-primary);
   --veil-ink: color-mix(in srgb, var(--color-neutral-950) 36%, transparent);
   --veil-canvas: color-mix(in srgb, var(--canvas) 90%, transparent);
   --on-ink-soft: color-mix(in srgb, var(--white) 72%, transparent);
@@ -114,6 +115,8 @@
   --stagger: 60ms;
   --duration-drift: 3.6s;
   --duration-burst: 1200ms;
+  --duration-draft: 9s;
+  --ease-draft: cubic-bezier(0.1, 0.7, 0.1, 1);
   --phone-width: 390px;
   --phone-height: 844px;
   --phone-radius: 48px;
@@ -158,7 +161,6 @@
     --muted: var(--color-dark-300);
     --stone-border: color-mix(in srgb, var(--color-primary-500) 18%, var(--color-dark-700));
     --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
-    --patient-text: var(--color-patient-500);
     --family-text: var(--color-family-400);
     --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
     --primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-dark-900));
@@ -168,6 +170,8 @@
     --error-fill: color-mix(in srgb, var(--color-alert-500) 75%, var(--color-neutral-0));
     --on-error: var(--color-neutral-950);
     --tint: 18%;
+    --snackbar-fill: var(--stone);
+    --on-snackbar: var(--ink);
     --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 50%, transparent);
     --elevation-2: 0 12px 32px color-mix(in srgb, var(--color-neutral-950) 60%, transparent);
     --elevation-nav: 0 -1px 0 var(--stone-border);
@@ -186,7 +190,6 @@
   --muted: var(--color-dark-300);
   --stone-border: color-mix(in srgb, var(--color-primary-500) 18%, var(--color-dark-700));
   --nurse-text: color-mix(in srgb, var(--color-primary-500) 55%, var(--color-neutral-0));
-  --patient-text: var(--color-patient-500);
   --family-text: var(--color-family-400);
   --alert-text: color-mix(in srgb, var(--color-alert-500) 70%, var(--color-neutral-0));
   --primary-container: color-mix(in srgb, var(--color-primary-500) 30%, var(--color-dark-900));
@@ -196,6 +199,8 @@
   --error-fill: color-mix(in srgb, var(--color-alert-500) 75%, var(--color-neutral-0));
   --on-error: var(--color-neutral-950);
   --tint: 18%;
+  --snackbar-fill: var(--stone);
+  --on-snackbar: var(--ink);
   --elevation-1: 0 1px 2px color-mix(in srgb, var(--color-neutral-950) 50%, transparent);
   --elevation-2: 0 12px 32px color-mix(in srgb, var(--color-neutral-950) 60%, transparent);
   --elevation-nav: 0 -1px 0 var(--stone-border);

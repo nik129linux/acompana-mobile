@@ -411,12 +411,12 @@ a:focus-visible {
 }
 
 .primary-button {
-  background: var(--ink);
-  color: var(--white);
+  background: var(--grad-primary);
+  color: var(--on-primary);
 }
 
 .primary-button:hover {
-  background: var(--charcoal);
+  filter: brightness(1.06);
 }
 
 .secondary-button {
@@ -426,7 +426,7 @@ a:focus-visible {
 }
 
 .secondary-button:hover {
-  border-color: var(--charcoal);
+  border-color: var(--nurse);
   background: var(--sand);
 }
 
@@ -701,7 +701,7 @@ a:focus-visible {
 }
 
 .quick-confirm:hover {
-  background: var(--charcoal);
+  background: var(--primary-container-hover);
 }
 
 .quick-confirm.is-done {
@@ -1059,10 +1059,6 @@ a:focus-visible {
     color var(--duration-enter) var(--ease-enter);
 }
 
-.task-action:hover {
-  background: var(--charcoal);
-}
-
 .task-action:disabled {
   cursor: default;
 }
@@ -1363,10 +1359,6 @@ a:focus-visible {
   text-align: left;
   transition: transform var(--duration-press) var(--ease-press),
     background-color var(--duration-enter) var(--ease-enter);
-}
-
-.dictate-button:hover {
-  background: var(--charcoal);
 }
 
 .mic-bubble {

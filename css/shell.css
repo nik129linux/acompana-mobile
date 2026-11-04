@@ -137,8 +137,8 @@
   overflow: hidden;
   padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
   border-radius: var(--radius-card);
-  background: var(--ink);
-  color: var(--on-primary);
+  background: var(--snackbar-fill);
+  color: var(--on-snackbar);
   box-shadow: var(--elevation-2);
 }
 
@@ -169,14 +169,14 @@
   padding: 0 var(--space-3);
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--glass-on-gradient);
-  color: var(--on-primary);
+  background: color-mix(in srgb, var(--on-snackbar) 16%, transparent);
+  color: var(--on-snackbar);
   font: 600 var(--text-caption) / 1 var(--font-body);
   cursor: pointer;
 }
 
 .snackbar .undo-event-btn:active { transform: scale(0.95); }
-.snackbar .undo-event-btn:focus-visible { outline: 2px solid var(--on-primary); outline-offset: 2px; }
+.snackbar .undo-event-btn:focus-visible { outline: 2px solid var(--on-snackbar); outline-offset: 2px; }
 
 .snack-timer {
   position: absolute;
@@ -439,11 +439,207 @@
 /* Mascot art has a white ground: always on a white disc. */
 .avatar { background: var(--on-primary); box-shadow: var(--elevation-1); }
 
-/* Contacto without orange: Visita on a white disc, neutral active tab. */
-.contact-icon.is-visit {
-  background: var(--on-primary);
-  color: var(--color-primary-500);
-  box-shadow: var(--elevation-1);
-}
+/* Contacto: three blue discs on one line, whatever the label length below. */
+.contact-icon.is-visit { background: var(--grad-primary); }
+.contact-options .contact-option { justify-content: flex-start; }
 
 .phone[data-role="familia"] .nav-item.is-active { color: var(--ink); }
+
+/* Hidden nav items really leave: the chat bubble must not sit over the detail CTA. */
+.phone[data-role] .bottom-nav .nav-item[data-nav][hidden] { display: none; }
+
+/* The clinical toggle sits beside its title, always clear of the docked CTA. */
+.clinical-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.clinical-head .detail-section-title { margin: 0; }
+.clinical-head .reveal-button { flex: 0 0 auto; align-self: center; }
+
+/* One flow of text inside the visit pill, wrapping as a sentence. */
+.pill-copy { min-width: 0; text-align: start; }
+
+/* Asking scrolls the answer into view, clear of the bottom nav. */
+.ask-answer { scroll-margin-block-end: 120px; }
+
+/* SBAR draft: the bar lives in the pinned header, so it shows at any scroll. */
+.ai-sheet .sheet-header { flex-wrap: wrap; }
+
+.draft-progress {
+  display: grid;
+  flex: 1 0 100%;
+  gap: var(--space-1);
+}
+
+.draft-progress[hidden] { display: none; }
+
+.draft-progress-copy {
+  color: var(--body);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+.draft-progress-track {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--primary-container);
+}
+
+.draft-progress-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--grad-primary);
+  transform: scaleX(0.06);
+  transform-origin: left center;
+}
+
+.draft-progress.is-running .draft-progress-fill {
+  transform: scaleX(0.9);
+  transition: transform var(--duration-draft) var(--ease-draft);
+}
+
+.draft-progress.is-done .draft-progress-fill {
+  transform: scaleX(1);
+  transition: transform 240ms var(--ease-enter);
+}
+
+.ai-sheet.is-drafting .handover-field .field-box {
+  animation: draft-breathe 1.4s var(--ease-exit) infinite alternate;
+}
+
+@keyframes draft-breathe {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+.ai-sheet [data-handover-generate]:disabled { cursor: progress; opacity: 0.6; }
+
+/* The error state: the sent check's opposite, a big X the eye cannot miss. */
+.error-layer {
+  position: absolute;
+  z-index: 95;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--veil-canvas);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity var(--duration-enter) var(--ease-enter), visibility 0s linear var(--duration-enter);
+}
+
+.error-layer.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity var(--duration-enter) var(--ease-enter);
+}
+
+.error-card {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--white);
+  box-shadow: var(--elevation-2);
+  text-align: center;
+  transform: translateY(18px) scale(0.96);
+  transition: transform var(--duration-enter) var(--ease-enter);
+}
+
+.error-layer.is-open .error-card { transform: none; }
+
+.error-x {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background: var(--grad-alert);
+  box-shadow: var(--elevation-2);
+  color: var(--on-primary);
+}
+
+.error-layer.is-open .error-x { animation: error-nudge 420ms var(--ease-enter) 280ms 1; }
+
+.error-x svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 6;
+}
+
+.error-x path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+
+.error-layer.is-open .error-x path { animation: error-draw 260ms var(--ease-enter) 120ms forwards; }
+.error-layer.is-open .error-x path + path { animation-delay: 240ms; }
+
+@keyframes error-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes error-nudge {
+  25% { transform: translateX(-6px); }
+  60% { transform: translateX(4px); }
+}
+
+.error-card h2 {
+  margin: var(--space-2) 0 0;
+  color: var(--ink);
+  font-size: var(--text-section);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.error-card p {
+  margin: 0;
+  color: var(--body);
+  text-wrap: pretty;
+}
+
+.error-actions {
+  display: grid;
+  width: 100%;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.error-actions .btn { width: 100%; min-height: 56px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .draft-progress.is-running .draft-progress-fill { transform: scaleX(0.6); transition: none; }
+  .ai-sheet.is-drafting .handover-field .field-box { animation: none; opacity: 0.5; }
+  .error-layer, .error-card { transition: none; }
+  .error-layer.is-open .error-x { animation: none; }
+  .error-layer.is-open .error-x path { animation: none; stroke-dashoffset: 0; }
+}
+
+/* The view's top padding left a strip where scrolled content peeked above the bar. */
+.top-app-bar { top: calc(var(--space-2) * -1); }
+
+/* The check draws heavier than the 1.5 icon default. The width sits on the path,
+   not the svg, because each path carries its own stroke-width attribute. */
+.icon-check path { stroke-width: 2.25; }
+.success-check .icon-check path { stroke-width: 2.5; }
+
+/* Same rule as the avatars: mascot art has a white ground, so a white disc. */
+.celebration-mascot {
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--on-primary);
+}

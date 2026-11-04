@@ -4,6 +4,7 @@
   // Light/dark theme. Runs before app.js so the first paint already has the
   // saved theme. Without a saved choice the OS preference wins (tokens.css).
   var KEY = 'acompana-theme';
+  var t = window.AcompanaI18n.t;
   var root = document.documentElement;
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
@@ -22,10 +23,10 @@
     root.classList.toggle('is-dark', dark);
     document.querySelectorAll('[data-theme-toggle]').forEach(function (toggle) {
       toggle.setAttribute('aria-pressed', String(dark));
-      toggle.setAttribute('aria-label', dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro');
+      toggle.setAttribute('aria-label', t(dark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'));
     });
     document.querySelectorAll('[data-theme-label]').forEach(function (label) {
-      label.textContent = dark ? 'Tema claro' : 'Tema oscuro';
+      label.textContent = t(dark ? 'Tema claro' : 'Tema oscuro');
     });
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', getComputedStyle(document.body || root).backgroundColor);
@@ -37,18 +38,23 @@
     sync();
   }
 
-  function toggle(event) {
-    var next = isDark() ? 'light' : 'dark';
+  // Theme and language both change every surface: one circular reveal for both.
+  function reveal(event, change) {
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!document.startViewTransition || reduce) {
-      apply(next);
+      change();
       return;
     }
     var source = event && event.currentTarget ? event.currentTarget : event && event.target;
     var box = source && source.getBoundingClientRect ? source.getBoundingClientRect() : { left: 0, top: 0, width: 0 };
     root.style.setProperty('--reveal-x', (box.left + box.width / 2) + 'px');
     root.style.setProperty('--reveal-y', (box.top + box.height / 2) + 'px');
-    document.startViewTransition(function () { apply(next); });
+    document.startViewTransition(change);
+  }
+
+  function toggle(event) {
+    var next = isDark() ? 'light' : 'dark';
+    reveal(event, function () { apply(next); });
   }
 
   var initial = saved();
@@ -66,5 +72,5 @@
     sync();
   });
 
-  window.acompanaTheme = { toggle: toggle, sync: sync, isDark: isDark };
+  window.acompanaTheme = { toggle: toggle, sync: sync, isDark: isDark, reveal: reveal };
 }());

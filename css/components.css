@@ -480,7 +480,7 @@ button.glass-pill {
   outline: none;
 }
 
-/* Success check (Medixin's glossy tick; asset optional) */
+/* Success check: the flat twin of the error X. */
 .success-check {
   display: grid;
   place-items: center;
@@ -488,14 +488,12 @@ button.glass-pill {
   height: 112px;
   margin: 0 auto;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--color-neutral-0) 70%, transparent) 0 14%, transparent 34%),
-    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--color-patient-500) 85%, var(--color-neutral-0)) 0%, var(--color-patient-700) 100%);
+  background: var(--grad-primary);
   color: var(--on-primary);
-  box-shadow: 0 16px 40px color-mix(in srgb, var(--color-patient-500) 40%, transparent);
+  box-shadow: var(--elevation-2);
 }
 
-.success-check .icon-svg { width: 56px; height: 56px; stroke-width: 2.4; }
+.success-check .icon-svg { width: 56px; height: 56px; }
 .success-check img { width: 100%; height: 100%; object-fit: contain; }
 
 /* Browser surfaces carry the palette too */

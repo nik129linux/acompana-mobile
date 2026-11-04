@@ -16,7 +16,7 @@ const MAP = {
   task: 'Task01Icon',
   taskDone: 'TaskDone01Icon',
   plus: 'Add01Icon',
-  check: 'Tick02Icon',
+  check: 'CheckIcon',
   arrow: 'ArrowRight01Icon',
   forward: 'ArrowRight01Icon',
   back: 'ArrowLeft01Icon',
@@ -53,6 +53,7 @@ const MAP = {
   sun: 'Sun03Icon',
   moon: 'Moon02Icon',
   note: 'Note01Icon',
+  globe: 'GlobalIcon',
   clipboard: 'ClipboardIcon',
   move: 'Move01Icon',
   ruler: 'StethoscopeIcon',
@@ -62,21 +63,21 @@ const MAP = {
 
 const ATTR = { strokeLinecap: 'stroke-linecap', strokeLinejoin: 'stroke-linejoin', strokeWidth: 'stroke-width', fillRule: 'fill-rule', clipRule: 'clip-rule' };
 
-function toSvg(nodes) {
+function toSvg(nodes, name) {
   const inner = nodes.map(([tag, attrs]) => {
     const parts = Object.entries(attrs)
       .filter(([k]) => k !== 'key')
       .map(([k, v]) => (ATTR[k] || k) + '="' + String(v).replace(/"/g, '&quot;') + '"');
     return '<' + tag + ' ' + parts.join(' ') + '/>';
   }).join('');
-  return '<svg class="icon-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">' + inner + '</svg>';
+  return '<svg class="icon-svg icon-' + name + '" viewBox="0 0 24 24" fill="none" aria-hidden="true">' + inner + '</svg>';
 }
 
 const out = {};
 for (const [name, exportName] of Object.entries(MAP)) {
   const nodes = huge[exportName];
   if (!nodes) throw new Error('missing Hugeicons export: ' + exportName);
-  out[name] = toSvg(nodes);
+  out[name] = toSvg(nodes, name);
 }
 
 const file = path.join(__dirname, '..', 'js', 'icons.js');

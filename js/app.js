@@ -2,6 +2,9 @@
   'use strict';
 
   var $ = function (id) { return document.getElementById(id); };
+  var I18n = window.AcompanaI18n;
+  var t = I18n.t;
+  var room = I18n.room;
   var app = {
     phone: document.querySelector('.phone'),
     screen: $('screen'),
@@ -13,7 +16,8 @@
     splashLayer: $('splashLayer'),
     registrationLayer: $('registrationLayer'),
     aiLayer: $('aiLayer'),
-    celebrationLayer: $('celebrationLayer')
+    celebrationLayer: $('celebrationLayer'),
+    errorLayer: $('errorLayer')
   };
 
   var PATIENTS = [
@@ -97,11 +101,26 @@
     }
   ];
 
-  var TIMELINE_PACIENTE = [
-    { time: '08:00', text: 'Le ayudaron a cambiar de posición', pending: false },
-    { time: '09:30', text: 'Ya le pusieron el medicamento de la mañana', pending: false },
-    { time: '1:00 p. m.', text: 'La enfermera vuelve a hacer la ronda', pending: true }
-  ];
+  // What the reader sees follows the tasks the nurse confirmed, so nobody is
+  // told something is done before it is. `at` (HH:MM) orders the timeline.
+  function patientPlan() {
+    var treated = isConfirmed('medication');
+    return [
+      { at: '08:00', time: '08:00', text: 'Le ayudaron a cambiar de posición', pending: false },
+      { at: '11:00', time: '11:00', text: treated ? 'Ya le pusieron el medicamento de la mañana' : 'Le van a poner el medicamento de la mañana', pending: !treated },
+      { at: '13:00', time: '1:00 p. m.', text: 'La enfermera vuelve a hacer la ronda', pending: true }
+    ];
+  }
+
+  function patientNext() {
+    return isConfirmed('medication')
+      ? { line: 'La enfermera vuelve a hacer la ronda', when: 'a la 1:00 p. m.', label: 'Ronda de control', time: '1:00 p. m.' }
+      : { line: 'Le van a poner el medicamento de la mañana', when: 'a las 11:00 a. m.', label: 'Medicamento de la mañana', time: '11:00 a. m.' };
+  }
+
+  function byTime(items) {
+    return items.slice().sort(function (x, y) { return x.at < y.at ? -1 : x.at > y.at ? 1 : 0; });
+  }
 
 
   var NAV_BY_ROLE = {
@@ -177,9 +196,9 @@
   // Local mirror of server-side rules classification
   function classifyEventRulesLocal(text) {
     var lower = String(text || '').toLowerCase();
-    var medKws = ['enoxaparina', 'heparina', 'paracetamol', 'ibuprofeno', 'insulina', 'morfina', 'tramadol', 'omeprazol', 'medicamento', 'medicina', 'pastilla', 'aplic', 'mg', 'ml'];
-    var posKws = ['posición', 'posicion', 'postural', 'decúbito', 'decubito', 'lateral', 'cambio de posicion', 'cambio de posición'];
-    var roundKws = ['ronda', 'control', 'signos', 'vitales', 'revis', 'monitoreo'];
+    var medKws = ['enoxaparin', 'heparin', 'paracetamol', 'ibuprofen', 'insulin', 'morphine', 'morfina', 'tramadol', 'omeprazol', 'medicamento', 'medicina', 'medication', 'medicine', 'pastilla', 'pill', 'aplic', 'mg', 'ml'];
+    var posKws = ['posición', 'posicion', 'position', 'postural', 'decúbito', 'decubito', 'lateral', 'cambio de posicion', 'cambio de posición', 'turned', 'repositioned'];
+    var roundKws = ['ronda', 'round', 'control', 'signos', 'vitales', 'vitals', 'revis', 'check', 'monitoreo'];
     for (var i = 0; i < medKws.length; i++) {
       if (lower.includes(medKws[i])) return { kind: 'medication', text: text, source: 'rules' };
     }
@@ -254,7 +273,7 @@
     undo.type = 'button';
     undo.className = 'undo-event-btn is-visible';
     undo.setAttribute('data-undo-event', '');
-    undo.textContent = 'Deshacer';
+    undo.textContent = t('Deshacer');
     line.appendChild(undo);
     feedback.appendChild(line);
     var timer = document.createElement('span');
@@ -297,7 +316,7 @@
     alert: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"></path></svg>',
     arrow: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>',
     chevron: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>',
-    check: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>',
+    check: '<svg class="icon-svg icon-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.26 7.59 15.96C8.25 16.65 8.59 17 9 17S9.75 16.65 10.41 15.96L19 7"></path></svg>',
     list: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h10M8 12h10M8 18h10"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg>',
     plus: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>',
     clock: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>',
@@ -333,24 +352,32 @@
   function roleMenuItem(role, label) {
     var checked = state.role === role;
     return '<button type="button" class="demo-menu-item" role="menuitemradio" data-view-as="' + role + '" aria-checked="' + String(checked) + '">' +
-      '<span class="demo-menu-check" aria-hidden="true">' + icon('check') + '</span><span>' + label + '</span></button>';
+      '<span class="demo-menu-check" aria-hidden="true">' + icon('check') + '</span><span>' + escapeHtml(t(label)) + '</span></button>';
+  }
+
+  function themeIsDark() {
+    return Boolean(window.acompanaTheme && window.acompanaTheme.isDark());
   }
 
   function demoMenuHtml() {
-    return '<button type="button" class="top-app-bar-action" data-demo-menu aria-haspopup="menu" aria-expanded="false" aria-label="Ver como">' + icon('more') + '</button>' +
-      '<div class="demo-menu" role="menu" aria-label="Ver como">' +
-      '<p class="demo-menu-label">Ver como</p>' +
+    return '<button type="button" class="top-app-bar-action" data-demo-menu aria-haspopup="menu" aria-expanded="false" aria-label="' + escapeHtml(t('Ver como')) + '">' + icon('more') + '</button>' +
+      '<div class="demo-menu" role="menu" aria-label="' + escapeHtml(t('Ver como')) + '">' +
+      '<p class="demo-menu-label">' + escapeHtml(t('Ver como')) + '</p>' +
       roleMenuItem('enfermero', 'Enfermero') +
       roleMenuItem('paciente', 'Paciente') +
       roleMenuItem('familia', 'Familia') +
       '<div class="demo-menu-divider" aria-hidden="true"></div>' +
       '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-menu-theme aria-pressed="false">' +
-      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('moon') + '</span><span data-theme-label>Tema oscuro</span></button>' +
+      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('moon') + '</span><span data-theme-label>' + escapeHtml(t(themeIsDark() ? 'Tema claro' : 'Tema oscuro')) + '</span></button>' +
+      '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-menu-lang>' +
+      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('globe') + '</span><span lang="' + I18n.otherLang() + '">' + (I18n.lang() === 'en' ? 'Español' : 'English') + '</span></button>' +
+      '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-simulate-error>' +
+      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('close') + '</span><span>' + escapeHtml(t('Simular un error')) + '</span></button>' +
       '</div>';
   }
 
   function themeToggleHtml() {
-    return '<button type="button" class="top-app-bar-action theme-toggle" data-theme-toggle aria-label="Cambiar a tema oscuro" aria-pressed="false">' +
+    return '<button type="button" class="top-app-bar-action theme-toggle" data-theme-toggle aria-label="' + escapeHtml(t(themeIsDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro')) + '" aria-pressed="' + String(themeIsDark()) + '">' +
       '<span class="theme-icon theme-icon-moon" aria-hidden="true">' + icon('moon') + '</span>' +
       '<span class="theme-icon theme-icon-sun" aria-hidden="true">' + icon('sun') + '</span></button>';
   }
@@ -462,7 +489,7 @@
   }
 
   function videoSlot(slot, label) {
-    return '<div class="video-slot" data-video-slot="' + escapeHtml(slot) + '" role="img" aria-label="' + escapeHtml(label || 'Ilustración animada') + '">' +
+    return '<div class="video-slot" data-video-slot="' + escapeHtml(slot) + '" role="img" aria-label="' + escapeHtml(label || t('Ilustración animada')) + '">' +
       '<video class="loop" autoplay muted loop playsinline preload="metadata" poster="media/' + escapeHtml(slot) + '.jpg" aria-hidden="true">' +
       '<source src="media/' + escapeHtml(slot) + '.webm" type="video/webm">' +
       '<source src="media/' + escapeHtml(slot) + '.mp4" type="video/mp4">' +
@@ -639,7 +666,8 @@
     var items = NAV_BY_ROLE[state.role];
     app.bottomNav.innerHTML = items.map(function (item) {
       var active = item.key === state.activeNav[state.role];
-      return '<button type="button" class="nav-item' + (active ? ' is-active' : '') + '" data-nav="' + escapeHtml(item.key) + '" aria-label="' + escapeHtml(item.label) + '" aria-pressed="' + String(active) + '"><span class="nav-icon">' + icon(item.icon) + '</span><span>' + escapeHtml(item.label) + '</span></button>';
+      var label = t(item.label);
+      return '<button type="button" class="nav-item' + (active ? ' is-active' : '') + '" data-nav="' + escapeHtml(item.key) + '" aria-label="' + escapeHtml(label) + '" aria-pressed="' + String(active) + '"><span class="nav-icon">' + icon(item.icon) + '</span><span>' + escapeHtml(label) + '</span></button>';
     }).join('');
     updateFab();
   }
@@ -789,6 +817,26 @@
     refreshChatThread();
   }
 
+  // Everything on screen is rebuilt in the new language, the home kept behind
+  // an open patient detail included.
+  function renderForLanguage() {
+    var home = app.screen.querySelector('.view[data-view-key="nurse-home"]');
+    var patient = state.detailPatient;
+    if (patient && home) {
+      state.detailPatient = null;
+      var freshHome = createView(viewDefinition(), 'forward');
+      state.detailPatient = patient;
+      freshHome.classList.remove('from-right');
+      freshHome.classList.add('is-behind');
+      removeBarActions(freshHome);
+      home.replaceWith(freshHome);
+    }
+    refreshActiveView();
+    renderBottomNav();
+    applyTimelineTranslations(app.screen.querySelector('.view.is-active'), state.role);
+    if (window.acompanaTheme) window.acompanaTheme.sync();
+  }
+
   function openRegistrationSheet() {
     if (state.sheetOpen) return;
     state.sheetOpen = true;
@@ -859,6 +907,7 @@
     if (isConfirmed(taskId)) return;
     var card = trigger.closest('.task-card, .patient-card');
     state.confirmed[taskId] = true;
+    pushTaskDone(taskId);
     if (card) card.classList.add('is-confirming');
     navigator.vibrate?.(10);
     window.setTimeout(function () {
@@ -896,9 +945,9 @@
     var rows = doneTasks.map(function (task) {
       var patient = patientById(task.patientId);
       return '<li class="summary-row"><span class="summary-icon" aria-hidden="true">' + icon('check') + '</span>' +
-        '<span class="summary-copy"><strong>' + escapeHtml(task.title) + '</strong><span>' + escapeHtml(task.time) + ' · ' + escapeHtml(patient ? patient.name : task.note) + '</span></span></li>';
+        '<span class="summary-copy"><strong>' + escapeHtml(t(task.title)) + '</strong><span>' + escapeHtml(task.time) + ' · ' + escapeHtml(patient ? patient.name : task.note) + '</span></span></li>';
     }).join('');
-    app.celebrationLayer.innerHTML = '<div class="celebration-card"><span class="success-check" data-success-check aria-hidden="true">' + icon('check') + '</span><h2>Todo al día</h2><p>Todo confirmado. El equipo puede seguir con tranquilidad.</p><ul class="summary-card summary-rows">' + rows + '</ul><div class="celebration-mascot"><img class="celebration-doctor-image" src="media/frames/doctora-white.png" alt="Doctora celebrando"></div><button type="button" class="btn btn-primary" data-close-celebration>Volver al turno</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
+    app.celebrationLayer.innerHTML = '<div class="celebration-card"><span class="success-check" data-success-check aria-hidden="true">' + icon('check') + '</span><h2>' + escapeHtml(t('Todo al día')) + '</h2><p>' + escapeHtml(t('Todo confirmado. El equipo puede seguir con tranquilidad.')) + '</p><ul class="summary-card summary-rows">' + rows + '</ul><div class="celebration-mascot"><img class="celebration-doctor-image" src="media/frames/doctora-white.png" alt="' + escapeHtml(t('Doctora celebrando')) + '"></div><button type="button" class="btn btn-primary" data-close-celebration>' + escapeHtml(t('Volver al turno')) + '</button><div class="confetti-layer" aria-hidden="true">' + pieces + '</div></div>';
     app.celebrationLayer.classList.add('is-visible');
     app.celebrationLayer.setAttribute('aria-hidden', 'false');
     popSuccessCheck(app.celebrationLayer);
@@ -918,7 +967,7 @@
   function showTrayFeedback(message) {
     var feedback = app.registrationLayer.querySelector('[data-tray-feedback]');
     if (!feedback) return;
-    feedback.textContent = message + ' listo para registrar.';
+    feedback.textContent = t('{name} listo para registrar.', { name: message });
     feedback.classList.add('is-visible');
     if (state.feedbackTimer) window.clearTimeout(state.feedbackTimer);
     state.feedbackTimer = window.setTimeout(function () { feedback.classList.remove('is-visible'); }, 1800);
@@ -948,6 +997,25 @@
     if (menuTheme) {
       if (window.acompanaTheme) window.acompanaTheme.toggle(event);
       closeDemoMenu();
+      return;
+    }
+
+    var menuLang = event.target.closest('.demo-menu [data-menu-lang]');
+    if (menuLang) {
+      closeDemoMenu();
+      var switchLanguage = function () {
+        I18n.setLang(I18n.otherLang());
+        renderForLanguage();
+      };
+      if (window.acompanaTheme) window.acompanaTheme.reveal(event, switchLanguage);
+      else switchLanguage();
+      return;
+    }
+
+    var simulate = event.target.closest('.demo-menu [data-simulate-error]');
+    if (simulate) {
+      closeDemoMenu();
+      showFailure(function () { showSnack(t('Fue solo una prueba. No se perdió nada.')); });
       return;
     }
 
@@ -1090,7 +1158,7 @@
       if (revealButton) {
         revealButton.classList.toggle('is-revealed', willReveal);
         revealButton.setAttribute('aria-expanded', String(willReveal));
-        revealButton.innerHTML = (willReveal ? 'Ocultar dato clínico ' : 'Mostrar dato clínico ') + icon('eye');
+        revealButton.innerHTML = escapeHtml(t(willReveal ? 'Ocultar dato clínico' : 'Mostrar dato clínico')) + ' ' + icon('eye');
       }
       return;
     }
@@ -1247,7 +1315,7 @@
     if (state.eventUndoTimer) window.clearTimeout(state.eventUndoTimer);
     // Spanish agreement: "Medicación/Ronda registrada", "Cambio/Otro evento registrado".
     var label = kind === 'medication' ? 'Medicación registrada' : kind === 'position' ? 'Cambio de posición registrado' : kind === 'round' ? 'Ronda registrada' : 'Evento registrado';
-    showEventFeedback(label + ' · ' + entry.time);
+    showEventFeedback(t(label) + ' · ' + entry.time);
     state.eventUndoTimer = window.setTimeout(function () {
       state.eventUndo = null;
       hideEventFeedback();
@@ -1262,7 +1330,7 @@
     if (!proposal) return;
     proposal.dataset.pendingKind = kind;
     proposal.dataset.pendingText = text;
-    proposal.querySelector('[data-proposal-kind]').textContent = KIND_LABELS[kind] || 'Evento';
+    proposal.querySelector('[data-proposal-kind]').textContent = t(KIND_LABELS[kind] || 'Evento');
     proposal.querySelector('[data-proposal-text]').textContent = text;
     proposal.classList.add('is-visible');
     if (window.AcompanaMotion) window.AcompanaMotion.pop(proposal, { from: 0.92, duration: 420 });
@@ -1275,9 +1343,9 @@
     button.setAttribute('aria-pressed', String(listening));
     var strong = button.querySelector('.dictate-copy strong');
     var small = button.querySelector('.dictate-copy small');
-    if (strong) strong.textContent = listening ? 'Escuchando… toca para terminar' : 'Dictar evento';
+    if (strong) strong.textContent = t(listening ? 'Escuchando… toca para terminar' : 'Dictar evento');
     if (small) {
-      small.textContent = listening ? (live || 'Habla con normalidad') : 'Toca para dictar';
+      small.textContent = listening ? (live || t('Habla con normalidad')) : t('Toca para dictar');
       small.classList.toggle('dictate-live', listening);
     }
   }
@@ -1295,7 +1363,7 @@
       note.setAttribute('role', 'status');
       field.insertBefore(note, field.firstChild);
     }
-    if (note) note.textContent = message;
+    if (note) note.textContent = t(message);
   }
 
   function startDictation() {
@@ -1321,7 +1389,7 @@
     var recog = new SpeechRecognition();
     var finalText = '';
     var gotResult = false;
-    recog.lang = 'es-CO';
+    recog.lang = I18n.speechLang();
     recog.interimResults = true;
     recog.maxAlternatives = 1;
     activeRecognizer = recog;
@@ -1381,7 +1449,7 @@
 
   function initSplash() {
     var mascot = app.splashLayer.querySelector('.splash-mascot');
-    mascot.innerHTML = videoSlot('splash', 'Doctora saludando');
+    mascot.innerHTML = videoSlot('splash', t('Doctora saludando'));
     bindVideos(app.splashLayer);
     var maxTimer = null;
     var cycleTimer = null;
@@ -1443,8 +1511,7 @@
   var AI_TIMEOUT_MS = 12000; // cloud gemma; the server gives up at 10s
   var HANDOVER_MAX = 200;
   var ASK_MAX = 220;
-  var SAFE_ANSWER_OFFLINE = 'No puedo responder eso con lo que se ve del turno. Anótelo para preguntarlo a la enfermera.';
-  var REFUSAL_RE = /diagn[oó]st|pron[oó]st|c[áa]ncer|tumor|grave|morir|muerte|curar|se va a|cu[áa]nto (tiempo|falta|vive)|dosis|cu[áa]ntos?\s*(mg|ml|gramos)|qu[ée] medicamento|qu[ée] pastilla|qu[ée] droga|debo darle|le (doy|damos|puedo dar)|recomienda|aconseja|deber[íi]a tomar|resultados? (de |del )?(examen|sangre|laboratorio)|alta m[ée]dica|cu[áa]ndo sale|anestesia|cirug[íi]a|presi[óo]n arterial|fiebre|az[úu]car/i;
+    var REFUSAL_RE = /diagn[oó]st|pron[oó]st|c[áa]ncer|tumor|grave|morir|muerte|curar|se va a|cu[áa]nto (tiempo|falta|vive)|dosis|cu[áa]ntos?\s*(mg|ml|gramos)|qu[ée] medicamento|qu[ée] pastilla|qu[ée] droga|debo darle|le (doy|damos|puedo dar)|recomienda|aconseja|deber[íi]a tomar|resultados? (de |del )?(examen|sangre|laboratorio)|alta m[ée]dica|cu[áa]ndo sale|anestesia|cirug[íi]a|presi[óo]n arterial|fiebre|az[úu]car|diagnos|prognos|cancer|tumou?r|serious|\bdie\b|dying|death|\bcure\b|will (she|he) (get|be|recover)|how long|dose|dosage|what (medicine|medication|pill|drug)|should (i|we) give|recommend|advise|test results?|discharge|anesthesia|surgery|blood pressure|fever|sugar/i;
 
   var aiConsent = null;
   var aiAskPending = null;
@@ -1483,7 +1550,7 @@
     } else {
       options.method = 'POST';
       options.headers = { 'Content-Type': 'application/json' };
-      options.body = JSON.stringify(body);
+      options.body = JSON.stringify(Object.assign({ lang: I18n.lang() }, body));
     }
     return fetch(AI_BASE + path, options).then(function (response) {
       window.clearTimeout(timer);
@@ -1505,7 +1572,7 @@
   var translateInFlight = {}; // cacheKey -> true while a request runs
 
   function translateCacheKey(eventId, reader) {
-    return reader + ':' + eventId;
+    return I18n.lang() + ':' + reader + ':' + eventId;
   }
 
   function loadTranslateCache() {
@@ -1599,17 +1666,18 @@
   // Logged events are merged in so the SBAR can reference what was registered.
   function dayEvents() {
     var base = [
-      { time: '08:00', text: 'Cambio postural de la mañana hecho', done: true },
-      { time: '11:05', text: 'Enoxaparina 40mg SC, vía abdominal aplicada', done: isConfirmed('medication') },
-      { time: '11:20', text: 'Cambio postural previsto', done: isConfirmed('position') },
-      { time: '13:00', text: 'Ronda programada, control de signos', done: isConfirmed('round') },
-      { time: '11:00', text: 'PA 90/55, taquicardia 112, alerta protocolo hipotensión', done: false }
+      { time: '08:00', text: t('Cambio postural de la mañana hecho'), done: true },
+      { time: '11:05', text: t(isConfirmed('medication') ? 'Enoxaparina 40mg SC, vía abdominal aplicada' : 'Enoxaparina 40mg SC, vía abdominal prevista'), done: isConfirmed('medication') },
+      { time: '11:20', text: t('Cambio postural previsto'), done: isConfirmed('position') },
+      { time: '13:00', text: t('Ronda programada, control de signos'), done: isConfirmed('round') },
+      { time: '11:00', text: t('PA 90/55, taquicardia 112, alerta protocolo hipotensión'), done: false }
     ];
     var logged = loadEvents().map(function (e) {
-      var kindText = e.kind === 'medication' ? 'Medicación aplicada: ' + e.text
-        : e.kind === 'position' ? 'Cambio de posición: ' + e.text
-        : e.kind === 'round' ? 'Ronda realizada: ' + e.text
-        : 'Evento: ' + e.text;
+      var text = t(e.text);
+      var kindText = e.kind === 'medication' ? t('Medicación aplicada: {text}', { text: text })
+        : e.kind === 'position' ? t('Cambio de posición: {text}', { text: text })
+        : e.kind === 'round' ? t('Ronda realizada: {text}', { text: text })
+        : t('Evento: {text}', { text: text });
       return { time: e.time, text: kindText, done: true };
     });
     return base.concat(logged);
@@ -1638,15 +1706,15 @@
     var phrases = patient ? familyEventPhrases(patient) : [];
     // Same lines the family reads on Qué pasa, then what was logged today.
     var facts = [
-      'Tratamiento de la mañana cumplido.',
-      'El equipo está con ' + (patient ? patient.pronoun : 'ella') + ', sin novedad que reportar.'
+      t(isConfirmed('medication') ? 'Tratamiento de la mañana cumplido.' : 'Tratamiento de la mañana en curso.'),
+      t('El equipo está con {pronoun}, sin novedad que reportar.', { pronoun: t(patient ? patient.pronoun : 'ella') })
     ];
     phrases.forEach(function (phrase) {
-      var fact = phrase + '.';
+      var fact = t(phrase) + '.';
       if (facts.indexOf(fact) === -1) facts.push(fact);
     });
-    facts.push('Horario de visita: hoy de 3:00 a 5:00 p. m.');
-    facts.push('La enfermera vuelve a la 1:00 p. m.');
+    facts.push(t('Horario de visita: hoy de 3:00 a 5:00 p. m.'));
+    facts.push(t('La enfermera vuelve a la 1:00 p. m.'));
     return facts;
   }
 
@@ -1660,27 +1728,27 @@
     var total = events.length;
     var done = events.filter(function (e) { return e.done; }).length;
     var pending = total - done;
-    var pendTimes = events.filter(function (e) { return !e.done; }).map(function (e) { return e.time || 'sin hora'; }).join(', ');
-    var vitals = events.find(function (e) { return /\bPA\b|taquicardia|hipotensi|alerta|protocolo/i.test(e.text); }) ||
-      events.find(function (e) { return /signos|vitales/i.test(e.text); });
-    var med = events.find(function (e) { return e.done && /mg\b|ml\b|medicamento|enoxaparina|aplic/i.test(e.text); });
-    var postureDone = events.some(function (e) { return e.done && /postural|cambio de posici/i.test(e.text); });
-    var round = events.find(function (e) { return /ronda/i.test(e.text); });
+    var pendTimes = events.filter(function (e) { return !e.done; }).map(function (e) { return e.time || t('sin hora'); }).join(', ');
+    var vitals = events.find(function (e) { return /\bPA\b|\bBP\b|taquicardia|tachycardia|hipotensi|hypotens|alert|protocol/i.test(e.text); }) ||
+      events.find(function (e) { return /signos|vitales|vital signs|vitals/i.test(e.text); });
+    var med = events.find(function (e) { return e.done && /mg\b|ml\b|medicamento|medication|enoxaparin|aplic|given/i.test(e.text); });
+    var postureDone = events.some(function (e) { return e.done && /postural|cambio de posici|position change/i.test(e.text); });
+    var round = events.find(function (e) { return /ronda|round/i.test(e.text); });
     var situation = total === 0
-      ? 'Turno sin eventos registrados todavía.'
-      : 'Turno: ' + done + ' de ' + total + ' eventos listos.' +
-        (pending > 0 ? ' Faltan ' + pending + ': ' + pendTimes + '.' : ' Nada pendiente.');
-    var background = med
-      ? 'Aplicado: ' + med.text + ' (' + (med.time || 'turno actual') + ').' + (postureDone ? ' Cambio postural hecho.' : '')
-      : 'Sin medicación aplicada en el turno.' + (postureDone ? ' Cambio postural hecho.' : '');
-    var assessment = vitals
-      ? 'En revisión: ' + vitals.text + '.' + (pending > 0 ? ' Quedan ' + pending + ' por confirmar.' : '')
-      : 'Sin alertas en lo registrado.' + (pending > 0 ? ' Quedan ' + pending + ' por confirmar.' : '');
+      ? t('Turno sin eventos registrados todavía.')
+      : t('Turno: {done} de {total} eventos listos.', { done: done, total: total }) + ' ' +
+        (pending > 0 ? t('Faltan {count}: {times}.', { count: pending, times: pendTimes }) : t('Nada pendiente.'));
+    var postureLine = postureDone ? ' ' + t('Cambio postural hecho.') : '';
+    var leftLine = pending > 0 ? ' ' + t('Quedan {count} por confirmar.', { count: pending }) : '';
+    var background = (med
+      ? t('Aplicado: {text} ({time}).', { text: med.text, time: med.time || t('turno actual') })
+      : t('Sin medicación aplicada en el turno.')) + postureLine;
+    var assessment = (vitals ? t('En revisión: {text}.', { text: vitals.text }) : t('Sin alertas en lo registrado.')) + leftLine;
     var recommendation = pending > 0
       ? (round
-        ? 'Completa lo pendiente y revalora signos en la ronda de las ' + (round.time || 'próxima hora') + '.'
-        : 'Completa lo pendiente y deja nota en el turno.')
-      : 'Turno al día. Deja nota breve para el siguiente turno.';
+        ? t('Completa lo pendiente y revalora signos en la ronda de las {time}.', { time: round.time || t('próxima hora') })
+        : t('Completa lo pendiente y deja nota en el turno.'))
+      : t('Turno al día. Deja nota breve para el siguiente turno.');
     return {
       s: clipAi(situation, HANDOVER_MAX),
       b: clipAi(background, HANDOVER_MAX),
@@ -1689,6 +1757,8 @@
     };
   }
 
+  var SAFE_ANSWER_OFFLINE = 'No puedo responder eso con lo que se ve del turno. Anótelo para preguntarlo a la enfermera.';
+
   // Keyword answers mirror the family column of the translation table in
   // ref/content-spec.md. Returns null when no keyword matches.
   function askRulesLocal(question, facts) {
@@ -1696,33 +1766,33 @@
     var pick = function (pattern) {
       return facts.find(function (fact) { return pattern.test(fact); });
     };
-    if (/visit|horario|cu[áa]ndo (puedo|puede|vamos|ir|venir|ver|entrar)|verlo|verla|venir|entrar|hora de/.test(q)) {
-      return pick(/visita/i) || null;
+    if (/visit|horario|cu[áa]ndo (puedo|puede|vamos|ir|venir|ver|entrar)|verlo|verla|venir|entrar|hora de|when can|come in/.test(q)) {
+      return pick(/visit/i) || null;
     }
-    if (/ronda|enfermera|vuelve|vuelven|qui[ée]n (la|lo) cuida|cuida/.test(q)) {
-      return pick(/ronda|enfermera|vuelve/i) || null;
+    if (/ronda|enfermera|vuelve|vuelven|qui[ée]n (la|lo) cuida|cuida|round|nurse|come back|caring/.test(q)) {
+      return pick(/ronda|enfermera|vuelve|nurse/i) || null;
     }
-    if (/noche|durmi|madrugada|c[óo]mo pas|c[óo]mo est|c[óo]mo sigue|c[óo]mo amaneci|descans|tranquil/.test(q)) {
-      return pick(/tranquil|sin novedad|normalidad|equipo/i) || null;
+    if (/noche|durmi|madrugada|c[óo]mo pas|c[óo]mo est|c[óo]mo sigue|c[óo]mo amaneci|descans|tranquil|night|how is|how was|sleep|rest/.test(q)) {
+      return pick(/tranquil|sin novedad|normalidad|equipo|team|nothing new/i) || null;
     }
-    if (/medicamento|medicina|tratamiento|pastilla|inyecci|suero|remedio/.test(q)) {
-      return pick(/tratamiento|medicamento|cumplido/i) || null;
+    if (/medicamento|medicina|tratamiento|pastilla|inyecci|suero|remedio|medicine|medication|treatment|pill/.test(q)) {
+      return pick(/tratamiento|medicamento|cumplido|treatment/i) || null;
     }
     return null;
   }
 
   function askLocal(question) {
-    if (REFUSAL_RE.test(String(question || ''))) return { answer: SAFE_ANSWER_OFFLINE };
+    if (REFUSAL_RE.test(String(question || ''))) return { answer: t(SAFE_ANSWER_OFFLINE) };
     var direct = askRulesLocal(question, familyFacts());
     if (direct) return { answer: clipAi(direct, ASK_MAX) };
-    return { answer: SAFE_ANSWER_OFFLINE };
+    return { answer: t(SAFE_ANSWER_OFFLINE) };
   }
 
   // Bloub shows the source instead of a label: preparar with AI, static without.
   function setBadge(element, source) {
     if (!element) return;
     var fromAi = source === 'ollama';
-    element.setAttribute('aria-label', fromAi ? 'Borrador con IA' : 'Plantilla');
+    element.setAttribute('aria-label', t(fromAi ? 'Borrador con IA' : 'Plantilla'));
     element.innerHTML = aiMark(fromAi ? 'ai-preparar' : 'ai-static', 'Bloub');
     bindVideos(element);
   }
@@ -1737,6 +1807,7 @@
   }
 
   function closeAiSheet(fromPop) {
+    draftStartedAt = 0;
     if (!app.aiLayer.classList.contains('is-open')) {
       dropLayer('ai', fromPop);
       return;
@@ -1762,9 +1833,63 @@
     setBadge(app.screen.querySelector('[data-handover-home-badge]'), source);
   }
 
+  // The loading bar creeps while the draft is on its way and closes when the
+  // text lands. A held minimum keeps a fast answer from flashing past.
+  var DRAFT_MIN_MS = 700;
+  var DRAFT_CLOSE_MS = 240;
+  var draftStartedAt = 0;
+
+  function setDraftBusy(busy) {
+    var sheet = app.aiLayer.querySelector('.ai-sheet');
+    var bar = app.aiLayer.querySelector('[data-handover-progress]');
+    var button = app.aiLayer.querySelector('[data-handover-generate]');
+    if (!sheet || !bar) return;
+    sheet.classList.toggle('is-drafting', busy);
+    sheet.setAttribute('aria-busy', String(busy));
+    if (button) button.disabled = busy;
+    app.aiLayer.querySelectorAll('.handover-field textarea').forEach(function (field) { field.readOnly = busy; });
+    bar.hidden = !busy;
+    bar.classList.remove('is-running', 'is-done');
+    if (busy) {
+      void bar.offsetWidth;
+      bar.classList.add('is-running');
+    }
+  }
+
+  function startDraft() {
+    if (draftStartedAt) return false;
+    draftStartedAt = Date.now();
+    setDraftBusy(true);
+    return true;
+  }
+
+  // Runs once the bar has closed; a sheet shut mid-draft simply drops the text.
+  function finishDraft(deliver) {
+    var started = draftStartedAt;
+    var wait = Math.max(0, DRAFT_MIN_MS - (Date.now() - started));
+    window.setTimeout(function () {
+      if (draftStartedAt !== started) return;
+      var bar = app.aiLayer.querySelector('[data-handover-progress]');
+      if (bar) bar.classList.add('is-done');
+      window.setTimeout(function () {
+        if (draftStartedAt !== started) return;
+        draftStartedAt = 0;
+        setDraftBusy(false);
+        deliver();
+        if (window.AcompanaMotion) window.AcompanaMotion.stagger(app.aiLayer.querySelector('.ai-sheet'), '.handover-field', { step: 50, delay: 0 });
+      }, DRAFT_CLOSE_MS);
+    }, wait);
+  }
+
+  function draftFromRules() {
+    if (!startDraft()) return;
+    finishDraft(function () { fillHandover(handoverRulesLocal(dayEvents()), 'rules', null); });
+  }
+
   function generateHandover() {
+    if (draftStartedAt) return;
     if (aiConsent === 'no') {
-      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+      draftFromRules();
       return;
     }
     if (aiConsent === 'yes') {
@@ -1774,17 +1899,18 @@
     aiRequest('/api/handover', { events: dayEvents(), dryRun: true }).then(function (data) {
       var slot = app.aiLayer.querySelector('[data-consent-slot]');
       if (slot && data && data.payload) slot.innerHTML = views.sheets.consentBox('handover', data.payload);
-    }, function () {
-      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
-    });
+    }, draftFromRules);
   }
 
   function handoverViaServer() {
+    if (!startDraft()) return;
     setBadge(app.aiLayer.querySelector('[data-handover-badge]'), 'ollama');
     aiRequest('/api/handover', { events: dayEvents() }).then(function (data) {
-      fillHandover({ s: data.s, b: data.b, a: data.a, r: data.r }, data.source, data.model);
+      finishDraft(function () {
+        fillHandover({ s: data.s, b: data.b, a: data.a, r: data.r }, data.source, data.model);
+      });
     }, function () {
-      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+      finishDraft(function () { fillHandover(handoverRulesLocal(dayEvents()), 'rules', null); });
     });
   }
 
@@ -1795,27 +1921,28 @@
   function familyMessage(patient) {
     var lines = familyEventPhrases(patient);
     if (!lines.length) lines.push('El equipo está pendiente y no hay novedades que reportar');
-    var text = 'Hola, familia de ' + patient.name + '.\n' +
-      'Resumen del turno de hoy (' + patient.room + '):\n' +
-      lines.map(function (line) { return '• ' + line; }).join('\n') + '\n' +
-      'Horario de visita: hoy de 3:00 a 5:00 p. m.\n' +
-      '— Elena, enfermera de turno';
+    var text = t('Hola, familia de {name}.', { name: patient.name }) + '\n' +
+      t('Resumen del turno de hoy ({room}):', { room: room(patient.room) }) + '\n' +
+      lines.map(function (line) { return '• ' + t(line); }).join('\n') + '\n' +
+      t('Horario de visita: hoy de 3:00 a 5:00 p. m.') + '\n' +
+      t('— Elena, enfermera de turno');
     return { text: text };
   }
 
   // "Avisar a la familia" now lands in the family chat inside the app.
   function shareWithFamily(patient) {
     var text = familyMessage(patient).text;
+    var retry = function () { shareWithFamily(patient); };
     if (!canSync()) {
-      showSnack('Sin conexión. El mensaje no se envió.');
+      showFailure(retry);
       return;
     }
     postChat('familia', text, 'Elena', patient.id).then(function (message) {
       rememberChatMessage(message);
-      showSnack('Mensaje enviado a la familia', true);
+      showSnack(t('Mensaje enviado a la familia'), true);
       refreshChatThread();
     }, function () {
-      showSnack('Sin conexión. El mensaje no se envió.');
+      showFailure(retry);
     });
   }
 
@@ -1883,7 +2010,7 @@
     var text = input.value.trim();
     if (!text) return;
     if (!canSync()) {
-      showSnack('Sin conexión. El mensaje no se envió.');
+      showSnack(t('Sin conexión. El mensaje no se envió.'));
       return;
     }
     var isFamily = state.role === 'familia';
@@ -1910,7 +2037,7 @@
       pending.status = 'failed';
       refreshChatThread();
       if (!input.value) input.value = text;
-      showSnack('Sin conexión. El mensaje no se envió.');
+      showSnack(t('Sin conexión. El mensaje no se envió.'));
     });
   }
 
@@ -1923,23 +2050,77 @@
     card.className = 'handover-sent';
     card.setAttribute('data-handover-sent', '');
     card.setAttribute('aria-hidden', 'true');
-    card.innerHTML = '<span class="success-check" data-success-check>' + icon('check') + '</span><strong>Nota enviada</strong>';
+    card.innerHTML = '<span class="success-check" data-success-check>' + icon('check') + '</span><strong>' + escapeHtml(t('Nota enviada')) + '</strong>';
     app.aiLayer.appendChild(card);
     popSuccessCheck(app.aiLayer);
     if (handoverSentTimer) window.clearTimeout(handoverSentTimer);
     handoverSentTimer = window.setTimeout(function () { card.remove(); }, 1600);
   }
 
+  // The other half of the sent check: a big X, what happened, and a way out.
+  // Nothing typed is lost, so "Reintentar" repeats exactly the failed action.
+  var failureRetry = null;
+  var failureReturn = null;
+
+  // A layer that just closed is still walking history back; pushing now would
+  // lose this layer's entry and the next Back would leave the app.
+  function showFailure(retry) {
+    if (suppressPop > 0) {
+      window.setTimeout(function () { showFailure(retry); }, 30);
+      return;
+    }
+    failureRetry = retry;
+    failureReturn = document.activeElement;
+    app.errorLayer.innerHTML = '<div class="error-card" data-error-state role="alertdialog" aria-modal="true" aria-labelledby="error-title" aria-describedby="error-copy">' +
+      '<span class="error-x" aria-hidden="true"><svg viewBox="0 0 64 64"><path pathLength="1" d="M21 21 43 43"></path><path pathLength="1" d="M43 21 21 43"></path></svg></span>' +
+      '<h2 id="error-title">' + escapeHtml(t('No se pudo enviar')) + '</h2>' +
+      '<p id="error-copy">' + escapeHtml(t('Sin conexión con el servidor. Lo escrito sigue guardado aquí.')) + '</p>' +
+      '<div class="error-actions"><button type="button" class="btn btn-primary" data-error-retry>' + escapeHtml(t('Reintentar')) + '</button>' +
+      '<button type="button" class="btn btn-secondary" data-error-close>' + escapeHtml(t('Cerrar')) + '</button></div></div>';
+    app.errorLayer.classList.add('is-open');
+    app.errorLayer.setAttribute('aria-hidden', 'false');
+    pushLayer('error');
+    navigator.vibrate?.([40, 60, 40]);
+    var retryButton = app.errorLayer.querySelector('[data-error-retry]');
+    if (retryButton) retryButton.focus({ preventScroll: true });
+  }
+
+  function hideFailure(fromPop) {
+    if (!app.errorLayer.classList.contains('is-open')) return;
+    app.errorLayer.classList.remove('is-open');
+    app.errorLayer.setAttribute('aria-hidden', 'true');
+    dropLayer('error', fromPop);
+    if (failureReturn && failureReturn.focus) failureReturn.focus({ preventScroll: true });
+    failureReturn = null;
+    window.setTimeout(function () {
+      if (!app.errorLayer.classList.contains('is-open')) app.errorLayer.innerHTML = '';
+    }, 340);
+  }
+
+  function handleErrorClick(event) {
+    if (event.target.closest('[data-error-close]')) {
+      hideFailure();
+      return;
+    }
+    if (event.target.closest('[data-error-retry]')) {
+      var retry = failureRetry;
+      failureRetry = null;
+      hideFailure();
+      if (retry) retry();
+    }
+  }
+
   function sendHandoverToTeam() {
     var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
     if (!canSync()) {
-      if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';
+      if (feedback) feedback.textContent = t('Sin conexión. La nota no se envió.');
+      showFailure(sendHandoverToTeam);
       return;
     }
     var fields = app.aiLayer.querySelectorAll('.handover-field textarea');
     var hasText = Array.prototype.some.call(fields, function (field) { return field.value.trim(); });
     if (!hasText) {
-      if (feedback) feedback.textContent = 'Escribe la nota antes de enviarla.';
+      if (feedback) feedback.textContent = t('Escribe la nota antes de enviarla.');
       return;
     }
     var patientId = state.detailPatient ? state.detailPatient.id : FAMILY_PATIENT_ID;
@@ -1947,14 +2128,25 @@
     postChat('equipo', note, 'Elena', patientId).then(function (message) {
       rememberChatMessage(message);
       fields.forEach(function (field) { field.value = ''; });
-      if (feedback) feedback.textContent = 'Nota enviada al equipo.';
+      if (feedback) feedback.textContent = t('Nota enviada al equipo.');
       // The draft is gone, so Bloub goes back to rest.
       setBadge(app.aiLayer.querySelector('[data-handover-badge]'), 'rules');
       setBadge(app.screen.querySelector('[data-handover-home-badge]'), 'rules');
       showHandoverSent();
     }, function () {
-      if (feedback) feedback.textContent = 'Sin conexión. La nota no se envió.';
+      if (feedback) feedback.textContent = t('Sin conexión. La nota no se envió.');
+      showFailure(sendHandoverToTeam);
     });
+  }
+
+  // A confirmed task reaches the other phones as a shared event; its id says
+  // which task, and mergeShared turns it back into a confirmation.
+  var TASK_EVENT_PREFIX = 'task-';
+
+  function pushTaskDone(taskId) {
+    var task = TASKS.find(function (item) { return item.id === taskId; });
+    if (!task) return;
+    pushEvent({ id: TASK_EVENT_PREFIX + taskId, patientId: task.patientId, kind: TASK_KIND[taskId], text: task.title, time: nowHHMM() });
   }
 
   function pushEvent(entry) {
@@ -1998,6 +2190,14 @@
     events.forEach(function (entry) { byId[entry.id] = entry; });
     (data.events || []).forEach(function (incoming) {
       if (!incoming || !incoming.id) return;
+      if (String(incoming.id).indexOf(TASK_EVENT_PREFIX) === 0) {
+        var taskId = String(incoming.id).slice(TASK_EVENT_PREFIX.length);
+        if (!isConfirmed(taskId)) {
+          state.confirmed[taskId] = true;
+          changed = true;
+        }
+        return;
+      }
       var existing = byId[incoming.id];
       if (existing) {
         if (incoming.kind && incoming.kind !== existing.kind) {
@@ -2079,21 +2279,21 @@
       var field = app.aiLayer.querySelector('[data-handover-' + key + ']');
       return field ? field.value.trim() : '';
     };
-    return 'Situación: ' + get('s') + '\nAntecedentes: ' + get('b') + '\nEvaluación: ' + get('a') + '\nRecomendación: ' + get('r');
+    return t('Situación: ') + get('s') + '\n' + t('Antecedentes: ') + get('b') + '\n' + t('Evaluación: ') + get('a') + '\n' + t('Recomendación: ') + get('r');
   }
 
   function copyHandover() {
     var note = handoverNote();
     var feedback = app.aiLayer.querySelector('[data-ai-feedback]');
     var done = function () {
-      if (feedback) feedback.textContent = 'Nota copiada. Puedes pegarla donde la necesites.';
+      if (feedback) feedback.textContent = t('Nota copiada. Puedes pegarla donde la necesites.');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(note).then(done, function () {
-        if (feedback) feedback.textContent = 'No se pudo copiar. Selecciona el texto a mano.';
+        if (feedback) feedback.textContent = t('No se pudo copiar. Selecciona el texto a mano.');
       });
     } else if (feedback) {
-      feedback.textContent = 'No se pudo copiar. Selecciona el texto a mano.';
+      feedback.textContent = t('No se pudo copiar. Selecciona el texto a mano.');
     }
   }
 
@@ -2106,19 +2306,28 @@
     box.classList.remove('is-empty', 'is-thinking');
     var fromAi = source === 'ollama';
     box.innerHTML = aiMark(fromAi ? 'ai-answer' : 'ai-static', 'Bloub') +
-      '<span class="sr-only">' + (fromAi ? 'Respuesta de IA: ' : 'Respuesta automática: ') + '</span>' +
+      '<span class="sr-only">' + escapeHtml(t(fromAi ? 'Respuesta de IA: ' : 'Respuesta automática: ')) + '</span>' +
       '<span class="ask-text">' + escapeHtml(text) + '</span>';
     box.classList.add('has-mark');
     bindVideos(box);
     var badge = app.screen.querySelector('[data-ask-badge]');
     if (badge) badge.hidden = true;
+    revealAnswer(box);
+  }
+
+  // The answer can land under the bottom nav: bring it up, and drop the keyboard.
+  function revealAnswer(box) {
+    var input = app.screen.querySelector('[data-ask-input]');
+    if (input && input.blur) input.blur();
+    if (box.scrollIntoView) box.scrollIntoView({ block: 'nearest', behavior: reducedMotion.matches ? 'auto' : 'smooth' });
   }
 
   function askViaServer(question, box) {
     box.classList.remove('is-empty');
     box.classList.add('is-thinking', 'has-mark');
-    box.innerHTML = aiMark('ai-thinking', 'Buscando la respuesta') + '<span class="ask-text">Buscando en el turno…</span>';
+    box.innerHTML = aiMark('ai-thinking', t('Buscando la respuesta')) + '<span class="ask-text">' + escapeHtml(t('Buscando en el turno…')) + '</span>';
     bindVideos(box);
+    revealAnswer(box);
     var badge = app.screen.querySelector('[data-ask-badge]');
     if (badge) badge.hidden = true;
     aiRequest('/api/ask', { question: question, facts: familyFacts() }).then(function (data) {
@@ -2147,7 +2356,7 @@
     if (!input || !box) return;
     var question = input.value.trim();
     if (!question) {
-      showAsk(box, 'Escriba su pregunta primero.', 'rules', null);
+      showAsk(box, t('Escriba su pregunta primero.'), 'rules', null);
       return;
     }
     if (aiConsent === 'no') {
@@ -2188,7 +2397,7 @@
     if (kind === 'handover') {
       var slot = app.aiLayer.querySelector('[data-consent-slot]');
       if (slot) slot.innerHTML = '';
-      fillHandover(handoverRulesLocal(dayEvents()), 'rules', null);
+      draftFromRules();
       return;
     }
     var box = app.screen.querySelector('[data-ask-answer]');
@@ -2197,20 +2406,20 @@
   }
 
   function loadNurseQuestions(slot) {
-    slot.innerHTML = '<p class="view-copy muted-copy">Buscando preguntas…</p>';
+    slot.innerHTML = '<p class="view-copy muted-copy">' + escapeHtml(t('Buscando preguntas…')) + '</p>';
     aiRequest('/api/questions').then(function (data) {
       var items = data && data.items ? data.items : [];
       if (!items.length) {
-        slot.innerHTML = '<p class="view-copy muted-copy">Sin preguntas por ahora.</p>';
+        slot.innerHTML = '<p class="view-copy muted-copy">' + escapeHtml(t('Sin preguntas por ahora.')) + '</p>';
         return;
       }
       slot.innerHTML = items.map(function (item) {
         return '<article class="nurse-question" data-question-card="' + escapeHtml(item.id) + '">' +
           '<span>' + escapeHtml(item.question) + '</span><time>' + escapeHtml(item.at) + '</time>' +
-          '<div class="ai-actions"><button type="button" class="secondary-button" data-question-done="' + escapeHtml(item.id) + '">Marcar lista</button></div></article>';
+          '<div class="ai-actions"><button type="button" class="secondary-button" data-question-done="' + escapeHtml(item.id) + '">' + escapeHtml(t('Marcar lista')) + '</button></div></article>';
       }).join('');
     }, function () {
-      slot.innerHTML = '<p class="view-copy muted-copy">Sin conexión al servidor. Sigue con la plantilla.</p>';
+      slot.innerHTML = '<p class="view-copy muted-copy">' + escapeHtml(t('Sin conexión al servidor. Sigue con la plantilla.')) + '</p>';
     });
   }
 
@@ -2279,7 +2488,9 @@
     patientById: patientById,
     PATIENTS: PATIENTS,
     TASKS: TASKS,
-    TIMELINE_PACIENTE: TIMELINE_PACIENTE,
+    patientPlan: patientPlan,
+    patientNext: patientNext,
+    byTime: byTime,
     FAMILY_PATIENT_ID: FAMILY_PATIENT_ID,
     SHIFT_PHONE: SHIFT_PHONE,
     EVENT_KIND_PHRASES: EVENT_KIND_PHRASES,
@@ -2306,6 +2517,7 @@
     });
     app.registrationLayer.addEventListener('click', handleRegistrationClick);
     app.aiLayer.addEventListener('click', handleAiClick);
+    app.errorLayer.addEventListener('click', handleErrorClick);
     app.roleTabs.forEach(function (tab) { tab.addEventListener('click', handleRoleClick); });
     document.addEventListener('click', function (event) {
       if (!event.target.closest('.demo-menu') && !event.target.closest('[data-demo-menu]')) closeDemoMenu();
@@ -2324,6 +2536,7 @@
       else if (layer === 'register') closeRegistrationSheet(undefined, true);
       else if (layer === 'ai') closeAiSheet(true);
       else if (layer === 'menu') closeDemoMenu(true);
+      else if (layer === 'error') hideFailure(true);
     });
     app.celebrationLayer.addEventListener('click', function (event) {
       if (event.target.closest('[data-close-celebration]')) hideCompletion();
@@ -2341,7 +2554,8 @@
         return;
       }
       if (event.key !== 'Escape') return;
-      if (document.querySelector('.demo-menu.is-open')) closeDemoMenu();
+      if (app.errorLayer.classList.contains('is-open')) hideFailure();
+      else if (document.querySelector('.demo-menu.is-open')) closeDemoMenu();
       else if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
       else if (state.sheetOpen) closeRegistrationSheet();
       else if (state.detailPatient) closePatientDetail();

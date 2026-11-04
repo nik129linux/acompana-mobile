@@ -55,7 +55,8 @@ async function fresh(browser, url) {
     await page.waitForTimeout(300);
     const shared = await page.evaluate(() => window.__shared);
     assert.strictEqual(shared, null, 'no system share sheet');
-    assert(/Mensaje enviado a la familia|Sin conexión/.test(await page.locator('#snackbar').textContent()), 'shows in-app feedback');
+    // file:// has no server, so this send fails: the big X answers, not a toast.
+    assert(await page.locator('[data-error-state]').isVisible() || /Mensaje enviado a la familia/.test(await page.locator('#snackbar').textContent()), 'shows in-app feedback');
     const text = await page.evaluate(() => window.__acompana.familyMessage({ id: 'mg', name: 'María González', room: 'Hab. 304-B' }).text);
     assert(/familia de María/i.test(text), 'addressed to María\'s family');
     assert(/visita/i.test(text), 'includes visiting hours');
