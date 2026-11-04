@@ -7,7 +7,9 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:www": "node tools/build-www.js",
+    "cap:sync": "npm run build:www && npx cap sync android"
   },
   "repository": {
     "type": "git",
@@ -22,7 +24,12 @@
   },
   "homepage": "https://github.com/nik129linux/handwatch-mobile#readme",
   "devDependencies": {
+    "@capacitor/cli": "^7.6.10",
     "@hugeicons/core-free-icons": "^4.4.0",
     "playwright": "^1.55.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/core": "^7.6.10"
   }
 }

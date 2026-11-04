@@ -3,3 +3,7 @@ media/raw/output.log
 shots/
 *-BRIEF.md
 node_modules/
+www
+android/app/src/main/assets/public
+android/app/build
+android/.gradle

@@ -52,10 +52,9 @@ async function page(browser, init, arg) {
   const browser = await chromium.launch();
   try {
     // 2. With an apiBase, every server call goes there, even from file:// or an app WebView.
-    let p = await page(browser, (api) => { window.ACOMPANA_CONFIG = { apiBase: api }; }, API);
+    let p = await page(browser, (api) => { window.ACOMPANA_CONFIG = { apiBase: api }; localStorage.setItem('acompana-ai-consent', 'yes'); }, API);
     await p.waitForTimeout(500);
     assert.ok(p.calls.some((url) => url.startsWith(API + '/api/sync')), 'sync polls the configured server: ' + p.calls.join(', '));
-    await p.evaluate(() => localStorage.setItem('acompana-ai-consent', 'yes'));
     await p.locator('.view.is-active [data-demo-menu]').first().click();
     await p.locator('.view.is-active [data-view-as="familia"]').click();
     await p.waitForTimeout(500);

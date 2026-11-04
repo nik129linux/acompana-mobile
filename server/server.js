@@ -13,9 +13,23 @@ const path = require('path');
 const os = require('os');
 const ai = require('./ai');
 
-const PORT = 8787;
+const PORT = Number(process.env.PORT) || 8787;
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT = path.join(__dirname, '..');
+
+// AI endpoints cost a model call, so they are capped per client IP.
+const AI_RATE_PER_MIN = Number(process.env.AI_RATE_PER_MIN) || 30;
+const AI_RATE_WINDOW_MS = 60 * 1000;
+const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event'];
+
+function clientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = String(forwarded).split(',')[0].trim();
+    if (first) return first;
+  }
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
+}
 
 // Static files allowed to be served from the repo root. Anything outside
 // this set (server/, tests/, .git, *.md, path traversal) is 404.
@@ -902,6 +916,22 @@ function readBody(req) {
 }
 
 function createRequestHandler(client) {
+  // Rolling one-minute window of AI calls per client IP (in memory).
+  const aiHits = new Map();
+
+  function isRateLimited(req) {
+    const now = Date.now();
+    const ip = clientIp(req);
+    const recent = (aiHits.get(ip) || []).filter((at) => now - at < AI_RATE_WINDOW_MS);
+    if (recent.length >= AI_RATE_PER_MIN) {
+      aiHits.set(ip, recent);
+      return true;
+    }
+    recent.push(now);
+    aiHits.set(ip, recent);
+    return false;
+  }
+
   return async function (req, res) {
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
@@ -913,6 +943,10 @@ function createRequestHandler(client) {
       return;
     }
     const url = new URL(req.url || '/', 'http://localhost');
+    if (AI_RATE_PATHS.includes(url.pathname) && isRateLimited(req)) {
+      sendJson(res, 429, { ok: false, error: 'rate limited' });
+      return;
+    }
     try {
       if (req.method === 'GET' && url.pathname === '/api/health') {
         let model = null;

@@ -1504,10 +1504,14 @@
   // server. Model calls run ONLY on an explicit tap, with a 12s timeout,
   // and falls back silently to the on-device template. A badge always
   // shows which source produced the text: Bloub, by its clip.
-  var AI_BASE =
-    (location.protocol === 'http:' || location.protocol === 'https:')
+  // Server address set at build time (js/config.js); empty means no server.
+  var CONFIGURED_API = (window.ACOMPANA_CONFIG && typeof window.ACOMPANA_CONFIG.apiBase === 'string')
+    ? window.ACOMPANA_CONFIG.apiBase.trim().replace(/\/+$/, '')
+    : '';
+  var AI_BASE = CONFIGURED_API ||
+    ((location.protocol === 'http:' || location.protocol === 'https:')
       ? location.origin
-      : 'http://127.0.0.1:8787';
+      : 'http://127.0.0.1:8787');
   var AI_TIMEOUT_MS = 12000; // cloud gemma; the server gives up at 10s
   var HANDOVER_MAX = 200;
   var ASK_MAX = 220;
@@ -1948,7 +1952,8 @@
 
   // ---- Shared shift: push local events, poll /api/sync, in-app chat ----
   function canSync() {
-    return location.protocol === 'http:' || location.protocol === 'https:';
+    return CONFIGURED_API !== '' ||
+      location.protocol === 'http:' || location.protocol === 'https:';
   }
 
   var snackTimer = null;
@@ -2505,7 +2510,7 @@
   views.ctx.sheets = views.sheets;
 
   function init() {
-    if ('serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
+    if (!window.Capacitor && 'serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
       navigator.serviceWorker.register('/sw.js').catch(function () {});
     }
     ensureVideoObserver();
