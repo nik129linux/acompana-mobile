@@ -7,3 +7,7 @@ www
 android/app/src/main/assets/public
 android/app/build
 android/.gradle
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfplan
