@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: acompana-api
+    runtime: node
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: OLLAMA_API_KEY
+        sync: false
