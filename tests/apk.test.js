@@ -172,12 +172,32 @@ async function page(browser, init, arg) {
   }
   ok('server: $PORT honoured, AI endpoints limited to 30 per minute per IP');
 
-  // 10. A hosting blueprint for the server, the key stays out of the repo.
-  const blueprint = read('render.yaml');
-  ['type: web', 'node server/server.js', 'healthCheckPath: /api/health', 'OLLAMA_API_KEY', 'sync: false'].forEach((needle) => {
-    assert.ok(blueprint.includes(needle), 'render.yaml mentions ' + needle);
+  // 10. Railway runs the server with `npm start`; the key and the URL stay out of the repo.
+  const scripts = JSON.parse(read('package.json')).scripts || {};
+  assert.strictEqual(scripts.start, 'node server/server.js', 'npm start runs the server');
+  assert.ok(!exists('render.yaml'), 'no leftover Render blueprint');
+  const readme = read('README.md');
+  ['Railway', 'OLLAMA_API_KEY', 'ACOMPANA_API_BASE', '/api/health'].forEach((needle) => {
+    assert.ok(readme.includes(needle), 'README explains ' + needle);
   });
-  ok('deploy: render.yaml blueprint');
+  ok('deploy: npm start for Railway, README steps');
+
+  // 11. Behind Railway's proxy the client cannot dodge the limit by forging x-forwarded-for.
+  const limited = srv.createServer(null);
+  await new Promise((r) => limited.listen(0, '127.0.0.1', r));
+  const forged = (i) => new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port: limited.address().port, path: '/api/ask', method: 'POST', headers: { 'x-forwarded-for': '203.0.113.' + i + ', 198.51.100.7' } }, (res) => { res.resume(); resolve(res.statusCode); });
+    req.on('error', reject);
+    req.end(JSON.stringify({ question: 'hola', facts: ['x'] }));
+  });
+  try {
+    const codes = [];
+    for (let i = 0; i < 31; i += 1) codes.push(await forged(i));
+    assert.strictEqual(codes[30], 429, 'a forged first hop does not reset the limit');
+  } finally {
+    limited.close();
+  }
+  ok('server: the limit keys on the proxy-added client address');
 
   console.log('apk: PASS (' + passed + ' tests)');
 })().catch((error) => {

@@ -1,5 +1,5 @@
 {
-  "name": "mobile",
+  "name": "acompana-mobile",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -7,22 +7,23 @@
     "test": "tests"
   },
   "scripts": {
+    "start": "node server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:www": "node tools/build-www.js",
     "cap:sync": "npm run build:www && npx cap sync android"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nik129linux/handwatch-mobile.git"
+    "url": "git+https://github.com/nik129linux/acompana-mobile.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/nik129linux/handwatch-mobile/issues"
+    "url": "https://github.com/nik129linux/acompana-mobile/issues"
   },
-  "homepage": "https://github.com/nik129linux/handwatch-mobile#readme",
+  "homepage": "https://github.com/nik129linux/acompana-mobile#readme",
   "devDependencies": {
     "@capacitor/cli": "^7.6.10",
     "@hugeicons/core-free-icons": "^4.4.0",

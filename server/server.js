@@ -22,11 +22,13 @@ const AI_RATE_PER_MIN = Number(process.env.AI_RATE_PER_MIN) || 30;
 const AI_RATE_WINDOW_MS = 60 * 1000;
 const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event'];
 
+// The hosting proxy appends the real client address last; earlier entries
+// come from the client and can be forged.
 function clientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
   if (forwarded) {
-    const first = String(forwarded).split(',')[0].trim();
-    if (first) return first;
+    const last = String(forwarded).split(',').pop().trim();
+    if (last) return last;
   }
   return (req.socket && req.socket.remoteAddress) || 'unknown';
 }
