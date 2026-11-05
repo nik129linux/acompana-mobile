@@ -3,19 +3,23 @@
 # Rendered by Terraform templatefile(); $${...} escapes shell variables.
 set -euxo pipefail
 
+# Downloads retry: a reset connection on the first boot left the instance half built.
+fetch() { curl -fsSL --retry 6 --retry-delay 5 --retry-all-errors "$@"; }
+
 # Node 22 from the official tarball (the distro package lags behind).
 NODE_DIR=/opt/node
 mkdir -p "$NODE_DIR"
-NODE_TAR=$(curl -fsSL https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | awk '/linux-x64.tar.xz$/ {print $2}')
-curl -fsSL "https://nodejs.org/dist/latest-v22.x/$${NODE_TAR}" | tar -xJ -C "$NODE_DIR" --strip-components=1
+NODE_TAR=$(fetch https://nodejs.org/dist/latest-v22.x/SHASUMS256.txt | awk '/linux-x64.tar.xz$/ {print $2}')
+fetch -o /var/tmp/node.tar.xz "https://nodejs.org/dist/latest-v22.x/$${NODE_TAR}"
+tar -xJf /var/tmp/node.tar.xz -C "$NODE_DIR" --strip-components=1
 
 # Caddy single binary from the official download endpoint.
-curl -fsSL "https://caddyserver.com/api/download?os=linux&arch=amd64" -o /usr/local/bin/caddy
+fetch -o /usr/local/bin/caddy "https://caddyserver.com/api/download?os=linux&arch=amd64"
 chmod +x /usr/local/bin/caddy
 
 dnf install -y git
 useradd --system --home /opt/acompana --shell /sbin/nologin acompana || true
-git clone --depth 1 ${repo_url} /opt/acompana/app
+[ -d /opt/acompana/app/.git ] || git clone --depth 1 ${repo_url} /opt/acompana/app
 chown -R acompana:acompana /opt/acompana
 
 # The key is read at every start, so setting or rotating it only needs a restart.
