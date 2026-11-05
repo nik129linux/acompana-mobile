@@ -475,6 +475,44 @@
     return layerOrder.length ? layerOrder[layerOrder.length - 1] : null;
   }
 
+  var nativeApp = null;
+  var lastBackPress = 0;
+
+  function handleNativeBack() {
+    if (app.errorLayer.classList.contains('is-open')) {
+      hideFailure();
+      return;
+    }
+    if (app.celebrationLayer.classList.contains('is-visible')) {
+      hideCompletion();
+      return;
+    }
+    if (layerOrder.length) {
+      history.back();
+      return;
+    }
+    if (state.familyChatOpen) {
+      state.familyChatOpen = false;
+      renderRoute('back', true);
+      return;
+    }
+    if (state.activeNav[state.role] !== HOME_NAV[state.role]) {
+      state.activeNav[state.role] = HOME_NAV[state.role];
+      state.familyChatOpen = false;
+      state.detailPatient = null;
+      if (state.role === 'enfermero') closeRegistrationSheet(false);
+      renderRoute('back');
+      return;
+    }
+    var now = Date.now();
+    if (now - lastBackPress < 2000) {
+      if (nativeApp && typeof nativeApp.exitApp === 'function') nativeApp.exitApp();
+      return;
+    }
+    lastBackPress = now;
+    showSnack(t('Toca atrás otra vez para salir'));
+  }
+
   function isConfirmed(taskId) {
     return Boolean(state.confirmed[taskId]);
   }
@@ -2510,6 +2548,12 @@
   views.ctx.sheets = views.sheets;
 
   function init() {
+    if (window.Capacitor) {
+      nativeApp = window.Capacitor.registerPlugin
+        ? window.Capacitor.registerPlugin('App')
+        : window.Capacitor.Plugins.App;
+      if (nativeApp && typeof nativeApp.addListener === 'function') nativeApp.addListener('backButton', handleNativeBack);
+    }
     if (!window.Capacitor && 'serviceWorker' in navigator && (location.protocol === 'http:' || location.protocol === 'https:')) {
       navigator.serviceWorker.register('/sw.js').catch(function () {});
     }

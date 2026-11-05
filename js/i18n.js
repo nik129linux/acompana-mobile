@@ -328,7 +328,8 @@
     'Tratamiento de la mañana cumplido.': 'Morning treatment done.',
     'Tratamiento de la mañana en curso.': 'Morning treatment in progress.',
     'El equipo está con {pronoun}, sin novedad que reportar.': 'The team is with {pronoun}, nothing new to report.',
-    'La enfermera vuelve a la 1:00 p. m.': 'The nurse comes back at 1:00 PM.'
+    'La enfermera vuelve a la 1:00 p. m.': 'The nurse comes back at 1:00 PM.',
+    'Toca atrás otra vez para salir': 'Press back again to exit'
   };
 
   function saved() {
