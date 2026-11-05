@@ -22,6 +22,90 @@ const AI_RATE_PER_MIN = Number(process.env.AI_RATE_PER_MIN) || 30;
 const AI_RATE_WINDOW_MS = 60 * 1000;
 const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event'];
 
+// Abuse protection for the public deploy. Limits are read at call time so the
+// environment (and tests) can change them without a code edit.
+const AI_DAILY_LIMIT_DEFAULT = 100;
+const WRITE_PATHS = ['/api/chat', '/api/events', '/api/events/delete', '/api/questions/resolve'];
+const STORE_MAX = 500;
+const QUESTIONS_MAX = 200;
+// Dev default also accepts file:// pages (Origin "null"); production sets ALLOWED_ORIGINS.
+const DEV_ORIGINS = 'https://localhost,capacitor://localhost,http://localhost,null';
+
+function aiDailyLimit() {
+  return Number(process.env.AI_DAILY_LIMIT) || AI_DAILY_LIMIT_DEFAULT;
+}
+
+function writeRatePerMin() {
+  return Number(process.env.WRITE_RATE_PER_MIN) || 60;
+}
+
+// Every model call spends from one daily budget; past it, callers fall back to rules.
+const aiBudget = { day: '', used: 0 };
+
+function takeAiBudget() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (aiBudget.day !== today) {
+    aiBudget.day = today;
+    aiBudget.used = 0;
+  }
+  if (aiBudget.used >= aiDailyLimit()) return false;
+  aiBudget.used += 1;
+  return true;
+}
+
+function generateWithinBudget(client, model, prompt) {
+  if (!takeAiBudget()) return Promise.reject(new Error('ai daily budget spent'));
+  return ai.generateJson(client, model, prompt);
+}
+
+function allowedOrigins() {
+  return (process.env.ALLOWED_ORIGINS || DEV_ORIGINS).split(',').map((item) => item.trim()).filter(Boolean);
+}
+
+// No Origin header (curl, server to server) is allowed: CORS only guards browsers.
+// The page this server itself serves is always allowed.
+function originAllowed(req) {
+  const origin = req && req.headers && req.headers.origin;
+  if (!origin) return true;
+  const host = req.headers.host;
+  if (host && (origin === 'http://' + host || origin === 'https://' + host)) return true;
+  return allowedOrigins().includes(origin);
+}
+
+function corsHeaders(req) {
+  const origin = req && req.headers && req.headers.origin;
+  if (!origin || !originAllowed(req)) return { Vary: 'Origin' };
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    Vary: 'Origin'
+  };
+}
+
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "media-src 'self'",
+    "font-src 'self'",
+    "connect-src 'self'",
+    "manifest-src 'self'",
+    "worker-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'"
+  ].join('; '),
+  'Strict-Transport-Security': 'max-age=31536000',
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Permissions-Policy': 'camera=(), geolocation=(), microphone=(self)'
+};
+
 // The hosting proxy appends the real client address last; earlier entries
 // come from the client and can be forged.
 function clientIp(req) {
@@ -84,7 +168,7 @@ function serveStatic(res, pathname) {
   var ext = path.extname(resolved).toLowerCase();
   var type = CONTENT_TYPES[ext] || 'application/octet-stream';
   var body = fs.readFileSync(resolved);
-  res.writeHead(200, { 'Content-Type': type, 'Content-Length': body.length });
+  res.writeHead(200, Object.assign({ 'Content-Type': type, 'Content-Length': body.length }, SECURITY_HEADERS));
   res.end(body);
 }
 const MAX_BODY_BYTES = 256 * 1024;
@@ -155,7 +239,7 @@ async function handleEvent(text, ollamaClient, lang) {
   try {
     const model = await ai.activeModel(ollamaClient);
     if (!model) return classifyEventRules(safeText);
-    const draft = await ai.generateJson(ollamaClient, model, EVENT_PROMPT[langOf(lang)] + JSON.stringify({ text: safeText }));
+    const draft = await generateWithinBudget(ollamaClient, model, EVENT_PROMPT[langOf(lang)] + JSON.stringify({ text: safeText }));
     if (!validEventDraft(draft)) return classifyEventRules(safeText);
     const ok = isGrounded(draft.text, safeText, []);
     if (!ok) return classifyEventRules(safeText);
@@ -592,6 +676,7 @@ function addNurseQuestion(question) {
     status: 'open'
   };
   nurseQuestions.push(item);
+  if (nurseQuestions.length > QUESTIONS_MAX) nurseQuestions = nurseQuestions.slice(-QUESTIONS_MAX);
   return item;
 }
 
@@ -632,6 +717,7 @@ function addSharedEvent(body) {
     seq: ++sharedSeq
   };
   sharedEvents.push(event);
+  if (sharedEvents.length > STORE_MAX) sharedEvents = sharedEvents.slice(-STORE_MAX);
   return event;
 }
 
@@ -641,6 +727,7 @@ function deleteSharedEvent(id) {
   sharedEvents.splice(index, 1);
   sharedSeq += 1;
   sharedDeleted.push({ id: String(id), seq: sharedSeq });
+  if (sharedDeleted.length > STORE_MAX) sharedDeleted = sharedDeleted.slice(-STORE_MAX);
   return true;
 }
 
@@ -664,6 +751,7 @@ function addChatMessage(body) {
     seq: ++sharedSeq
   };
   sharedMessages.push(message);
+  if (sharedMessages.length > STORE_MAX) sharedMessages = sharedMessages.slice(-STORE_MAX);
   return message;
 }
 
@@ -714,7 +802,7 @@ async function handleHandover(events, ollamaClient, lang) {
     if (!model) return { ...rules, source: 'rules', model: null };
     const payload = buildHandoverPayload(list, lang);
     const prompt = 'You draft a nursing shift handover (SBAR) ' + HANDOVER_VOICE[langOf(lang)] + '.' + HANDOVER_PROMPT;
-    const draft = await ai.generateJson(ollamaClient, model, prompt + JSON.stringify(payload));
+    const draft = await generateWithinBudget(ollamaClient, model, prompt + JSON.stringify(payload));
     if (!validHandoverDraft(draft)) return { ...rules, source: 'rules', model: null };
     const ok = ['s', 'b', 'a', 'r'].every((k) => isGrounded(draft[k], source, extras));
     if (!ok || !truthfulHandover(draft, list)) return { ...rules, source: 'rules', model: null };
@@ -739,7 +827,7 @@ async function handleAsk(question, facts, ollamaClient, lang) {
       if (model) {
         const payload = buildAskPayload(question, list, lang);
         const prompt = 'You answer a hospital patient family question in ' + ASK_VOICE[langOf(lang)] + ASK_PROMPT;
-        const out = await ai.generateJson(ollamaClient, model, prompt + JSON.stringify(payload));
+        const out = await generateWithinBudget(ollamaClient, model, prompt + JSON.stringify(payload));
         if (out && validAskAnswer(out.answer, source)) {
           return { answer: out.answer.trim(), source: 'ollama', model, createdQuestion: false };
         }
@@ -875,7 +963,7 @@ async function handleTranslate(event, reader, ollamaClient, lang) {
     if (!model) return rules;
     const payload = buildTranslatePayload(event, reader, lang);
     const prompt = TRANSLATE_PROMPT[langOf(lang)] + TRANSLATE_RULES;
-    const draft = await ai.generateJson(ollamaClient, model, prompt + JSON.stringify(payload));
+    const draft = await generateWithinBudget(ollamaClient, model, prompt + JSON.stringify(payload));
     if (!draft || !validTranslateText(draft.text, event && event.text)) return rules;
     return { text: draft.text.trim(), source: 'ollama', model };
   } catch (_) {
@@ -889,13 +977,10 @@ async function handleTranslate(event, reader, ollamaClient, lang) {
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
-  res.writeHead(status, {
+  res.writeHead(status, Object.assign({
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
     'Content-Length': Buffer.byteLength(data)
-  });
+  }, corsHeaders(res.req), SECURITY_HEADERS));
   res.end(data);
 }
 
@@ -917,35 +1002,41 @@ function readBody(req) {
   });
 }
 
-function createRequestHandler(client) {
-  // Rolling one-minute window of AI calls per client IP (in memory).
-  const aiHits = new Map();
-
-  function isRateLimited(req) {
+// Rolling one-minute window per client IP (in memory, one instance).
+function makeLimiter(perMinute) {
+  const hits = new Map();
+  return function isLimited(req) {
     const now = Date.now();
     const ip = clientIp(req);
-    const recent = (aiHits.get(ip) || []).filter((at) => now - at < AI_RATE_WINDOW_MS);
-    if (recent.length >= AI_RATE_PER_MIN) {
-      aiHits.set(ip, recent);
-      return true;
-    }
-    recent.push(now);
-    aiHits.set(ip, recent);
-    return false;
-  }
+    const recent = (hits.get(ip) || []).filter((at) => now - at < AI_RATE_WINDOW_MS);
+    const limited = recent.length >= perMinute();
+    if (!limited) recent.push(now);
+    if (recent.length) hits.set(ip, recent);
+    else hits.delete(ip);
+    return limited;
+  };
+}
+
+function createRequestHandler(client) {
+  const isRateLimited = makeLimiter(() => AI_RATE_PER_MIN);
+  const isWriteLimited = makeLimiter(writeRatePerMin);
 
   return async function (req, res) {
     if (req.method === 'OPTIONS') {
-      res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
+      res.writeHead(originAllowed(req) ? 204 : 403, Object.assign(corsHeaders(req), SECURITY_HEADERS));
       res.end();
       return;
     }
     const url = new URL(req.url || '/', 'http://localhost');
+    if (url.pathname.startsWith('/api/') && !originAllowed(req)) {
+      sendJson(res, 403, { ok: false, error: 'origin not allowed' });
+      return;
+    }
     if (AI_RATE_PATHS.includes(url.pathname) && isRateLimited(req)) {
+      sendJson(res, 429, { ok: false, error: 'rate limited' });
+      return;
+    }
+    if (WRITE_PATHS.includes(url.pathname) && isWriteLimited(req)) {
       sendJson(res, 429, { ok: false, error: 'rate limited' });
       return;
     }
@@ -960,7 +1051,8 @@ function createRequestHandler(client) {
         sendJson(res, 200, {
           ok: true,
           service: 'nursing-prototype',
-          ollama: { reachable: Boolean(model), model }
+          ollama: { reachable: Boolean(model), model },
+          aiBudget: { used: aiBudget.day === new Date().toISOString().slice(0, 10) ? aiBudget.used : 0, limit: aiDailyLimit() }
         });
         return;
       }
@@ -1103,6 +1195,7 @@ if (require.main === module) {
 module.exports = {
   HOST,
   PORT,
+  AI_DAILY_LIMIT_DEFAULT,
   HANDOVER_MAX,
   ASK_MAX,
   SAFE_MESSAGE,

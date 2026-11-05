@@ -29,6 +29,9 @@ set -euo pipefail
 KEY=$(aws ssm get-parameter --region ${region} --name ${key_parameter} --with-decryption --query Parameter.Value --output text 2>/dev/null || true)
 if [ -n "$KEY" ] && [ "$KEY" != "None" ]; then export OLLAMA_API_KEY="$KEY"; fi
 export PORT=8787 HOST=127.0.0.1
+# Abuse limits: 100 model calls a day in total, and only the app may call from a browser.
+export AI_DAILY_LIMIT=100
+export ALLOWED_ORIGINS="https://localhost,capacitor://localhost"
 exec /opt/node/bin/node /opt/acompana/app/server/server.js
 RUN
 chmod 750 /opt/acompana/run.sh
