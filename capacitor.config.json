@@ -1,5 +1,8 @@
 {
   "appId": "co.edu.ucc.acompana",
   "appName": "Acompaña",
-  "webDir": "www"
+  "webDir": "www",
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force"
+  }
 }

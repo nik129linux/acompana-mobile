@@ -643,3 +643,20 @@
   border-radius: 50%;
   background: var(--on-primary);
 }
+
+/* A focused field shows one ring: the rounded box. The text area inside it drew
+   its own square outline, which read as a stray blue box on the phone. */
+.field-box input:focus-visible,
+.field-box textarea:focus-visible,
+.handover-field .field-box textarea:focus-visible,
+.field-box .other-text-input:focus-visible { outline: none; }
+
+.field-box:focus-within {
+  border-color: var(--nurse);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nurse) 22%, transparent);
+}
+
+/* The chat shortcut floats clear of the bottom nav and the raised "+", and the
+   toast rises above it so its undo button is never covered. */
+.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] { top: -80px; }
+.snackbar { bottom: calc(var(--nav-height) + var(--space-6) * 3 + var(--space-4)); }
