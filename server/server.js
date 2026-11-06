@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const ai = require('./ai');
+const retoma = require('./retoma');
 
 const PORT = Number(process.env.PORT) || 8787;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -20,7 +21,7 @@ const ROOT = path.join(__dirname, '..');
 // AI endpoints cost a model call, so they are capped per client IP.
 const AI_RATE_PER_MIN = Number(process.env.AI_RATE_PER_MIN) || 30;
 const AI_RATE_WINDOW_MS = 60 * 1000;
-const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event'];
+const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event', '/api/retoma/resume-line', '/api/retoma/propose'];
 
 // Abuse protection for the public deploy. Limits are read at call time so the
 // environment (and tests) can change them without a code edit.
@@ -1109,6 +1110,20 @@ function createRequestHandler(client) {
         if (!text) { sendJson(res, 400, { ok: false, error: 'empty text' }); return; }
         if (text.length > 600) { sendJson(res, 400, { ok: false, error: 'text too long' }); return; }
         const result = await handleEvent(text, client, body.lang);
+        sendJson(res, 200, result);
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/retoma/resume-line') {
+        const body = JSON.parse(await readBody(req));
+        const result = await retoma.handleResumeLine(body, client, generateWithinBudget);
+        if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
+        sendJson(res, 200, result);
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/retoma/propose') {
+        const body = JSON.parse(await readBody(req));
+        const result = await retoma.handlePropose(body, client, generateWithinBudget);
+        if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
         sendJson(res, 200, result);
         return;
       }
