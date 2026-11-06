@@ -22,7 +22,7 @@ const ROOT = path.join(__dirname, '..');
 // AI endpoints cost a model call, so they are capped per client IP.
 const AI_RATE_PER_MIN = Number(process.env.AI_RATE_PER_MIN) || 30;
 const AI_RATE_WINDOW_MS = 60 * 1000;
-const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event', '/api/retoma/resume-line', '/api/retoma/propose'];
+const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event', '/api/retoma/resume-line', '/api/retoma/propose', '/api/retoma/habits', '/api/retoma/ask'];
 
 // Abuse protection for the public deploy. Limits are read at call time so the
 // environment (and tests) can change them without a code edit.
@@ -997,11 +997,25 @@ async function handleTranslate(event, reader, ollamaClient, lang) {
 
 function sendJson(res, status, body) {
   const data = JSON.stringify(body);
-  res.writeHead(status, Object.assign({
+  const headers = Object.assign({
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(data)
-  }, corsHeaders(res.req), SECURITY_HEADERS));
+  }, corsHeaders(res.req), SECURITY_HEADERS);
+  // AI paths carry their remaining daily quota, on 200, 400 and 429 alike.
+  if (res.quotaLimit !== undefined) {
+    headers['X-Quota-Left'] = String(res.quotaLeft);
+    headers['X-Quota-Limit'] = String(res.quotaLimit);
+    headers['Access-Control-Expose-Headers'] = 'X-Quota-Left, X-Quota-Limit';
+  }
+  res.writeHead(status, headers);
   res.end(data);
+}
+
+// Retoma routes also repeat the quota in the body, for the desktop UI.
+function withQuota(result, res) {
+  result.quotaLeft = res.quotaLeft;
+  result.quotaLimit = res.quotaLimit;
+  return result;
 }
 
 function readBody(req) {
@@ -1038,18 +1052,39 @@ function makeLimiter(perMinute) {
 }
 
 // Daily AI calls per client IP; the map resets when the UTC day changes.
+// Also exposes what is left for that IP so every AI response can show it.
 function makeDailyLimiter(perDay) {
   let day = '';
   let hits = new Map();
-  return function isLimited(req) {
-    const today = new Date().toISOString().slice(0, 10);
-    if (day !== today) { day = today; hits = new Map(); }
-    const ip = clientIp(req);
-    const used = hits.get(ip) || 0;
-    if (used >= perDay()) return true;
-    hits.set(ip, used + 1);
-    return false;
-  };
+
+  function today() {
+    const value = new Date().toISOString().slice(0, 10);
+    if (day !== value) { day = value; hits = new Map(); }
+    return value;
+  }
+
+  function peek(req) {
+    today();
+    const limit = perDay();
+    const used = hits.get(clientIp(req)) || 0;
+    return { left: Math.max(0, limit - used), limit };
+  }
+
+  function take(req) {
+    const quota = peek(req);
+    if (quota.left <= 0) return { limited: true, left: 0, limit: quota.limit };
+    const used = hits.get(clientIp(req)) || 0;
+    hits.set(clientIp(req), used + 1);
+    return { limited: false, left: Math.max(0, quota.limit - (used + 1)), limit: quota.limit };
+  }
+
+  function isLimited(req) {
+    return take(req).limited;
+  }
+
+  isLimited.take = take;
+  isLimited.peek = peek;
+  return isLimited;
 }
 
 function createRequestHandler(client) {
@@ -1073,9 +1108,23 @@ function createRequestHandler(client) {
       sendJson(res, 401, { ok: false, error: 'app key required' });
       return;
     }
-    if (AI_RATE_PATHS.includes(url.pathname) && (isRateLimited(req) || isDailyLimited(req))) {
-      sendJson(res, 429, { ok: false, error: 'rate limited' });
-      return;
+    if (AI_RATE_PATHS.includes(url.pathname)) {
+      const spent = isDailyLimited.peek(req);
+      // Every AI response shows how many daily calls this IP has left.
+      res.quotaLeft = spent.left;
+      res.quotaLimit = spent.limit;
+      if (isRateLimited(req)) {
+        // Per-minute cap: the daily count is untouched, so report it as is.
+        sendJson(res, 429, { ok: false, error: 'rate limited', quotaLeft: spent.left, quotaLimit: spent.limit });
+        return;
+      }
+      const quota = isDailyLimited.take(req);
+      res.quotaLeft = quota.left;
+      res.quotaLimit = quota.limit;
+      if (quota.limited) {
+        sendJson(res, 429, { ok: false, error: 'rate limited', quotaLeft: 0, quotaLimit: quota.limit });
+        return;
+      }
     }
     if (WRITE_PATHS.includes(url.pathname) && isWriteLimited(req)) {
       sendJson(res, 429, { ok: false, error: 'rate limited' });
@@ -1157,14 +1206,28 @@ function createRequestHandler(client) {
         const body = JSON.parse(await readBody(req));
         const result = await retoma.handleResumeLine(body, client, generateWithinBudget);
         if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
-        sendJson(res, 200, result);
+        sendJson(res, 200, withQuota(result, res));
         return;
       }
       if (req.method === 'POST' && url.pathname === '/api/retoma/propose') {
         const body = JSON.parse(await readBody(req));
         const result = await retoma.handlePropose(body, client, generateWithinBudget);
         if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
-        sendJson(res, 200, result);
+        sendJson(res, 200, withQuota(result, res));
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/retoma/habits') {
+        const body = JSON.parse(await readBody(req));
+        const result = await retoma.handleHabits(body, client, generateWithinBudget);
+        if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
+        sendJson(res, 200, withQuota(result, res));
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/retoma/ask') {
+        const body = JSON.parse(await readBody(req));
+        const result = await retoma.handleAsk(body, client, generateWithinBudget);
+        if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
+        sendJson(res, 200, withQuota(result, res));
         return;
       }
       if (req.method === 'POST' && url.pathname === '/api/events') {
@@ -1278,6 +1341,7 @@ module.exports = {
   addChatMessage,
   sharedSnapshot,
   resetShared,
+  makeDailyLimiter,
   createRequestHandler,
   handleHandover,
   handleAsk,

@@ -18,6 +18,24 @@ const REASON_MAX = 140;
 const PER_APP_MAX = 20;
 const MINUTES_MIN = 15;
 const MINUTES_MAX = 180;
+const METRIC_APP_MAX = 60;
+const HABIT_NOTE_MIN = 1;
+const HABIT_NOTE_MAX = 400;
+const HABIT_TEXT_MAX = 200;
+const HABIT_MINUTES_MIN = 5;
+const HABIT_MINUTES_MAX = 120;
+const ANSWER_MAX = 240;
+const QUESTION_MAX = 200;
+// Only these aggregates may reach a habit/ask prompt; titles and notes never do.
+const METRIC_NUMBER_KEYS = [
+  'totalMinutes', 'count', 'median', 'countLong', 'switchesPerHour',
+  'distractionMinutes', 'distractionPct', 'distractionShare', 'breakCount',
+  'medianGap', 'longestGap'
+];
+const METRIC_APP_KEYS = ['topDistraction', 'mostUsedApp'];
+const HABIT_METRICS = ['switchesPerHour', 'longest', 'lateNight', 'distractionShare'];
+const HABIT_TEXT_RE = /^After .+, I will .+ for \d+ min\.?$/;
+const HABIT_TEXT_ES_RE = /^Después de .+, (voy a|haré) .+ (por|durante) \d+ min\.?$/;
 
 // Same judging language the desktop refuses to show.
 const JUDGE_RE = /productiv|distract|score|lazy|wasted|productividad|distra[ií]d|puntaje|perezos/i;
@@ -83,6 +101,76 @@ function cleanInterruption(raw) {
   return { app, at: clip(raw.at, 10) };
 }
 
+function finiteNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim()) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function cleanMetricApp(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const app = clip(raw.app, METRIC_APP_MAX);
+  const minutes = finiteNumber(raw.minutes);
+  if (!app || minutes === null || minutes < 0) return null;
+  return { app, minutes };
+}
+
+function cleanTrend(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const trend = {};
+  ['days', 'current', 'previous', 'delta'].forEach((key) => {
+    const n = finiteNumber(raw[key]);
+    if (n !== null) trend[key] = n;
+  });
+  const direction = clip(raw.direction, METRIC_APP_MAX);
+  if (direction) trend.direction = direction;
+  return Object.keys(trend).length ? trend : null;
+}
+
+function metricTime(value) {
+  if (typeof value !== 'string') return null;
+  const time = value.trim();
+  return START_RE.test(time) ? time : null;
+}
+
+// Whitelist of usage aggregates: only known keys survive, numbers must be
+// finite, strings are clipped to 60, perApp is capped to 20 apps. A missing
+// or empty perApp is the one hard failure (the route answers 400 for it).
+function cleanMetrics(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const perAppRaw = raw.perApp;
+  if (!perAppRaw || typeof perAppRaw !== 'object' || Array.isArray(perAppRaw)) return null;
+  const perApp = {};
+  Object.keys(perAppRaw).slice(0, PER_APP_MAX).forEach((key) => {
+    const app = clip(key, METRIC_APP_MAX);
+    const minutes = finiteNumber(perAppRaw[key]);
+    if (app && minutes !== null && minutes >= 0) perApp[app] = minutes;
+  });
+  if (!Object.keys(perApp).length) return null;
+  const out = { perApp };
+  METRIC_NUMBER_KEYS.forEach((key) => {
+    const n = finiteNumber(raw[key]);
+    if (n !== null) out[key] = n;
+  });
+  METRIC_APP_KEYS.forEach((key) => {
+    const app = clip(raw[key], METRIC_APP_MAX);
+    if (app) out[key] = app;
+  });
+  const longest = cleanMetricApp(raw.longest);
+  if (longest) out.longest = longest;
+  const firstAt = metricTime(raw.firstAt);
+  if (firstAt) out.firstAt = firstAt;
+  const lastAt = metricTime(raw.lastAt);
+  if (lastAt) out.lastAt = lastAt;
+  if (typeof raw.lateNight === 'boolean') out.lateNight = raw.lateNight;
+  const trend = cleanTrend(raw.trend);
+  if (trend) out.trend = trend;
+  return out;
+}
+
 // Resume line: one line, names the app, speaks to you, no judging words.
 function validResumeLine(line, app) {
   if (typeof line !== 'string') return false;
@@ -108,6 +196,72 @@ function validProposal(proposal) {
   if (JUDGE_RE.test(reason)) return false;
   return true;
 }
+
+// Experiment: one actionable line (English or Spanish shape), short trigger,
+// action, 5-120 minutes, a known metric, and a target with a direction.
+function validExperiment(exp) {
+  if (!exp || typeof exp !== 'object' || Array.isArray(exp)) return false;
+  if (typeof exp.text !== 'string') return false;
+  const text = exp.text.trim();
+  if (!text || text.length > HABIT_TEXT_MAX) return false;
+  if (!HABIT_TEXT_RE.test(text) && !HABIT_TEXT_ES_RE.test(text)) return false;
+  if (JUDGE_RE.test(text) || THIRD_PERSON_RE.test(text)) return false;
+  if (typeof exp.trigger !== 'string' || !exp.trigger.trim()) return false;
+  if (typeof exp.action !== 'string' || !exp.action.trim()) return false;
+  if (!Number.isInteger(exp.minutes)) return false;
+  if (exp.minutes < HABIT_MINUTES_MIN || exp.minutes > HABIT_MINUTES_MAX) return false;
+  if (!HABIT_METRICS.includes(exp.metric)) return false;
+  if (typeof exp.target !== 'number' || !Number.isFinite(exp.target)) return false;
+  return exp.direction === 'atLeast' || exp.direction === 'atMost';
+}
+
+function validHabits(out) {
+  if (!out || typeof out !== 'object' || Array.isArray(out)) return false;
+  if (typeof out.note !== 'string') return false;
+  const note = out.note.trim();
+  if (note.length < HABIT_NOTE_MIN || note.length > HABIT_NOTE_MAX) return false;
+  if (JUDGE_RE.test(note) || THIRD_PERSON_RE.test(note)) return false;
+  return validExperiment(out.experiment);
+}
+
+function validAskAnswer(out) {
+  if (!out || typeof out !== 'object' || Array.isArray(out)) return false;
+  if (typeof out.answer !== 'string') return false;
+  const answer = out.answer.trim();
+  if (answer.length < 1 || answer.length > ANSWER_MAX) return false;
+  if (JUDGE_RE.test(answer) || THIRD_PERSON_RE.test(answer)) return false;
+  return true;
+}
+
+// Shape-only validation; grounding is the desktop's job.
+function cleanExperiment(exp) {
+  return {
+    text: exp.text.trim(),
+    trigger: exp.trigger.trim(),
+    action: exp.action.trim(),
+    minutes: exp.minutes,
+    metric: exp.metric,
+    target: exp.target,
+    direction: exp.direction
+  };
+}
+
+const HABITS_PROMPT =
+  'You are a supportive habit coach. Read these usage aggregates (app minutes, focus blocks, switches, breaks) ' +
+  'and reply with JSON only, exactly {"note":"max 400 chars, kind, no guilt, no medical claims",' +
+  '"experiment":{"text":"After <trigger>, I will <action> for <N min>","trigger":"<trigger>",' +
+  '"action":"<action>","minutes":N,"metric":"switchesPerHour|longest|lateNight|distractionShare",' +
+  '"target":N,"direction":"atLeast|atMost"}}. ' +
+  'minutes is a whole number from 5 to 120. ' +
+  'Never use the words productive, distraction, distracted, score, lazy or wasted, and never say "the user". ' +
+  'Cite only numbers and apps from these metrics: ';
+
+const ASK_PROMPT =
+  'Answer this question about PC usage using ONLY these aggregates. ' +
+  'Reply with JSON only, exactly {"answer":"max 240 chars"}. ' +
+  'If the metrics cannot answer it, reply {"answer":"I cannot tell from the tracked time yet. ' +
+  'Ask about your longest block, most-used app, or switches."}. ' +
+  'Never use the words productive, distraction, distracted, score, lazy or wasted, and never say "the user".';
 
 const RESUME_PROMPT = {
   es: 'Escribe una sola línea corta (8-140 caracteres) para una app de concentración, en Spanish (español), ' +
@@ -190,6 +344,54 @@ async function handlePropose(body, client, generate) {
   }
 }
 
+// The desktop also grounds the numbers; the server enforces shape and language.
+function langNote(lang) {
+  return lang === 'es' ? ' Reply in Spanish (español).' : '';
+}
+
+async function handleHabits(body, client, generate) {
+  const metrics = cleanMetrics(body && body.metrics);
+  if (!metrics) return null;
+  const lang = langOf(body && body.lang);
+  if (!client) return Object.assign({}, FALLBACK);
+  try {
+    const model = await ai.activeModel(client);
+    if (!model) return Object.assign({}, FALLBACK);
+    const prompt = HABITS_PROMPT + langNote(lang) + ' ' + JSON.stringify(metrics);
+    const out = parseModelOutput(await generate(client, model, prompt));
+    if (!out || !validHabits(out)) return Object.assign({}, FALLBACK);
+    return {
+      ok: true,
+      note: out.note.trim(),
+      experiment: cleanExperiment(out.experiment),
+      source: sourceLabel(model),
+      fallback: false
+    };
+  } catch (_) {
+    return Object.assign({}, FALLBACK);
+  }
+}
+
+async function handleAsk(body, client, generate) {
+  const metrics = cleanMetrics(body && body.metrics);
+  if (!metrics) return null;
+  if (typeof (body && body.question) !== 'string') return null;
+  const question = clip(body.question, QUESTION_MAX);
+  if (!question) return null;
+  const lang = langOf(body && body.lang);
+  if (!client) return Object.assign({}, FALLBACK);
+  try {
+    const model = await ai.activeModel(client);
+    if (!model) return Object.assign({}, FALLBACK);
+    const prompt = ASK_PROMPT + langNote(lang) + ' Question: ' + question + ' Metrics: ' + JSON.stringify(metrics);
+    const out = parseModelOutput(await generate(client, model, prompt));
+    if (!out || !validAskAnswer(out)) return Object.assign({}, FALLBACK);
+    return { ok: true, answer: out.answer.trim(), source: sourceLabel(model), fallback: false };
+  } catch (_) {
+    return Object.assign({}, FALLBACK);
+  }
+}
+
 module.exports = {
   APP_MAX,
   TITLE_MAX,
@@ -197,10 +399,25 @@ module.exports = {
   RESUME_MIN,
   RESUME_MAX,
   REASON_MAX,
+  METRIC_APP_MAX,
+  HABIT_NOTE_MIN,
+  HABIT_NOTE_MAX,
+  HABIT_TEXT_MAX,
+  HABIT_MINUTES_MIN,
+  HABIT_MINUTES_MAX,
+  ANSWER_MAX,
+  QUESTION_MAX,
+  HABIT_METRICS,
   cleanCtx,
   cleanSummary,
+  cleanMetrics,
   validResumeLine,
   validProposal,
+  validExperiment,
+  validHabits,
+  validAskAnswer,
   handleResumeLine,
-  handlePropose
+  handlePropose,
+  handleHabits,
+  handleAsk
 };
