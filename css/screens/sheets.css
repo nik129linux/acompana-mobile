@@ -11,6 +11,15 @@
 .registration-sheet {
   gap: var(--space-4);
   padding: var(--space-2) var(--space-5) var(--space-6);
+  /* When the typing field or the proposal opens (or the keyboard takes
+     height), the sheet scrolls. Without this the flex column squashed the
+     patient row, the one child allowed to shrink, and cut it in half. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.registration-sheet > * {
+  flex-shrink: 0;
 }
 
 .registration-sheet .sheet-handle,

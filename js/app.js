@@ -1404,14 +1404,65 @@
     if (note) note.textContent = t(message);
   }
 
+  // The Android WebView has no working Web Speech API (it answers
+  // "not-allowed" without ever asking for the mic). In the APK, dictation goes
+  // through the native SpeechRecognizer plugin instead, wrapped so it looks
+  // like webkitSpeechRecognition to startDictation.
+  function nativeSpeechPlugin() {
+    var cap = window.Capacitor;
+    if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return null;
+    if (cap.isPluginAvailable && !cap.isPluginAvailable('SpeechRecognition')) return null;
+    return cap.registerPlugin ? cap.registerPlugin('SpeechRecognition') : (cap.Plugins && cap.Plugins.SpeechRecognition) || null;
+  }
+
+  // Plugin rejection messages -> Web Speech error codes.
+  function nativeSpeechError(error) {
+    var text = String((error && (error.code === 'not-allowed' ? 'not-allowed' : error.message)) || error || '');
+    if (/not-allowed|permission/i.test(text)) return 'not-allowed';
+    if (/no match|no speech/i.test(text)) return 'no-speech';
+    if (/audio/i.test(text)) return 'audio-capture';
+    return 'unknown';
+  }
+
+  function NativeSpeechRecognition() {
+    this.lang = 'es-CO';
+    this.onresult = null;
+    this.onerror = null;
+    this.onend = null;
+  }
+
+  NativeSpeechRecognition.prototype.start = function () {
+    var self = this;
+    var plugin = nativeSpeechPlugin();
+    plugin.requestPermissions().then(function (status) {
+      if (!status || status.speechRecognition !== 'granted') throw { code: 'not-allowed' };
+      return plugin.start({ language: self.lang, maxResults: 1, partialResults: false, popup: false });
+    }).then(function (result) {
+      var text = result && result.matches && result.matches[0];
+      if (text && self.onresult) self.onresult({ resultIndex: 0, results: [[{ transcript: text }]] });
+      if (self.onend) self.onend();
+    }, function (error) {
+      if (self.onerror) self.onerror({ error: nativeSpeechError(error) });
+      if (self.onend) self.onend();
+    });
+  };
+
+  // Stopping makes the recognizer deliver what it heard so far.
+  NativeSpeechRecognition.prototype.stop = function () {
+    var plugin = nativeSpeechPlugin();
+    if (plugin) plugin.stop().catch(function () {});
+  };
+
   function startDictation() {
     // A second tap while listening stops and keeps what was heard.
     if (activeRecognizer) {
       activeRecognizer.stop();
       return;
     }
-    // Prefer webkitSpeechRecognition (Chrome, and the test mock).
-    var SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+    // Native recognizer in the APK; otherwise webkitSpeechRecognition
+    // (Chrome, and the test mock).
+    var SpeechRecognition = nativeSpeechPlugin() ? NativeSpeechRecognition
+      : (window.webkitSpeechRecognition || window.SpeechRecognition);
     if (!SpeechRecognition) {
       dictationFallback('Este navegador no permite dictar. Escribe el evento.');
       return;
@@ -1551,6 +1602,7 @@
       ? location.origin
       : 'http://127.0.0.1:8787');
   var AI_TIMEOUT_MS = 12000; // cloud gemma; the server gives up at 10s
+  var CONSENT_PROBE_MS = 4000; // the dry run touches no model, so a slow answer means the server is down
   var HANDOVER_MAX = 200;
   var ASK_MAX = 220;
     var REFUSAL_RE = /diagn[oó]st|pron[oó]st|c[áa]ncer|tumor|grave|morir|muerte|curar|se va a|cu[áa]nto (tiempo|falta|vive)|dosis|cu[áa]ntos?\s*(mg|ml|gramos)|qu[ée] medicamento|qu[ée] pastilla|qu[ée] droga|debo darle|le (doy|damos|puedo dar)|recomienda|aconseja|deber[íi]a tomar|resultados? (de |del )?(examen|sangre|laboratorio)|alta m[ée]dica|cu[áa]ndo sale|anestesia|cirug[íi]a|presi[óo]n arterial|fiebre|az[úu]car|diagnos|prognos|cancer|tumou?r|serious|\bdie\b|dying|death|\bcure\b|will (she|he) (get|be|recover)|how long|dose|dosage|what (medicine|medication|pill|drug)|should (i|we) give|recommend|advise|test results?|discharge|anesthesia|surgery|blood pressure|fever|sugar/i;
@@ -1572,7 +1624,7 @@
     }
   }
 
-  function aiRequest(path, body) {
+  function aiRequest(path, body, timeoutMs) {
     var controller;
     try {
       controller = new AbortController();
@@ -1585,7 +1637,7 @@
       } catch (timerError) {
         // ignore
       }
-    }, AI_TIMEOUT_MS);
+    }, timeoutMs || AI_TIMEOUT_MS);
     var options = { signal: controller.signal, headers: {} };
     var appKey = window.ACOMPANA_CONFIG && window.ACOMPANA_CONFIG.appKey;
     if (appKey) options.headers['X-App-Key'] = appKey;
@@ -1940,10 +1992,19 @@
       handoverViaServer();
       return;
     }
-    aiRequest('/api/handover', { events: dayEvents(), dryRun: true }).then(function (data) {
+    // The bar runs from the tap, not after the server answers: an unreachable
+    // server used to leave the button silent for the whole connect timeout.
+    if (!startDraft()) return;
+    var rulesDraft = function () {
+      finishDraft(function () { fillHandover(handoverRulesLocal(dayEvents()), 'rules', null); });
+    };
+    aiRequest('/api/handover', { events: dayEvents(), dryRun: true }, CONSENT_PROBE_MS).then(function (data) {
       var slot = app.aiLayer.querySelector('[data-consent-slot]');
-      if (slot && data && data.payload) slot.innerHTML = views.sheets.consentBox('handover', data.payload);
-    }, draftFromRules);
+      if (!slot || !data || !data.payload) { rulesDraft(); return; }
+      draftStartedAt = 0;
+      setDraftBusy(false);
+      slot.innerHTML = views.sheets.consentBox('handover', data.payload);
+    }, rulesDraft);
   }
 
   function handoverViaServer() {
