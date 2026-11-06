@@ -32,3 +32,9 @@ variable "key_parameter" {
   type        = string
   default     = "/acompana/ollama-api-key"
 }
+
+variable "app_key_parameter" {
+  description = "SecureString in SSM Parameter Store holding the shared app key the APK sends as X-App-Key (created by hand)"
+  type        = string
+  default     = "/acompana/app-key"
+}

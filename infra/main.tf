@@ -34,8 +34,9 @@ data "aws_vpc" "default" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  key_parameter_arn = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${var.key_parameter}"
-  domain            = "${replace(aws_eip.api.public_ip, ".", "-")}.sslip.io"
+  key_parameter_arn     = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${var.key_parameter}"
+  app_key_parameter_arn = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${var.app_key_parameter}"
+  domain                = "${replace(aws_eip.api.public_ip, ".", "-")}.sslip.io"
 }
 
 resource "aws_security_group" "api" {
@@ -85,7 +86,7 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# Only this one parameter, nothing else in Parameter Store.
+# Only these two parameters, nothing else in Parameter Store.
 resource "aws_iam_role_policy" "read_key" {
   name = "read-ollama-key"
   role = aws_iam_role.api.id
@@ -94,7 +95,7 @@ resource "aws_iam_role_policy" "read_key" {
     Statement = [{
       Effect   = "Allow"
       Action   = "ssm:GetParameter"
-      Resource = local.key_parameter_arn
+      Resource = [local.key_parameter_arn, local.app_key_parameter_arn]
     }]
   })
 }
@@ -127,10 +128,11 @@ resource "aws_instance" "api" {
   }
 
   user_data = templatefile("${path.module}/user-data.sh", {
-    domain        = local.domain
-    repo_url      = var.repo_url
-    key_parameter = var.key_parameter
-    region        = var.region
+    domain            = local.domain
+    repo_url          = var.repo_url
+    key_parameter     = var.key_parameter
+    app_key_parameter = var.app_key_parameter
+    region            = var.region
   })
   user_data_replace_on_change = true
 

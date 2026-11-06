@@ -8,6 +8,7 @@
 // no names, rooms, titles or free text. See buildHandoverPayload.
 
 const http = require('http');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -34,6 +35,24 @@ const DEV_ORIGINS = 'https://localhost,capacitor://localhost,http://localhost,nu
 
 function aiDailyLimit() {
   return Number(process.env.AI_DAILY_LIMIT) || AI_DAILY_LIMIT_DEFAULT;
+}
+
+// Shared app key (APP_KEY, sent as X-App-Key). It ships inside the APK, so it
+// stops scanners and drive-by scripts, not someone who unpacks the app.
+// Unset means open, as in dev and the file:// prototype.
+function appKeyValid(req) {
+  const expected = process.env.APP_KEY;
+  if (!expected) return true;
+  const given = String((req.headers && req.headers['x-app-key']) || '');
+  const a = crypto.createHash('sha256').update(given).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+// Per-IP share of the daily AI budget: half of it, so one client cannot spend
+// it all, while a classroom behind one Wi-Fi address still has room.
+function aiDailyPerIp() {
+  return Number(process.env.AI_DAILY_PER_IP) || 50;
 }
 
 function writeRatePerMin() {
@@ -79,7 +98,7 @@ function corsHeaders(req) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-App-Key',
     Vary: 'Origin'
   };
 }
@@ -1018,9 +1037,25 @@ function makeLimiter(perMinute) {
   };
 }
 
+// Daily AI calls per client IP; the map resets when the UTC day changes.
+function makeDailyLimiter(perDay) {
+  let day = '';
+  let hits = new Map();
+  return function isLimited(req) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (day !== today) { day = today; hits = new Map(); }
+    const ip = clientIp(req);
+    const used = hits.get(ip) || 0;
+    if (used >= perDay()) return true;
+    hits.set(ip, used + 1);
+    return false;
+  };
+}
+
 function createRequestHandler(client) {
   const isRateLimited = makeLimiter(() => AI_RATE_PER_MIN);
   const isWriteLimited = makeLimiter(writeRatePerMin);
+  const isDailyLimited = makeDailyLimiter(aiDailyPerIp);
 
   return async function (req, res) {
     if (req.method === 'OPTIONS') {
@@ -1033,7 +1068,12 @@ function createRequestHandler(client) {
       sendJson(res, 403, { ok: false, error: 'origin not allowed' });
       return;
     }
-    if (AI_RATE_PATHS.includes(url.pathname) && isRateLimited(req)) {
+    const isHealth = req.method === 'GET' && url.pathname === '/api/health';
+    if (url.pathname.startsWith('/api/') && !isHealth && !appKeyValid(req)) {
+      sendJson(res, 401, { ok: false, error: 'app key required' });
+      return;
+    }
+    if (AI_RATE_PATHS.includes(url.pathname) && (isRateLimited(req) || isDailyLimited(req))) {
       sendJson(res, 429, { ok: false, error: 'rate limited' });
       return;
     }

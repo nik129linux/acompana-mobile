@@ -36,9 +36,12 @@ ENTRIES.forEach((entry) => {
 });
 
 const apiBase = process.env.ACOMPANA_API_BASE || '';
+// Shared app key the server checks (APP_KEY there). Not a secret from anyone
+// who unpacks the APK; it keeps scanners and casual scripts out.
+const appKey = process.env.ACOMPANA_APP_KEY || '';
 const config = "'use strict';\n\n" +
   '// Build-time server address; empty means "no server" (on-device rules only).\n' +
-  'window.ACOMPANA_CONFIG = { apiBase: ' + JSON.stringify(apiBase) + ' };\n';
+  'window.ACOMPANA_CONFIG = { apiBase: ' + JSON.stringify(apiBase) + ', appKey: ' + JSON.stringify(appKey) + ' };\n';
 fs.mkdirSync(path.join(WWW, 'js'), { recursive: true });
 fs.writeFileSync(path.join(WWW, 'js', 'config.js'), config);
 

@@ -1586,12 +1586,14 @@
         // ignore
       }
     }, AI_TIMEOUT_MS);
-    var options = { signal: controller.signal };
+    var options = { signal: controller.signal, headers: {} };
+    var appKey = window.ACOMPANA_CONFIG && window.ACOMPANA_CONFIG.appKey;
+    if (appKey) options.headers['X-App-Key'] = appKey;
     if (body === undefined) {
       options.method = 'GET';
     } else {
       options.method = 'POST';
-      options.headers = { 'Content-Type': 'application/json' };
+      options.headers['Content-Type'] = 'application/json';
       options.body = JSON.stringify(Object.assign({ lang: I18n.lang() }, body));
     }
     return fetch(AI_BASE + path, options).then(function (response) {

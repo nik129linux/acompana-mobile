@@ -15,7 +15,9 @@ tar -xJf /var/tmp/node.tar.xz -C "$NODE_DIR" --strip-components=1
 
 # Caddy single binary from the official download endpoint.
 fetch -o /usr/local/bin/caddy "https://caddyserver.com/api/download?os=linux&arch=amd64"
-chmod +x /usr/local/bin/caddy
+chmod 755 /usr/local/bin/caddy
+# Caddy faces the internet, so it runs as its own user, never root.
+useradd --system --home /var/lib/caddy --shell /sbin/nologin caddy || true
 
 dnf install -y git
 useradd --system --home /opt/acompana --shell /sbin/nologin acompana || true
@@ -28,9 +30,12 @@ cat > /opt/acompana/run.sh <<'RUN'
 set -euo pipefail
 KEY=$(aws ssm get-parameter --region ${region} --name ${key_parameter} --with-decryption --query Parameter.Value --output text 2>/dev/null || true)
 if [ -n "$KEY" ] && [ "$KEY" != "None" ]; then export OLLAMA_API_KEY="$KEY"; fi
+# Shared app key: with it set, every API call except /api/health needs X-App-Key.
+APP=$(aws ssm get-parameter --region ${region} --name ${app_key_parameter} --with-decryption --query Parameter.Value --output text 2>/dev/null || true)
+if [ -n "$APP" ] && [ "$APP" != "None" ]; then export APP_KEY="$APP"; fi
 export PORT=8787 HOST=127.0.0.1
-# Abuse limits: 100 model calls a day in total, and only the app may call from a browser.
-export AI_DAILY_LIMIT=100
+# Abuse limits: 100 model calls a day in total, 50 per client IP, and only the app may call from a browser.
+export AI_DAILY_LIMIT=100 AI_DAILY_PER_IP=50
 export ALLOWED_ORIGINS="https://localhost,capacitor://localhost"
 exec /opt/node/bin/node /opt/acompana/app/server/server.js
 RUN
@@ -71,11 +76,19 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+User=caddy
+Group=caddy
 ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 Restart=always
 Environment=HOME=/var/lib/caddy
 StateDirectory=caddy
+# Only the right to bind ports 80 and 443, nothing else from root.
 AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
