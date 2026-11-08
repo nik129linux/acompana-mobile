@@ -136,8 +136,8 @@
 .patient-card .quick-confirm.tap-confirm {
   min-width: 0;
   max-width: 120px;
-  min-height: 44px;
-  height: 44px;
+  min-height: 56px;
+  height: 56px;
   padding: 6px 14px;
   white-space: nowrap;
 }
