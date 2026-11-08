@@ -329,7 +329,88 @@
     'Tratamiento de la mañana en curso.': 'Morning treatment in progress.',
     'El equipo está con {pronoun}, sin novedad que reportar.': 'The team is with {pronoun}, nothing new to report.',
     'La enfermera vuelve a la 1:00 p. m.': 'The nurse comes back at 1:00 PM.',
-    'Toca atrás otra vez para salir': 'Press back again to exit'
+    'Toca atrás otra vez para salir': 'Press back again to exit',
+
+    // Settings + guide (phase A)
+    'Configuración': 'Settings',
+    'Prototipo de app de enfermería': 'Nursing app prototype',
+    'Cambiar de lector': 'Switch reader',
+    'Idioma': 'Language',
+    'Tema': 'Theme',
+    'Claro': 'Light',
+    'Oscuro': 'Dark',
+    'Sistema': 'System',
+    'Inteligencia artificial': 'Artificial intelligence',
+    'Solo funciona con tu permiso. Puedes cambiarlo cuando quieras.': 'It only runs with your permission. You can change this anytime.',
+    'Activar': 'Turn on',
+    'Desactivar': 'Turn off',
+    'Con IA': 'With AI',
+    'Sin IA': 'Without AI',
+    'Privacidad': 'Privacy',
+    'Qué se guarda en este equipo': 'What stays on this device',
+    'Idioma, tema, permiso de IA, eventos del turno y guía vista. Nada sale sin tu permiso.': 'Language, theme, AI permission, shift events and guide progress. Nothing leaves without your permission.',
+    'Borrar mis datos': 'Delete my data',
+    'Datos borrados. La app vuelve a empezar.': 'Data deleted. The app starts over.',
+    'Ayuda': 'Help',
+    'Ver la guía otra vez': 'Replay the guide',
+    'Modo demostración': 'Demo mode',
+    'Siguiente': 'Next',
+    'Atrás': 'Back',
+    'Saltar': 'Skip',
+    'Cerrar guía': 'Close guide',
+    'Bienvenido a Acompaña': 'Welcome to Acompaña',
+    'Tu turno a la vista': 'Your shift in view',
+    'Mira tus pacientes y lo que falta por hacer.': 'See your patients and what is left to do.',
+    'Registra en un toque': 'Log in one tap',
+    'Confirma o registra cada cuidado justo cuando pasa.': 'Confirm or log each care task right when it happens.',
+    'La IA solo ayuda con tu permiso': 'AI only helps with your permission',
+    'Borradores y respuestas solo si aceptas. Tus datos se quedan aquí.': 'Drafts and answers only if you accept. Your data stays here.',
+    'Lo que sigue': 'What comes next',
+    'Su día de hoy': 'Your day today',
+    'Cómo preguntar': 'How to ask',
+    'Tu resumen sencillo': 'Your simple summary',
+    'Mira lo esencial del turno en palabras claras.': 'See the essentials of the shift in plain words.',
+    'Escribe tu duda con calma': 'Write your question calmly',
+    'El equipo responde con lo que se ve del turno.': 'The team answers from what the shift shows.',
+    'Acompaña con tranquilidad': 'Be there calmly',
+    'Un resumen sencillo de su cuidado.': 'A simple summary of their care.',
+    'Visita y contacto': 'Visit and contact',
+    'Horarios de visita y cómo hablar con el equipo.': 'Visiting hours and how to reach the team.',
+    'Confirma aquí en un toque': 'Confirm here in one tap',
+    'Marca cada cuidado cuando lo termines.': 'Mark each care task when you finish it.',
+    'Registra lo que haces': 'Log what you do',
+    'Usa el botón + para registrar cada evento.': 'Use the + button to log each event.',
+    'Prepara la entrega': 'Prepare the handover',
+    'Genera el borrador SBAR antes de entregar el turno.': 'Generate the SBAR draft before handing over the shift.',
+    'Pregunta al equipo': 'Ask the team',
+    'Escribe tu duda y el equipo responde.': 'Write your question and the team answers.',
+    'Mira su día': 'See their day',
+    'Sigue el tratamiento en palabras sencillas.': 'Follow the treatment in plain words.',
+    'Todo lo que hace la guía': 'Everything the guide covers',
+    'Iconos y estados': 'Icons and statuses',
+    'Glosario': 'Glossary',
+    'Turno: la lista de pacientes y sus tareas.': 'Shift: the patient list and their tasks.',
+    'Pendientes: confirma tareas y revisa lo hecho.': 'To do: confirm tasks and review what is done.',
+    'Chat: habla con la familia y el equipo.': 'Chat: talk with the family and the team.',
+    'Registrar: anota cada cuidado con el botón +.': 'Log: record each care task with the + button.',
+    'Entrega de turno (SBAR): borrador editable antes de copiar.': 'Shift handover (SBAR): editable draft before copying.',
+    'Mi estado: lo que sigue y su día en palabras sencillas.': 'My status: what is next and your day in plain words.',
+    'Preguntas: respuestas del equipo y dudas frecuentes.': 'Questions: team answers and frequent doubts.',
+    'Qué pasa: resumen sencillo del cuidado.': 'Updates: a simple summary of the care.',
+    'Contacto: llamar, escribir o ver horarios de visita.': 'Contact: call, write or see visiting hours.',
+    'SBAR: Situación, Antecedentes, Evaluación, Recomendación.': 'SBAR: Situation, Background, Assessment, Recommendation.',
+    'Ronda: revisión periódica de signos.': 'Round: periodic vital-signs check.',
+    '1 pendiente': '1 to do',
+    '{count} pendientes': '{count} to do',
+    '1 registro': '1 record',
+    '1 estable': '1 stable',
+    'Falta {count}: {times}.': '{count} left: {times}.',
+    'Queda {count} por confirmar.': '{count} left to confirm.',
+    'pendiente': 'to do',
+    'registro': 'record',
+    'estable': 'stable',
+    'Guía vista': 'Guide seen',
+    'Cerrar': 'Close'
   };
 
   function saved() {
@@ -355,6 +436,30 @@
   function t(source, vars) {
     var text = current === 'en' && Object.prototype.hasOwnProperty.call(EN, source) ? EN[source] : source;
     return fill(text, vars);
+  }
+
+  // Numbers and times follow the active locale (es-CO / en-US).
+  function fmtNum(value) {
+    try { return new Intl.NumberFormat(current === 'en' ? 'en-US' : 'es-CO').format(value); } catch (error) { return String(value); }
+  }
+
+  // "11:00"/"13:00" display in the reader's clock; anything already
+  // localized ("1:00 p. m.") passes through t() instead.
+  function fmtTime(hhmm) {
+    var match = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+    if (!match) return hhmm;
+    try {
+      var date = new Date(2026, 0, 1, Number(match[1]), Number(match[2]));
+      return new Intl.DateTimeFormat(current === 'en' ? 'en-US' : 'es-CO', { hour: 'numeric', minute: '2-digit' }).format(date);
+    } catch (error) { return hhmm; }
+  }
+
+  // Plural-safe counter: t(one, {count}) when 1, t(many, {count}) otherwise,
+  // with the number formatted for the active locale.
+  function qty(count, one, many) {
+    var n = Number(count);
+    if (n === 1) return t(one, { count: fmtNum(n) });
+    return t(many, { count: fmtNum(n) });
   }
 
   // "Hab. 304-B" is demo data; only its label changes with the language.
@@ -387,6 +492,9 @@
   window.AcompanaI18n = {
     t: t,
     room: room,
+    fmtNum: fmtNum,
+    fmtTime: fmtTime,
+    qty: qty,
     setLang: setLang,
     lang: function () { return current; },
     speechLang: function () { return SPEECH[current]; },

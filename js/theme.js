@@ -1,9 +1,11 @@
 (function () {
   'use strict';
 
-  // Light/dark theme. Runs before app.js so the first paint already has the
-  // saved theme. Without a saved choice the OS preference wins (tokens.css).
+  // Light/dark theme with a "system" follower. Fresh profile opens light
+  // (Claro default); the choice persists. Runs before app.js so the first
+  // paint already has the saved theme.
   var KEY = 'acompana-theme';
+  var MODES = ['light', 'dark', 'system'];
   var t = window.AcompanaI18n.t;
   var root = document.documentElement;
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -12,9 +14,15 @@
     try { return window.localStorage.getItem(KEY); } catch (error) { return null; }
   }
 
+  function mode() {
+    var value = saved();
+    return MODES.indexOf(value) !== -1 ? value : 'light';
+  }
+
   function isDark() {
     var forced = root.getAttribute('data-theme');
-    if (forced) return forced === 'dark';
+    if (forced === 'dark') return true;
+    if (forced === 'light') return false;
     return !!(media && media.matches);
   }
 
@@ -28,19 +36,29 @@
     document.querySelectorAll('[data-theme-label]').forEach(function (label) {
       label.textContent = t(dark ? 'Tema claro' : 'Tema oscuro');
     });
+    document.querySelectorAll('[data-theme-mode]').forEach(function (group) {
+      var current = mode();
+      group.querySelectorAll('[data-theme-option]').forEach(function (button) {
+        var on = button.getAttribute('data-theme-option') === current;
+        button.classList.toggle('is-active', on);
+        button.setAttribute('aria-pressed', String(on));
+      });
+    });
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', getComputedStyle(document.body || root).backgroundColor);
   }
 
-  function apply(theme) {
-    root.setAttribute('data-theme', theme);
-    try { window.localStorage.setItem(KEY, theme); } catch (error) { /* private mode: session only */ }
+  function apply(value) {
+    var next = MODES.indexOf(value) !== -1 ? value : 'light';
+    if (next === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', next);
+    try { window.localStorage.setItem(KEY, next); } catch (error) { /* private mode: session only */ }
     sync();
   }
 
   // Theme and language both change every surface: one circular reveal for both.
   function reveal(event, change) {
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-color-scheme: reduce)').matches;
     if (!document.startViewTransition || reduce) {
       change();
       return;
@@ -58,7 +76,9 @@
   }
 
   var initial = saved();
-  if (initial === 'light' || initial === 'dark') root.setAttribute('data-theme', initial);
+  if (initial === 'dark') root.setAttribute('data-theme', 'dark');
+  else if (initial === 'system') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', 'light');
 
   // Delegated so the toggle also works inside per-view app bars that are
   // created after this script runs.
@@ -72,5 +92,5 @@
     sync();
   });
 
-  window.acompanaTheme = { toggle: toggle, sync: sync, isDark: isDark, reveal: reveal };
+  window.acompanaTheme = { toggle: toggle, sync: sync, isDark: isDark, reveal: reveal, apply: apply, mode: mode };
 }());
