@@ -34,6 +34,7 @@ const NATIVE = () => {
 
 async function fresh(browser, init) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx.addInitScript(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
   if (init) await ctx.addInitScript(init);
   const page = await ctx.newPage();
   page.errors = [];
@@ -76,17 +77,17 @@ const exits = (page) => page.evaluate(() => window.__exits);
     await page.waitForTimeout(500);
     await back(page);
     assert.ok(!(await page.locator('#aiLayer.is-open').count()), 'SBAR sheet closed');
-    await page.locator('.view.is-active [data-demo-menu]').click();
-    await back(page);
-    assert.ok(!(await page.locator('.demo-menu.is-open').count()), 'menu closed');
-    await page.locator('.view.is-active [data-demo-menu]').click();
-    await page.locator('.view.is-active .demo-menu.is-open [data-simulate-error]').click();
+    await page.locator('[data-nav-settings]').first().click();
+    await page.waitForTimeout(400);
+    await page.locator('.view.is-active [data-simulate-error]').click();
     await page.waitForTimeout(500);
     await back(page);
     assert.ok(!(await page.locator('#errorLayer.is-open').count()), 'error state closed');
-    assert.strictEqual(await viewKey(page), 'nurse-home');
+    assert.strictEqual(await viewKey(page), 'settings-enfermero', 'error closes back to settings');
+    await back(page);
+    assert.strictEqual(await viewKey(page), 'nurse-home', 'settings back to Turno');
     assert.strictEqual(await exits(page), 0);
-    ok('back: sheets, menu and error close first');
+    ok('back: sheets, settings error and error close first');
 
     // 3. Another tab returns to the role's home.
     await page.locator('[data-nav="pendientes"]').click();

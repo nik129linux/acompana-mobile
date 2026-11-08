@@ -38,7 +38,7 @@ async function box(locator) {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(origin + '/');
-    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => { localStorage.clear(); try { localStorage.setItem('acompana-guide-seen', JSON.stringify({ all: true })); localStorage.setItem('acompana-coach-confirm', 'yes'); localStorage.setItem('acompana-coach-handover', 'yes'); localStorage.setItem('acompana-coach-register', 'yes'); localStorage.setItem('acompana-coach-ask', 'yes'); localStorage.setItem('acompana-coach-visit', 'yes'); } catch (e) {} });
     await page.reload();
     await skipSplash(page);
 
@@ -48,22 +48,22 @@ async function box(locator) {
     }
     ok('no fake notch, status bar or role tabs on a phone');
 
-    // 2. Top app bar with exactly one h1 and the demo menu.
+    // 2. Top app bar with exactly one h1 and the Settings gear.
     const bar = page.locator('.view.is-active .top-app-bar');
     assert.strictEqual(await bar.count(), 1, 'active view has one .top-app-bar');
     assert.strictEqual(await page.locator('.view.is-active h1').count(), 1, 'one h1 per view');
-    const menu = page.locator('[data-demo-menu]');
-    assert(await menu.first().isVisible(), 'demo menu button visible');
-    const mb = await box(menu.first());
-    assert(mb.width >= 48 && mb.height >= 48, 'menu button >= 48dp');
-    await menu.first().click();
-    const items = page.locator('[data-view-as]');
-    assert.strictEqual(await items.count(), 3, 'menu offers the 3 readers');
-    assert.strictEqual(await page.locator('[data-view-as="enfermero"]').getAttribute('aria-checked'), 'true', 'current reader is checked');
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
-    assert(!(await items.first().isVisible()), 'Escape closes the menu');
-    ok('top app bar, one h1, demo "Ver como" menu');
+    const gear = page.locator('[data-nav-settings]');
+    assert(await gear.first().isVisible(), 'settings gear visible');
+    const mb = await box(gear.first());
+    assert(mb.width >= 48 && mb.height >= 48, 'gear button >= 48dp');
+    await gear.first().click();
+    await page.waitForTimeout(400);
+    const items = page.locator('.view.is-active [data-view-as]');
+    assert.strictEqual(await items.count(), 3, 'settings demo section offers the 3 readers');
+    assert.strictEqual(await page.locator('.view.is-active [data-view-as="enfermero"]').getAttribute('aria-checked'), 'true', 'current reader is checked');
+    await page.locator('#bottomNav [data-nav="turno"]').click();
+    await page.waitForTimeout(400);
+    ok('top app bar, one h1, settings gear with demo readers');
 
     // 3. FAB replaces the Registrar nav tab.
     assert.strictEqual(await page.locator('.bottom-nav [data-nav="registrar"]').count(), 0, 'Registrar is no longer a nav tab');
@@ -170,7 +170,7 @@ async function box(locator) {
     const wide = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await wide.goto(origin + '/');
     await skipSplash(wide);
-    assert(await wide.locator('[data-demo-menu]').first().isVisible(), 'demo menu also works on the desktop stage');
+    assert(await wide.locator('[data-nav-settings]').first().isVisible(), 'settings gear also works on the desktop stage');
     await wide.close();
     ok('desktop stage still demos');
 

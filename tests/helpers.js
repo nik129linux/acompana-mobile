@@ -18,9 +18,36 @@ async function viewAs(page, role) {
   if (await visible(menu)) {
     await menu.first().click();
     await page.locator('[data-view-as="' + role + '"]').first().click();
-  } else {
-    await page.locator('.role-tab[data-role="' + role + '"]').first().click();
+    return;
   }
+  const tab = page.locator('.role-tab[data-role="' + role + '"]');
+  if (await visible(tab)) {
+    await tab.first().click();
+    return;
+  }
+  // Phone stage (no role tabs): switch readers from Settings > Demo mode.
+  await openSettings(page);
+  await page.locator('.view.is-active [data-view-as="' + role + '"]').first().click();
+  await page.waitForTimeout(400);
+}
+
+async function openSettings(page) {
+  const gear = page.locator('[data-nav-settings]').first();
+  if (await visible(gear)) await gear.click();
+  else await page.locator('#bottomNav [data-nav="config"]').first().click();
+  await page.waitForTimeout(400);
+}
+
+async function setLang(page, lang) {
+  await openSettings(page);
+  await page.locator('.view.is-active [data-set-lang="' + lang + '"]').first().click();
+  await page.waitForTimeout(400);
+}
+
+async function triggerError(page) {
+  await openSettings(page);
+  await page.locator('.view.is-active [data-simulate-error]').first().click();
+  await page.waitForTimeout(500);
 }
 
 async function openRegister(page) {
@@ -29,4 +56,4 @@ async function openRegister(page) {
   else await page.locator('.bottom-nav [data-nav="registrar"]').first().click();
 }
 
-module.exports = { viewAs, openRegister };
+module.exports = { viewAs, openRegister, openSettings, setLang, triggerError };

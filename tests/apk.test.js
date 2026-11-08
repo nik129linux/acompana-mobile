@@ -21,6 +21,7 @@ const exists = (file) => fs.existsSync(path.join(ROOT, file));
 
 async function page(browser, init, arg) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await ctx.addInitScript(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
   if (init) await ctx.addInitScript(init, arg);
   const calls = [];
   await ctx.route(API + '/**', async (route) => {
@@ -55,8 +56,8 @@ async function page(browser, init, arg) {
     let p = await page(browser, (api) => { window.ACOMPANA_CONFIG = { apiBase: api }; localStorage.setItem('acompana-ai-consent', 'yes'); }, API);
     await p.waitForTimeout(500);
     assert.ok(p.calls.some((url) => url.startsWith(API + '/api/sync')), 'sync polls the configured server: ' + p.calls.join(', '));
-    await p.locator('.view.is-active [data-demo-menu]').first().click();
-    await p.locator('.view.is-active [data-view-as="familia"]').click();
+    const { viewAs: viewAsFam } = require('./helpers');
+    await viewAsFam(p, 'familia');
     await p.waitForTimeout(500);
     await p.locator('[data-ask-input]').fill('¿A qué hora puedo entrar?');
     await p.locator('[data-ask-send]').click();
