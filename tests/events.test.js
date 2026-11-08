@@ -217,9 +217,13 @@ async function uiTests() {
     assert(await page.locator('[data-schedule-sheet]').isVisible(), 'Ver horarios opens the schedule sheet');
     ok('contact actions work');
 
-    // 9. No speech API: dictate falls back to typing.
+    // 9. No speech API: dictate falls back to typing. Fresh context, so seed
+    // the guide/coach flags like the main page: the level-1 guide would
+    // otherwise race the sheet and cover the dictate button.
     const page2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await page2.goto(INDEX);
+    await page2.evaluate(() => { try { localStorage.setItem('acompana-guide-seen', JSON.stringify({ all: true })); ['confirm', 'handover', 'register', 'ask', 'visit'].forEach(function (k) { localStorage.setItem('acompana-coach-' + k, 'yes'); }); } catch (e) {} });
+    await page2.reload();
     await skipSplash(page2);
     await openSheet(page2);
     await page2.locator('[data-dictate]').click();

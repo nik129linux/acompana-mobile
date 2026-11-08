@@ -60,6 +60,7 @@ function fakeNative(mode) {
     let errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.addInitScript(fakeNative, 'granted');
+    await page.addInitScript(() => { try { localStorage.setItem('acompana-guide-seen', JSON.stringify({ all: true })); ['confirm', 'handover', 'register', 'ask', 'visit'].forEach(function (k) { localStorage.setItem('acompana-coach-' + k, 'yes'); }); } catch (e) {} });
     await page.goto(origin + '/');
     await skipSplash(page);
     await openRegister(page);
@@ -78,6 +79,7 @@ function fakeNative(mode) {
     // 1b. Permission denied: typing fallback with the mic message.
     page = await browser.newPage({ viewport: { width: 360, height: 640 }, hasTouch: true });
     await page.addInitScript(fakeNative, 'denied');
+    await page.addInitScript(() => { try { localStorage.setItem('acompana-guide-seen', JSON.stringify({ all: true })); ['confirm', 'handover', 'register', 'ask', 'visit'].forEach(function (k) { localStorage.setItem('acompana-coach-' + k, 'yes'); }); } catch (e) {} });
     await page.goto(origin + '/');
     await skipSplash(page);
     await openRegister(page);

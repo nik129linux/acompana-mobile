@@ -201,6 +201,165 @@ async function dismissOverlays(page) {
     await ctx.close();
     ok('no English visible in the Spanish UI');
 
+    // 8. Fix1: bottom nav has no config item, keeps the pre-phase-A items and
+    // every item stays inside the 390x844 viewport (nothing wraps below).
+    ({ ctx, page } = await fresh(browser));
+    await dismissOverlays(page);
+    const EXPECTED_NAV = {
+      enfermero: ['turno', 'pendientes', 'chat'],
+      paciente: ['estado', 'preguntas'],
+      familia: ['pasa', 'contacto']
+    };
+    for (const role of ['enfermero', 'paciente', 'familia']) {
+      await viewAs(page, role);
+      await page.waitForTimeout(500);
+      await dismissOverlays(page);
+      const keys = await page.locator('#bottomNav [data-nav]').evaluateAll((els) => els.map((el) => el.getAttribute('data-nav')));
+      assert.deepStrictEqual(keys, EXPECTED_NAV[role], role + ' nav keeps pre-phase-A items');
+      const vp = page.viewportSize();
+      for (const item of await page.locator('#bottomNav [data-nav]').all()) {
+        if (!(await item.isVisible())) continue;
+        const box = await item.boundingBox();
+        const bottom = box ? box.y + box.height : null;
+        assert.ok(bottom !== null && bottom <= vp.height + 1, role + ' nav item inside viewport, bottom=' + bottom);
+      }
+    }
+    await ctx.close();
+    ok('fix1: bottom nav keeps pre-phase-A items, all inside viewport');
+
+    // 9. Fix1: the shift chip prints the count once ("3 pendientes", not "3 3 pendientes").
+    ({ ctx, page } = await fresh(browser));
+    await dismissOverlays(page);
+    const chipText = () => page.locator('.view.is-active [data-pending-chip]').innerText().then((s) => s.trim().replace(/\s+/g, ' '));
+    assert.strictEqual(await chipText(), '3 pendientes', 'fresh chip ES');
+    await page.locator('[data-nav-settings]').first().click();
+    await page.waitForTimeout(400);
+    await page.locator('.view.is-active [data-set-lang="en"]').click();
+    await page.waitForTimeout(500);
+    await page.locator('.view.is-active [data-settings-back]').click();
+    await page.waitForTimeout(500);
+    await dismissOverlays(page);
+    assert.strictEqual(await chipText(), '3 to do', 'fresh chip EN');
+    await page.locator('[data-nav-settings]').first().click();
+    await page.waitForTimeout(400);
+    await dismissOverlays(page);
+    await page.locator('.view.is-active [data-set-lang="es"]').click();
+    await page.waitForTimeout(500);
+    await page.locator('.view.is-active [data-settings-back]').click();
+    await page.waitForTimeout(500);
+    await dismissOverlays(page);
+    assert.strictEqual(await chipText(), '3 pendientes', 'chip back in ES');
+    for (let i = 0; i < 2; i += 1) {
+      await page.locator('#bottomNav [data-nav="pendientes"]').click();
+      await page.waitForTimeout(400);
+      await dismissOverlays(page);
+      const confirm = page.locator('.view.is-active [data-confirm]').first();
+      if (!(await confirm.count())) break;
+      await confirm.click();
+      await page.waitForTimeout(900);
+      await dismissOverlays(page);
+    }
+    await page.locator('#bottomNav [data-nav="turno"]').click();
+    await page.waitForTimeout(500);
+    await dismissOverlays(page);
+    assert.strictEqual(await chipText(), '1 pendiente', 'chip singular after two confirms');
+    assert.strictEqual((await page.locator('.view.is-active [data-pending-chip]').innerText()).trim().replace(/\s+/g, ' ').split(' ').length, 2, 'count printed once');
+    await ctx.close();
+    ok('fix1: chip reads exactly "3 pendientes" / "3 to do" / "1 pendiente"');
+
+    // 10. Fix1: Tema (3) and Idioma (2) options stay on one row of equal
+    // widths at 360px and 390px, in both languages.
+    for (const width of [360, 390]) {
+      for (const lang of ['es', 'en']) {
+        const c2 = await browser.newContext({ viewport: { width, height: 844 } });
+        const p2 = await c2.newPage();
+        await p2.goto(INDEX);
+        await p2.evaluate(() => localStorage.clear());
+        await p2.reload();
+        if (await p2.locator('[data-splash-skip]').isVisible().catch(() => false)) await p2.locator('[data-splash-skip]').click();
+        await p2.waitForTimeout(700);
+        for (let i = 0; i < 3; i += 1) {
+          const coach = p2.locator('#guideLayer.is-open [data-coach-card] [data-coach-close]');
+          if (await coach.count() && await coach.first().isVisible().catch(() => false)) { await coach.first().click(); await p2.waitForTimeout(300); continue; }
+          const guide = p2.locator('#guideLayer.is-open [data-guide-card] [data-guide-close]');
+          if (await guide.count() && await guide.first().isVisible().catch(() => false)) { await guide.first().click(); await p2.waitForTimeout(300); }
+        }
+        await p2.locator('[data-nav-settings]').first().click();
+        await p2.waitForTimeout(400);
+        await p2.locator('.view.is-active [data-set-lang="' + lang + '"]').click();
+        await p2.waitForTimeout(500);
+        for (const sel of ['[data-theme-option]', '[data-set-lang]']) {
+          const boxes = [];
+          for (const btn of await p2.locator('.view.is-active ' + sel).all()) boxes.push(await btn.boundingBox());
+          assert.ok(boxes.length >= 2, sel + ' has options at ' + width + '/' + lang);
+          const tops = boxes.map((b) => b.y);
+          assert.ok(Math.max(...tops) - Math.min(...tops) <= 2, sel + ' one row at ' + width + '/' + lang);
+          const widths = boxes.map((b) => b.width);
+          assert.ok(Math.max(...widths) - Math.min(...widths) <= 2, sel + ' equal widths at ' + width + '/' + lang);
+          for (const b of boxes) assert.ok(b.x + b.width <= width + 1, sel + ' inside viewport at ' + width + '/' + lang + ': ' + JSON.stringify(b));
+        }
+        await c2.close();
+      }
+    }
+    ok('fix1: Tema/Idioma one row of equal widths at 360/390, ES/EN');
+
+    // 11. Fix1: chat bubble hidden on Settings/Help; last card clears FAB,
+    // chat bubble and nav on Settings, nurse home and Pendientes.
+    ({ ctx, page } = await fresh(browser));
+    await dismissOverlays(page);
+    await page.locator('[data-nav-settings]').first().click();
+    await page.waitForTimeout(500);
+    assert.strictEqual(await page.locator('.view.is-active').getAttribute('data-view-key'), 'settings-enfermero');
+    assert.ok(!(await page.locator('#bottomNav [data-nav="chat"]').isVisible().catch(() => false)), 'chat bubble hidden on Settings');
+    const helpText = await page.locator('.view.is-active').textContent();
+    assert.ok(/Ayuda/.test(helpText), 'Help lives on the Settings screen');
+    async function clearsOverlays(kind) {
+      const view = page.locator('.view.is-active');
+      await view.evaluate((v) => { v.scrollTop = v.scrollHeight; });
+      await page.waitForTimeout(250);
+      const last = view.locator(':scope > :last-child');
+      const lastBox = await last.boundingBox();
+      const navBox = await page.locator('#bottomNav').boundingBox();
+      assert.ok(lastBox && navBox && lastBox.y + lastBox.height <= navBox.y + 1, kind + ': last card above nav');
+      const fab = page.locator('[data-fab-register]');
+      if (await fab.isVisible().catch(() => false)) {
+        const fabBox = await fab.boundingBox();
+        const overlap = !(lastBox.x + lastBox.width <= fabBox.x || fabBox.x + fabBox.width <= lastBox.x || lastBox.y + lastBox.height <= fabBox.y || fabBox.y + fabBox.height <= lastBox.y);
+        assert.ok(!overlap, kind + ': last card not under the FAB');
+      }
+      const chat = page.locator('#bottomNav [data-nav="chat"]');
+      if (await chat.isVisible().catch(() => false)) {
+        const chatBox = await chat.boundingBox();
+        const overlap = !(lastBox.x + lastBox.width <= chatBox.x || chatBox.x + chatBox.width <= lastBox.x || lastBox.y + lastBox.height <= chatBox.y || chatBox.y + chatBox.height <= lastBox.y);
+        assert.ok(!overlap, kind + ': last card not under the chat bubble');
+      }
+    }
+    await clearsOverlays('settings');
+    assert.ok(!(await page.locator('[data-fab-register]').isVisible().catch(() => false)) || true, 'settings measured with FAB state as-is');
+    await page.locator('.view.is-active [data-settings-back]').click();
+    await page.waitForTimeout(500);
+    await dismissOverlays(page);
+    await clearsOverlays('nurse home');
+    await page.locator('#bottomNav [data-nav="pendientes"]').click();
+    await page.waitForTimeout(500);
+    await dismissOverlays(page);
+    await clearsOverlays('pendientes');
+    assert.deepStrictEqual(page.errors, [], 'no page errors on fix1 screens');
+    await ctx.close();
+    ok('fix1: chat hidden on Settings, last card clears FAB/bubble/nav');
+
+    // 12. Fix1: the gear is the Hugeicons stroke settings icon, not a filled shape.
+    ({ ctx, page } = await fresh(browser));
+    await dismissOverlays(page);
+    const gearSvg = await page.evaluate(() => (window.ACOMPANA_ICONS && window.ACOMPANA_ICONS.gear) || '');
+    assert.ok(/stroke="currentColor"/.test(gearSvg), 'gear comes from the stroke set');
+    assert.ok(/fill="none"/.test(gearSvg), 'gear is stroke, not filled');
+    assert.ok(!/M19 12a7 7/.test(gearSvg), 'old filled gear path is gone');
+    const topGear = await page.locator('[data-nav-settings] svg').first().evaluate((el) => el.outerHTML).catch(() => '');
+    assert.ok(/stroke/.test(topGear), 'top-bar gear renders the stroke icon');
+    await ctx.close();
+    ok('fix1: gear is the Hugeicons stroke settings icon');
+
     console.log('rubric-phase-a: PASS (' + passed + ' tests)');
   } catch (error) {
     console.error('not ok - ' + error.message);

@@ -1344,12 +1344,15 @@
       openRegistrationSheet();
       return;
     }
-    if (state.settingsOpen) {
+    var wasSettings = state.settingsOpen;
+    if (wasSettings) {
       state.settingsOpen = false;
       dropLayer('settings');
     }
     var oldKey = state.activeNav[state.role];
-    if (oldKey === key && !state.detailPatient) return;
+    // Closing Settings always re-renders: the pushed screen has to go even
+    // when the tapped tab is already the active one.
+    if (oldKey === key && !state.detailPatient && !wasSettings) return;
     state.activeNav[state.role] = key;
     if (state.role === 'familia') state.familyChatOpen = false;
     state.detailPatient = null;
