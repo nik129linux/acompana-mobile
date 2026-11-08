@@ -127,15 +127,18 @@
     enfermero: [
       { key: 'turno', label: 'Turno', icon: 'list' },
       { key: 'pendientes', label: 'Pendientes', icon: 'clock' },
-      { key: 'chat', label: 'Chat', icon: 'message' }
+      { key: 'chat', label: 'Chat', icon: 'message' },
+      { key: 'config', label: 'Configuración', icon: 'gear' }
     ],
     paciente: [
       { key: 'estado', label: 'Mi estado', icon: 'heart' },
-      { key: 'preguntas', label: 'Preguntas', icon: 'help' }
+      { key: 'preguntas', label: 'Preguntas', icon: 'help' },
+      { key: 'config', label: 'Configuración', icon: 'gear' }
     ],
     familia: [
       { key: 'pasa', label: 'Qué pasa', icon: 'message' },
-      { key: 'contacto', label: 'Contacto', icon: 'phone' }
+      { key: 'contacto', label: 'Contacto', icon: 'phone' },
+      { key: 'config', label: 'Configuración', icon: 'gear' }
     ]
   };
 
@@ -333,6 +336,7 @@
     shield: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 19 7v5c0 4.2-2.8 7-7 8-4.2-1-7-3.8-7-8V7l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>',
     calendar: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="13" rx="2"></rect><path d="M8 4v4M16 4v4M5 10h14"></path></svg>',
     more: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="12" cy="19" r="1.4"></circle></svg>',
+    gear: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z"></path></svg>',
     moon: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>',
     sun: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>'
   };
@@ -359,21 +363,12 @@
     return Boolean(window.acompanaTheme && window.acompanaTheme.isDark());
   }
 
+  function settingsButtonHtml() {
+    return '<button type="button" class="top-app-bar-action" data-nav-settings aria-label="' + escapeHtml(t('Configuración')) + '">' + icon('gear') + '</button>';
+  }
+
   function demoMenuHtml() {
-    return '<button type="button" class="top-app-bar-action" data-demo-menu aria-haspopup="menu" aria-expanded="false" aria-label="' + escapeHtml(t('Ver como')) + '">' + icon('more') + '</button>' +
-      '<div class="demo-menu" role="menu" aria-label="' + escapeHtml(t('Ver como')) + '">' +
-      '<p class="demo-menu-label">' + escapeHtml(t('Ver como')) + '</p>' +
-      roleMenuItem('enfermero', 'Enfermero') +
-      roleMenuItem('paciente', 'Paciente') +
-      roleMenuItem('familia', 'Familia') +
-      '<div class="demo-menu-divider" aria-hidden="true"></div>' +
-      '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-menu-theme aria-pressed="false">' +
-      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('moon') + '</span><span data-theme-label>' + escapeHtml(t(themeIsDark() ? 'Tema claro' : 'Tema oscuro')) + '</span></button>' +
-      '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-menu-lang>' +
-      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('globe') + '</span><span lang="' + I18n.otherLang() + '">' + (I18n.lang() === 'en' ? 'Español' : 'English') + '</span></button>' +
-      '<button type="button" class="demo-menu-item demo-menu-theme" role="menuitem" data-simulate-error>' +
-      '<span class="demo-menu-check demo-menu-theme-icon" aria-hidden="true">' + icon('close') + '</span><span>' + escapeHtml(t('Simular un error')) + '</span></button>' +
-      '</div>';
+    return settingsButtonHtml();
   }
 
   function themeToggleHtml() {
@@ -391,7 +386,7 @@
       greet.classList.add('top-app-bar');
       var greetActions = document.createElement('div');
       greetActions.className = 'top-app-bar-actions';
-      greetActions.innerHTML = themeToggleHtml() + demoMenuHtml();
+      greetActions.innerHTML = themeToggleHtml() + settingsButtonHtml();
       greet.appendChild(greetActions);
       return;
     }
@@ -415,7 +410,7 @@
     bar.appendChild(title);
     var actions = document.createElement('div');
     actions.className = 'top-app-bar-actions';
-    actions.innerHTML = themeToggleHtml() + demoMenuHtml();
+    actions.innerHTML = themeToggleHtml() + settingsButtonHtml();
     bar.appendChild(actions);
     view.insertBefore(bar, view.firstChild);
   }
@@ -430,7 +425,7 @@
     if (!bar || bar.querySelector('.top-app-bar-actions')) return;
     var actions = document.createElement('div');
     actions.className = 'top-app-bar-actions';
-    actions.innerHTML = themeToggleHtml() + demoMenuHtml();
+    actions.innerHTML = themeToggleHtml() + settingsButtonHtml();
     bar.appendChild(actions);
   }
 
@@ -555,6 +550,9 @@
 
 
   function viewDefinition() {
+    if (state.activeNav[state.role] === 'config') {
+      return { key: 'settings-' + state.role, className: 'is-home', inner: views.settings.renderSettings(state.role) };
+    }
     if (state.role === 'enfermero') {
       if (state.detailPatient) {
         return { key: 'nurse-detail', className: 'is-detail', inner: views.nurse.renderNurseDetail(state.detailPatient) };
@@ -689,6 +687,26 @@
     applyTimelineTranslations(next, state.role);
     staggerContactOptions(next);
     refreshChatThread();
+    maybeCoach(definition.key);
+  }
+
+  // Level 2 coach marks: one dismissible tip per key feature, once each.
+  function maybeCoach(viewKey) {
+    if (!views.settings || !views.settings.showCoach) return;
+    if (!views.settings.guideSeen || !views.settings.guideSeen(state.role)) return;
+    if (document.getElementById('guideLayer') && document.getElementById('guideLayer').classList.contains('is-open')) return;
+    var shown = false;
+    if (viewKey === 'nurse-pending') shown = views.settings.showCoach('confirm', 'Confirma aquí en un toque');
+    else if (viewKey === 'nurse-home') shown = views.settings.showCoach('handover', 'Prepara la entrega');
+    else if (viewKey === 'patient-questions') shown = views.settings.showCoach('ask', 'Pregunta al equipo');
+    else if (viewKey === 'family-home') shown = views.settings.showCoach('visit', 'Mira su día');
+    if (shown) return;
+  }
+
+  function maybeGuide() {
+    if (!views.settings || !views.settings.guideSeen) return;
+    if (views.settings.guideSeen(state.role)) return;
+    if (document.querySelector('.view.is-active')) views.settings.openGuide(state.role, 0);
   }
 
   // New reader lists enter with the shared motion helper (js/motion.js).
@@ -877,6 +895,7 @@
 
   function openRegistrationSheet() {
     if (state.sheetOpen) return;
+    if (views.settings && views.settings.showCoach) window.setTimeout(function () { views.settings.showCoach('register', 'Registra lo que haces'); }, 450);
     state.sheetOpen = true;
     pushLayer('register');
     state.sheetReturnNav = state.activeNav.enfermero === 'registrar' ? 'turno' : state.activeNav.enfermero;
@@ -1012,37 +1031,20 @@
   }
 
   function handleScreenClick(event) {
-    var demoMenu = event.target.closest('[data-demo-menu]');
-    if (demoMenu) {
-      var openMenu = demoMenu.parentElement.querySelector('.demo-menu');
-      if (openMenu && openMenu.classList.contains('is-open')) closeDemoMenu();
-      else openDemoMenu(demoMenu);
+    var settingsNav = event.target.closest('[data-nav-settings]');
+    if (settingsNav) {
+      state.detailPatient = null;
+      state.activeNav[state.role] = 'config';
+      if (state.role === 'familia') state.familyChatOpen = false;
+      if (state.role === 'enfermero') closeRegistrationSheet(false);
+      renderRoute('forward');
       return;
     }
 
-    var viewAs = event.target.closest('[data-view-as]');
-    if (viewAs) {
-      var role = viewAs.getAttribute('data-view-as');
-      closeDemoMenu();
-      updateRole(role);
-      // Each reader gets a different feed: read it again from the start.
-      syncState.seq = 0;
-      pollSync();
-      return;
-    }
-
-    var menuTheme = event.target.closest('.demo-menu [data-menu-theme]');
-    if (menuTheme) {
-      if (window.acompanaTheme) window.acompanaTheme.toggle(event);
-      closeDemoMenu();
-      return;
-    }
-
-    var menuLang = event.target.closest('.demo-menu [data-menu-lang]');
-    if (menuLang) {
-      closeDemoMenu();
+    var setLang = event.target.closest('[data-set-lang]');
+    if (setLang) {
       var switchLanguage = function () {
-        I18n.setLang(I18n.otherLang());
+        I18n.setLang(setLang.getAttribute('data-set-lang'));
         renderForLanguage();
       };
       if (window.acompanaTheme) window.acompanaTheme.reveal(event, switchLanguage);
@@ -1050,9 +1052,81 @@
       return;
     }
 
-    var simulate = event.target.closest('.demo-menu [data-simulate-error]');
+    var setTheme = event.target.closest('[data-set-theme]');
+    if (setTheme) {
+      var applyTheme = function () {
+        if (window.acompanaTheme) window.acompanaTheme.apply(setTheme.getAttribute('data-set-theme'));
+      };
+      if (window.acompanaTheme) window.acompanaTheme.reveal(event, applyTheme);
+      else applyTheme();
+      renderBottomNav();
+      return;
+    }
+
+    var aiToggle = event.target.closest('[data-ai-toggle]');
+    if (aiToggle) {
+      saveConsent(aiConsent === 'yes' ? 'no' : 'yes');
+      renderRoute('forward', true);
+      return;
+    }
+
+    var wipe = event.target.closest('[data-wipe]');
+    if (wipe) {
+      try {
+        ['acompana-events', 'acompana-translate-cache', 'acompana-guide-seen'].forEach(function (key) {
+          Object.keys(window.localStorage).filter(function (k) { return k.indexOf('acompana-coach-') === 0; }).forEach(function (k) { window.localStorage.removeItem(k); });
+          window.localStorage.removeItem(key);
+        });
+        window.localStorage.removeItem('acompana-ai-consent');
+      } catch (error) {}
+      saveConsent('no');
+      showSnack(t('Datos borrados. La app vuelve a empezar.'));
+      renderRoute('forward', true);
+      return;
+    }
+
+    var guideReplay = event.target.closest('[data-guide-replay]');
+    if (guideReplay) {
+      if (views.settings) views.settings.openGuide(state.role, 0);
+      return;
+    }
+
+    var guideNext = event.target.closest('[data-guide-next]');
+    if (guideNext) {
+      if (views.settings) views.settings.openGuide(state.role, Number(guideNext.getAttribute('data-guide-index')) + 1);
+      return;
+    }
+
+    var guidePrev = event.target.closest('[data-guide-prev]');
+    if (guidePrev) {
+      var card = event.target.closest('[data-guide-card]');
+      var dots = card ? card.querySelectorAll('.guide-dot').length : 3;
+      if (views.settings) views.settings.openGuide(state.role, Math.max(0, dots - 1 - 1));
+      return;
+    }
+
+    if (event.target.closest('[data-guide-done]') || event.target.closest('[data-guide-close]')) {
+      if (views.settings) views.settings.closeGuide();
+      return;
+    }
+
+    if (event.target.closest('[data-coach-close]')) {
+      if (views.settings) views.settings.closeCoach();
+      return;
+    }
+
+    var viewAs = event.target.closest('[data-view-as]');
+    if (viewAs) {
+      var role = viewAs.getAttribute('data-view-as');
+      updateRole(role);
+      // Each reader gets a different feed: read it again from the start.
+      syncState.seq = 0;
+      pollSync();
+      return;
+    }
+
+    var simulate = event.target.closest('[data-simulate-error]');
     if (simulate) {
-      closeDemoMenu();
       showFailure(function () { showSnack(t('Fue solo una prueba. No se perdió nada.')); });
       return;
     }
@@ -1550,6 +1624,7 @@
       app.splashLayer.classList.add('is-leaving');
       window.setTimeout(function () { app.splashLayer.setAttribute('aria-hidden', 'true'); }, 320);
       renderRoute('forward', true);
+      window.setTimeout(maybeGuide, 600);
     };
     var skipButton = app.splashLayer.querySelector('[data-splash-skip]');
     if (skipButton) skipButton.addEventListener('click', finish);
@@ -1833,9 +1908,9 @@
     var situation = total === 0
       ? t('Turno sin eventos registrados todavía.')
       : t('Turno: {done} de {total} eventos listos.', { done: done, total: total }) + ' ' +
-        (pending > 0 ? t('Faltan {count}: {times}.', { count: pending, times: pendTimes }) : t('Nada pendiente.'));
+        (pending > 0 ? I18n.qty(pending, 'Falta {count}: {times}.', 'Faltan {count}: {times}.').replace('{times}', pendTimes) : t('Nada pendiente.'));
     var postureLine = postureDone ? ' ' + t('Cambio postural hecho.') : '';
-    var leftLine = pending > 0 ? ' ' + t('Quedan {count} por confirmar.', { count: pending }) : '';
+    var leftLine = pending > 0 ? ' ' + I18n.qty(pending, 'Queda {count} por confirmar.', 'Quedan {count} por confirmar.') : '';
     var background = (med
       ? t('Aplicado: {text} ({time}).', { text: med.text, time: med.time || t('turno actual') })
       : t('Sin medicación aplicada en el turno.')) + postureLine;
@@ -2667,6 +2742,9 @@
       }
       if (event.key !== 'Escape') return;
       if (app.errorLayer.classList.contains('is-open')) hideFailure();
+      else if (document.getElementById('guideLayer') && document.getElementById('guideLayer').classList.contains('is-open')) {
+        if (views.settings) { views.settings.closeGuide(); views.settings.closeCoach(); }
+      }
       else if (document.querySelector('.demo-menu.is-open')) closeDemoMenu();
       else if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
       else if (state.sheetOpen) closeRegistrationSheet();
