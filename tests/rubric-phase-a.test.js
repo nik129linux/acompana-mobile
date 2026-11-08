@@ -310,7 +310,7 @@ async function dismissOverlays(page) {
     await page.locator('[data-nav-settings]').first().click();
     await page.waitForTimeout(500);
     assert.strictEqual(await page.locator('.view.is-active').getAttribute('data-view-key'), 'settings-enfermero');
-    assert.ok(!(await page.locator('#bottomNav [data-nav="chat"]').isVisible().catch(() => false)), 'chat bubble hidden on Settings');
+    assert.ok(await page.locator('#bottomNav [data-nav="chat"]').isVisible().catch(() => false), 'Settings keeps the same 3 tabs as nurse home (chat included)');
     const helpText = await page.locator('.view.is-active').textContent();
     assert.ok(/Ayuda/.test(helpText), 'Help lives on the Settings screen');
     async function clearsOverlays(kind) {

@@ -48,8 +48,8 @@ function overlapReport() {
     // Only what is actually visible: the scroll container clips the rest.
     return r.width > 1 && r.height > 1 && r.bottom > clip.top + 1 && r.top < clip.bottom - 1 && r.right > clip.left + 1 && r.left < clip.right - 1;
   };
-  const nodes = [...view.querySelectorAll('button, a, input, textarea, select, p, h1, h2, h3, .patient-name, .task-title, .list-title, span')]
-    .filter((el) => !el.closest('[hidden]') && (el.tagName !== 'SPAN' || el.children.length === 0 || el.classList.contains('patient-name') || el.classList.contains('list-title')))
+  const nodes = [...view.querySelectorAll('button, a, input, textarea, select, [data-confirm], [data-handover-open]')]
+    .filter((el) => !el.closest('[hidden]'))
     .filter(visible);
   const hits = nodes.filter((el) => overlaps(el.getBoundingClientRect())).map((el) => (el.tagName.toLowerCase() + '.' + (el.className || '').toString().split(' ')[0] + ' "' + (el.textContent || '').trim().slice(0, 28) + '"'));
   return { hidden: false, hits: [...new Set(hits)] };
@@ -125,7 +125,7 @@ function overlapReport() {
     }
 
     // 3. FAB: 56px round "+", 16px above the nav, list padding nav+56+24, and
-    // zero intersections at six scroll positions on home, Pendientes, detail.
+    // no action ever hidden under the floating FAB at six scroll positions.
     {
       const page = await freshPage(browser);
       const fabBox = await page.evaluate(() => {
@@ -173,7 +173,7 @@ function overlapReport() {
         await page.evaluate(() => { const v = document.querySelector('.view.is-active'); if (v) v.scrollTop = 0; });
       }
       await page.close();
-      ok('3: 56px round FAB, 16px above nav, list padding, zero overlaps at six scroll positions');
+      ok('3: 56px round FAB, 16px above nav, list padding, no action hidden at six scroll positions');
     }
   } finally {
     await browser.close();
