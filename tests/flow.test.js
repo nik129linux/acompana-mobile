@@ -81,15 +81,15 @@ const selected = (page) => page.locator('[data-event-patient][aria-pressed="true
     await page.waitForTimeout(600);
 
     // 4. Nav: Turno / Pendientes / Chat are three equal symmetric tabs;
-    // the extended Registrar FAB is docked bottom-right above the nav.
+    // the round 56px Registrar FAB is docked bottom-right 16px above the nav.
     const phone = await page.locator('.phone').boundingBox();
     const center = phone.x + phone.width / 2;
     const navBar = await page.locator('.bottom-nav').boundingBox();
     const fab = await page.locator('[data-fab-register]').boundingBox();
     assert(fab.x + fab.width / 2 > center, 'Registrar is docked right, not centered');
-    assert(navBar.x + navBar.width - (fab.x + fab.width) <= 32, 'Registrar docks at the right edge');
-    assert(fab.width > fab.height, 'Registrar is extended');
-    assert(fab.y + fab.height <= navBar.y + 1, 'Registrar sits above the nav');
+    assert(Math.abs((navBar.x + navBar.width) - (fab.x + fab.width) - 16) <= 1, 'Registrar docks 16px from the right edge');
+    assert(Math.abs(fab.width - 56) <= 0.5 && Math.abs(fab.height - 56) <= 0.5, 'Registrar is a 56px circle');
+    assert(Math.abs((navBar.y - (fab.y + fab.height)) - 16) <= 1, 'Registrar sits 16px above the nav');
     const tabs = await page.locator('.bottom-nav .nav-item').all();
     assert.strictEqual(tabs.length, 3, 'nurse nav is Turno / Pendientes / Chat');
     const boxes = [];

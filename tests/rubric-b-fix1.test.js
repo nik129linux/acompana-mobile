@@ -41,7 +41,8 @@ async function setLang(page, lang) {
 (async () => {
   const browser = await chromium.launch();
 
-  // 1. Three equal tabs, symmetric; FAB docked bottom-right, extended.
+  // 1. Three equal tabs, symmetric; 56px round "+" FAB docked bottom-right
+  // 16px above the nav, with its accessible name.
   {
     const page = await freshPage(browser);
     const nav = await page.evaluate(() => {
@@ -54,7 +55,7 @@ async function setLang(page, lang) {
       const fab = document.querySelector('[data-fab-register]');
       const f = fab.getBoundingClientRect();
       const phone = document.querySelector('.phone').getBoundingClientRect();
-      return { items, nav: { x: b.left, w: b.width, top: b.top }, fab: { x: f.left, w: f.width, h: f.height, right: f.right, bottom: f.bottom, label: fab.textContent.trim(), hidden: fab.hidden }, phone: { x: phone.left, w: phone.width } };
+      return { items, nav: { x: b.left, w: b.width, top: b.top }, fab: { x: f.left, w: f.width, h: f.height, right: f.right, bottom: f.bottom, label: fab.getAttribute('aria-label') || '', hidden: fab.hidden }, phone: { x: phone.left, w: phone.width } };
     });
     assert.strictEqual(nav.items.length, 3, 'nurse nav has 3 tabs, got ' + JSON.stringify(nav.items));
     assert.deepStrictEqual(nav.items.map((i) => i.key), ['turno', 'pendientes', 'chat'], 'tabs are Turno/Pendientes/Chat');
@@ -68,11 +69,12 @@ async function setLang(page, lang) {
     assert.ok(Math.abs(midC - navC) <= 4, 'middle tab centered: ' + midC.toFixed(1) + ' vs ' + navC.toFixed(1));
     const fabC = nav.fab.x + nav.fab.w / 2;
     assert.ok(fabC > navC, 'FAB is on the right half, center ' + fabC.toFixed(1) + ' vs nav ' + navC.toFixed(1));
-    assert.ok(nav.fab.w > nav.fab.h, 'FAB is extended (w ' + nav.fab.w.toFixed(0) + ' > h ' + nav.fab.h.toFixed(0) + ')');
-    assert.ok(/Registrar|Log/.test(nav.fab.label), 'FAB shows Registrar label, got: ' + nav.fab.label);
-    assert.ok(nav.fab.bottom <= nav.nav.top + 1, 'FAB sits above the nav (bottom ' + nav.fab.bottom.toFixed(0) + ' vs nav top ' + nav.nav.top.toFixed(0) + ')');
+    assert.ok(Math.abs(nav.fab.w - 56) <= 0.5 && Math.abs(nav.fab.h - 56) <= 0.5, 'FAB is a 56px circle, got ' + nav.fab.w.toFixed(0) + 'x' + nav.fab.h.toFixed(0));
+    assert.ok(Math.abs((nav.phone.x + nav.phone.w) - nav.fab.right - 16) <= 1, 'FAB is 16px from the right edge, got ' + ((nav.phone.x + nav.phone.w) - nav.fab.right).toFixed(1));
+    assert.ok(/^Registrar evento$|^Log event$/.test(nav.fab.label), 'FAB aria-label names the action, got: ' + nav.fab.label);
+    assert.ok(Math.abs((nav.nav.top - nav.fab.bottom) - 16) <= 1, 'FAB sits 16px above the nav (gap ' + (nav.nav.top - nav.fab.bottom).toFixed(1) + ')');
     await page.close();
-    ok('1: 3 equal symmetric tabs; extended Registrar FAB docked bottom-right above nav');
+    ok('1: 3 equal symmetric tabs; 56px round "+" FAB docked bottom-right 16px above nav');
   }
 
   // 2. Bottom padding clears nav+FAB: the brief's case (Jorge's
@@ -116,7 +118,11 @@ async function setLang(page, lang) {
         })();
         return { pad: parseFloat(cs.paddingBottom) || 0, fabH: f.height, topHero, topCards, jorge, lastCard };
       });
-      assert.ok(hits.pad >= hits.fabH + 16, step + ': bottom padding (' + hits.pad + ') clears the FAB (' + hits.fabH.toFixed(0) + ')');
+      if (step === 'detail') {
+        assert.strictEqual(hits.fabH, 0, 'detail: the FAB steps aside for the docked Registrar evento CTA');
+      } else {
+        assert.ok(hits.pad >= hits.fabH + 16, step + ': bottom padding (' + hits.pad + ') clears the FAB (' + hits.fabH.toFixed(0) + ')');
+      }
       assert.ok(!hits.topHero, step + ' (top): hero under FAB');
       assert.ok(hits.topCards.every((h) => !h), step + ' (top): first cards under FAB: ' + JSON.stringify(hits.topCards));
       assert.ok(hits.jorge !== true, step + ': Jorge Cambio text under FAB');
@@ -126,47 +132,41 @@ async function setLang(page, lang) {
     ok('2: padding clears nav+FAB; hero/first cards/Jorge text clear at top, last card clear at bottom');
   }
 
-  // 3. Compact Confirmar; names on one line in ES and EN.
+  // 3. Patient-card confirm is a 48px round icon button; names never truncate.
   {
-    for (const lang of ['es', 'en']) {
-      const page = await freshPage(browser);
-      await setLang(page, lang);
-      await page.locator('[data-nav="turno"]').click().catch(() => {});
-      await page.waitForTimeout(400);
-      const home = await page.evaluate(() => {
-        const btns = [...document.querySelectorAll('.view.is-active [data-confirm]')].map((el) => {
-          const r = el.getBoundingClientRect();
-          return { w: r.width, h: r.height, label: el.getAttribute('aria-label') || '', text: (el.textContent || '').trim().slice(0, 20) };
+    for (const width of [360, 390, 430]) {
+      for (const lang of ['es', 'en']) {
+        const page = await freshPage(browser, { width });
+        await setLang(page, lang);
+        await page.locator('[data-nav="turno"]').click().catch(() => {});
+        await page.waitForTimeout(400);
+        const home = await page.evaluate(() => {
+          const btns = [...document.querySelectorAll('.view.is-active .patient-card [data-confirm]')].map((el) => {
+            const r = el.getBoundingClientRect();
+            return { w: r.width, h: r.height, label: el.getAttribute('aria-label') || '', text: (el.textContent || '').trim().slice(0, 20), radius: getComputedStyle(el).borderRadius };
+          });
+          const names = [...document.querySelectorAll('.view.is-active .patient-name')].map((el) => {
+            const cs = getComputedStyle(el);
+            return { text: (el.textContent || '').trim().slice(0, 20), overflow: el.scrollWidth > el.clientWidth + 1, ellipsis: cs.textOverflow === 'ellipsis', h: el.getBoundingClientRect().height, lh: parseFloat(cs.lineHeight) || 0 };
+          });
+          return { btns, names };
         });
-        const names = [...document.querySelectorAll('.view.is-active .patient-name')].map((el) => {
-          const cs = getComputedStyle(el);
-          return { text: (el.textContent || '').trim().slice(0, 20), wrap: el.scrollWidth > el.clientWidth + 1, ws: cs.whiteSpace, h: el.getBoundingClientRect().height, lh: parseFloat(cs.lineHeight) || 0 };
-        });
-        return { btns, names };
-      });
-      assert.ok(home.btns.length >= 1, lang + ': confirm buttons present');
-      for (const b of home.btns) {
-        assert.ok(/Confirmar|Confirm/.test(b.text), lang + ': button reads Confirmar, got ' + b.text);
-        assert.ok(/ de | for /.test(b.label), lang + ': aria-label names task+patient, got ' + b.label);
-        assert.ok(b.w <= 120.5, lang + ': confirm no wider than 120px, got ' + b.w.toFixed(1));
-        assert.ok(b.h <= 56.5 && b.h >= 40, lang + ': confirm height 44..56, got ' + b.h.toFixed(1));
+        assert.ok(home.btns.length >= 1, width + '/' + lang + ': patient confirm buttons present');
+        for (const b of home.btns) {
+          assert.ok(Math.abs(b.w - 48) <= 0.5 && Math.abs(b.h - 48) <= 0.5, width + '/' + lang + ': confirm is 48x48, got ' + b.w.toFixed(1) + 'x' + b.h.toFixed(1));
+          assert.ok(parseFloat(b.radius) >= 23, width + '/' + lang + ': confirm is round, radius ' + b.radius);
+          assert.ok(/Confirmar|Confirm/.test(b.text), width + '/' + lang + ': button names Confirmar, got ' + b.text);
+          assert.ok(/ de | for /.test(b.label), width + '/' + lang + ': aria-label names task+patient, got ' + b.label);
+        }
+        for (const n of home.names) {
+          assert.ok(!n.ellipsis, width + '/' + lang + ': name has no ellipsis: ' + n.text);
+          assert.ok(!n.overflow, width + '/' + lang + ': name fits its box: ' + n.text);
+          assert.ok(n.h <= n.lh + 2, width + '/' + lang + ': name stays on one line: ' + n.text);
+        }
+        await page.close();
       }
-      for (const n of home.names) {
-        assert.ok(!n.wrap, lang + ': name stays on one line: ' + n.text);
-      }
-      await page.locator('[data-nav="pendientes"]').click();
-      await page.waitForTimeout(500);
-      const pend = await page.evaluate(() => {
-        const el = document.querySelector('.view.is-active [data-confirm]');
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        return { w: r.width, h: r.height, label: el.getAttribute('aria-label') || '' };
-      });
-      assert.ok(pend && pend.w <= 120.5, lang + ': pendientes confirm <=120px, got ' + (pend && pend.w.toFixed(1)));
-      assert.ok(pend && pend.h <= 56.5, lang + ': pendientes confirm height ok, got ' + (pend && pend.h.toFixed(1)));
-      await page.close();
     }
-    ok('3: compact Confirmar (<=120px) with task+patient label; names one line in ES+EN');
+    ok('3: 48x48 round confirm with task+patient label; names fit one line at 360/390/430 in ES+EN');
   }
 
   await browser.close();

@@ -305,15 +305,16 @@ function contrastRatio(foreground, background) {
     if (b) { await page.mouse.click(b.x + b.width/2, b.y + b.height/2); await page.waitForTimeout(600); }
   }
   assert(await page.locator('[data-view-key="nurse-home"]').isVisible(), 'findings: nurse-home not visible after splash skip');
-  // Helper for bbox >=56
-  async function assertGloveBox(selector, label) {
+  // Helper for bbox >= min (56px targets; the patient-card confirm icon is 48)
+  async function assertGloveBox(selector, label, min) {
+    const size = min || 56;
     const loc = page.locator(selector).first();
     assert(await loc.count() > 0, `${label} missing for F1: ${selector}`);
     const box = await loc.boundingBox();
     assert(box, `${label} has no bbox`);
-    assert(box.height >= 56, `F1: ${label} height ${box.height} <56 (selector ${selector})`);
-    // width should also be meaningful; for circle buttons width must be >=56, for pills width >56 anyway
-    assert(box.width >= 56 || box.height >= 56, `F1: ${label} bbox ${box.width}x${box.height} <56`);
+    assert(box.height >= size, `F1: ${label} height ${box.height} <${size} (selector ${selector})`);
+    // width should also be meaningful; for circle buttons width must be >= size, for pills width >size anyway
+    assert(box.width >= size || box.height >= size, `F1: ${label} bbox ${box.width}x${box.height} <${size}`);
   }
   // F1 — splash skip (check before it disappears — reopen splash briefly by reloading)
   // splash-skip already visible at start; re-check via goto again for that element
@@ -325,8 +326,8 @@ function contrastRatio(foreground, background) {
   await page.locator('[data-splash-skip]').click().catch(async()=>{ const b=await page.locator('#splashLayer').boundingBox().catch(()=>null); if(b) await page.mouse.click(b.x+b.width/2,b.y+b.height/2); });
   await page.waitForTimeout(600);
   await page.waitForFunction(()=> document.querySelector('[data-view-key="nurse-home"]') !== null, null, {timeout:3000}).catch(()=>{});
-  // F1: quick-confirm in nurse-home
-  await assertGloveBox('.quick-confirm', 'quick-confirm');
+  // F1: quick-confirm in nurse-home (48px round icon per the B-fix2 spec)
+  await assertGloveBox('.quick-confirm', 'quick-confirm', 48);
   // F1: reveal-button + icon-button in nurse-detail
   await page.locator('[data-patient="cr"]').click();
   await page.waitForTimeout(500);

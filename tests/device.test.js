@@ -69,8 +69,8 @@ async function ring(page, selector) {
   }
 
   // Chat is a bottom-nav tab (Turno / Pendientes / Chat, three equal
-  // symmetric tabs) with the extended Registrar FAB docked bottom-right
-  // above the nav (Material pattern); the toast clears the nav.
+  // symmetric tabs) with the round 56px Registrar FAB docked bottom-right
+  // 16px above the nav; the toast clears the nav.
   const browser2 = await chromium.launch();
   try {
     const page = await browser2.newPage({ viewport: { width: 390, height: 844 } });
@@ -96,9 +96,9 @@ async function ring(page, selector) {
     assert.ok(Math.max(...g.tabs) - Math.min(...g.tabs) <= 2, 'tabs equal width: ' + JSON.stringify(g.tabs));
     assert.ok(Math.abs(g.midCx - g.navCx) <= 4, 'tabs symmetric around the nav center: ' + JSON.stringify(g));
     assert.ok(g.fabCx > g.navCx, 'the Registrar FAB is docked right, not centered: ' + JSON.stringify(g));
-    assert.ok(g.navRight - g.fabRight <= 32, 'the Registrar FAB docks at the right edge: ' + JSON.stringify(g));
-    assert.ok(g.fabW > g.fabH, 'the Registrar FAB is extended: ' + JSON.stringify(g));
-    assert.ok(g.fabBottom <= g.navTop + 1, 'the Registrar FAB sits above the nav: ' + JSON.stringify(g));
+    assert.ok(Math.abs(g.navRight - g.fabRight - 16) <= 1, 'the Registrar FAB docks 16px from the right edge: ' + JSON.stringify(g));
+    assert.ok(Math.abs(g.fabW - 56) <= 0.5 && Math.abs(g.fabH - 56) <= 0.5, 'the Registrar FAB is a 56px circle: ' + JSON.stringify(g));
+    assert.ok(Math.abs(g.navTop - g.fabBottom - 16) <= 1, 'the Registrar FAB sits 16px above the nav: ' + JSON.stringify(g));
     assert.ok(g.snackVisible && g.snackBottom <= g.navTop, 'the toast clears the bottom nav: ' + JSON.stringify(g));
   } finally {
     await browser2.close();

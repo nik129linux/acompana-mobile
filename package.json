@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node server/server.js",
-    "test": "for f in tests/acceptance.js tests/android.test.js tests/apk.test.js tests/auth.test.js tests/back.test.js tests/device.test.js tests/english.test.js tests/events.test.js tests/finish.test.js tests/flow.test.js tests/hardening.test.js tests/medixin.test.js tests/native.test.js tests/polish.test.js tests/pwa.test.js tests/readers-polish.test.js tests/retoma.test.js tests/rubric-phase-a.test.js tests/rubric-phase-b.test.js tests/rubric-b-fix1.test.js tests/server.test.js tests/share.test.js tests/sync.test.js tests/tokens.test.js tests/translate.test.js tests/translate-ui.test.js; do node $f || exit 1; done",
+    "test": "for f in tests/acceptance.js tests/android.test.js tests/apk.test.js tests/auth.test.js tests/back.test.js tests/device.test.js tests/english.test.js tests/events.test.js tests/finish.test.js tests/flow.test.js tests/hardening.test.js tests/medixin.test.js tests/native.test.js tests/polish.test.js tests/pwa.test.js tests/readers-polish.test.js tests/retoma.test.js tests/rubric-phase-a.test.js tests/rubric-phase-b.test.js tests/rubric-b-fix1.test.js tests/rubric-b-fix2.test.js tests/server.test.js tests/share.test.js tests/sync.test.js tests/tokens.test.js tests/translate.test.js tests/translate-ui.test.js; do node $f || exit 1; done",
     "build:www": "node tools/build-www.js",
     "cap:sync": "npm run build:www && npx cap sync android"
   },
