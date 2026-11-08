@@ -12,7 +12,7 @@ const path = require('path');
 const http = require('http');
 const { pathToFileURL } = require('url');
 const { chromium } = require('playwright');
-const { viewAs, openRegister } = require('./helpers');
+const { viewAs, openRegister, openSettings, setLang, triggerError } = require('./helpers');
 const srv = require('../server/server.js');
 
 const INDEX = pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
@@ -32,7 +32,7 @@ async function fresh(browser, options) {
   await page.goto(INDEX);
   await page.evaluate(() => {
     const consent = localStorage.getItem('acompana-ai-consent');
-    localStorage.clear();
+    localStorage.clear(); localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); });;
     if (consent) localStorage.setItem('acompana-ai-consent', consent);
   });
   await page.reload();
@@ -42,13 +42,11 @@ async function fresh(browser, options) {
 }
 
 async function openMenu(page) {
-  await page.locator('.view.is-active [data-demo-menu]').first().click();
+  await openSettings(page);
 }
 
 async function setEnglish(page) {
-  await openMenu(page);
-  await page.locator('.view.is-active .demo-menu.is-open [data-menu-lang]').click();
-  await page.waitForTimeout(400);
+  await setLang(page, 'en');
 }
 
 // Spanish that must not survive in the English UI. Patient, nurse and brand
@@ -100,6 +98,8 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
     assert.ok((await page.locator('.view.is-active').innerText()).includes('Hola, Elena'));
     await setEnglish(page);
     assert.strictEqual(await page.evaluate(() => document.documentElement.lang), 'en');
+    await page.locator('#bottomNav [data-nav="turno"]').click();
+    await page.waitForTimeout(400);
     assert.ok((await page.locator('.view.is-active').innerText()).includes('Hi, Elena'), 'greeting follows the language');
     await page.reload();
     if (await page.locator('[data-splash-skip]').isVisible().catch(() => false)) await page.locator('[data-splash-skip]').click();
@@ -261,9 +261,7 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
 
     // 8. The error case: reachable from the menu, a big X, retry and close.
     page = await fresh(browser);
-    await openMenu(page);
-    await page.locator('.view.is-active .demo-menu.is-open [data-simulate-error]').click();
-    await page.waitForTimeout(600);
+    await triggerError(page);
     const error = page.locator('[data-error-state]');
     assert.ok(await error.isVisible(), 'the error state opens');
     assert.strictEqual(await error.getAttribute('role'), 'alertdialog');
@@ -275,9 +273,7 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
     assert.ok(!(await error.isVisible().catch(() => false)), 'Escape closes it');
-    await openMenu(page);
-    await page.locator('.view.is-active .demo-menu.is-open [data-simulate-error]').click();
-    await page.waitForTimeout(500);
+    await triggerError(page);
     await page.goBack();
     await page.waitForTimeout(500);
     assert.ok(!(await error.isVisible().catch(() => false)), 'system Back closes it');
@@ -290,7 +286,7 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
     await new Promise((r) => server.listen(0, '127.0.0.1', r));
     const base = 'http://127.0.0.1:' + server.address().port + '/';
     const ctx9 = await browser.newContext({ viewport: { width: 390, height: 844 } });
-    await ctx9.addInitScript(() => localStorage.setItem('acompana-ai-consent', 'no'));
+    await ctx9.addInitScript(() => { localStorage.setItem('acompana-ai-consent', 'no'); localStorage.setItem('acompana-guide-seen', '{"all":true}'); });
     await ctx9.route('**/api/chat', async (route) => {
       sends += 1;
       if (failNext) { failNext = false; await route.abort(); return; }
@@ -330,13 +326,9 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
     assert.ok(geometry.answer <= geometry.nav, 'answer above the nav: ' + JSON.stringify(geometry));
     ok('family: the answer is on screen after asking');
 
-    // 11. Ask box comes before the tutorial cards.
-    const order = await page.evaluate(() => {
-      const ask = document.querySelector('.view.is-active [data-ask-input]');
-      const tutorial = document.querySelector('.view.is-active .onboarding-list');
-      return Boolean(ask.compareDocumentPosition(tutorial) & Node.DOCUMENT_POSITION_FOLLOWING);
-    });
-    assert.ok(order, 'ask box above the tutorial');
+    // 11. Static tutorial cards are gone; the ask box stays first with help in Settings.
+    assert.ok(await page.locator('.view.is-active [data-ask-input]').isVisible(), 'ask box missing');
+    assert.strictEqual(await page.locator('.view.is-active .onboarding-list').count(), 0, 'static tutorial cards remain');
     const pill = await page.locator('.family-hero .glass-pill').innerText();
     assert.ok(/Horario de visita.*3:00.*5:00/s.test(pill.replace(/\n/g, ' ')), 'pill reads in order: ' + pill);
     const lines = await page.locator('.family-hero .glass-pill').evaluate((node) => Array.from(node.children).filter((c) => !c.classList.contains('visit-icon')).length);
@@ -426,9 +418,7 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
 
     // 18. The snackbar reads in dark mode.
     page = await fresh(browser, { context: { colorScheme: 'dark' } });
-    await openMenu(page);
-    await page.locator('.view.is-active .demo-menu.is-open [data-simulate-error]').click();
-    await page.waitForTimeout(500);
+    await triggerError(page);
     await page.locator('[data-error-retry]').click();
     await page.waitForTimeout(500);
     const snack = await page.evaluate(() => {
