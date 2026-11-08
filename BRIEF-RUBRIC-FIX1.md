@@ -1,0 +1,8 @@
+# Fix round 1 for phase A (read BRIEF-RUBRIC.md for the rules; same rules apply)
+Verified by the reviewer in a 390x844 screenshot (Brave, fresh profile). Fix all, add an assertion for each to tests/rubric-phase-a.test.js, keep `npm test` fully green, commit.
+1. Bottom nav is broken: the new Settings/config tab wraps BELOW the bar (gear icon cut off at the bottom edge, under "Turno"). Settings must NOT be a bottom-nav item: the gear in the top app bar is enough. Remove the `config` nav item for all three readers; Settings opens as a pushed screen with a back arrow. Assert: every #bottomNav item's bottom <= viewport height and nav has the same items as before phase A.
+2. Stat chip shows "3 3 pendientes" (number printed twice). Fix and assert the chip text is exactly "3 pendientes" (ES) / "3 to do" style in EN, and "1 pendiente" after confirming two.
+3. Settings → Tema: "Sistema" wraps to a second row under Claro/Oscuro. Make the 3 options one row of equal widths at 360px and 390px, in both languages. Same for Idioma.
+4. The floating chat bubble covers Settings content (it sits over the "Activar" card). Hide the chat bubble on the Settings and Help screens, and on every screen make the scroll container reserve bottom space so the last card is never covered by the FAB, chat bubble or nav (assert with bounding boxes on Settings, nurse home and Pendientes).
+5. Gear icon is a filled shape while every other icon is Hugeicons stroke-rounded: use the stroke settings icon from the same set (js/icons.js).
+Final message: each item PASS/FAIL with the test name, plus full npm test counts.
