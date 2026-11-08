@@ -226,12 +226,15 @@ button.glass-pill {
 /* Chips */
 .chip-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin: 0 -20px;
   padding: 4px 20px 8px;
-  overflow-x: auto;
+  overflow: visible;
   scrollbar-width: none;
 }
+.chip { min-width: 0; max-width: 100%; }
+.chip > span:last-child, .chip { overflow-wrap: anywhere; }
 
 .chip-row::-webkit-scrollbar { display: none; }
 
@@ -371,8 +374,9 @@ button.glass-pill {
   box-shadow: var(--elevation-2);
 }
 
-.stat-tile.is-warm { background: var(--grad-warm); }
+.stat-tile.is-warm { background: var(--grad-warm); color: var(--on-warm); }
 .stat-tile span { color: var(--on-gradient-soft); font-size: var(--text-caption); font-weight: 500; }
+.stat-tile.is-warm span { color: var(--on-warm); }
 .stat-tile strong { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* Buttons */

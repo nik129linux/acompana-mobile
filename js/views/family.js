@@ -28,9 +28,9 @@
   function familyTimeline(patient) {
     var treated = ctx().isConfirmed('medication');
     return [
-      { at: '00:00', time: t('Hoy'), text: t(treated ? 'Tratamiento de la mañana cumplido' : 'Tratamiento de la mañana en curso'), pending: !treated },
-      { at: '00:01', time: t('Hoy'), text: t('El equipo está con {pronoun}, sin novedad que reportar', { pronoun: t(patient.pronoun) }), pending: false },
-      { at: '15:00', time: '15:00', text: t('Horario de visita disponible'), pending: true, icon: 'calendar' }
+      { at: '00:00', time: fmtTime('08:00'), text: t(treated ? 'Tratamiento de la mañana cumplido' : 'Tratamiento de la mañana en curso'), pending: !treated },
+      { at: '00:01', time: fmtTime('08:05'), text: t('El equipo está con {pronoun}, sin novedad que reportar', { pronoun: t(patient.pronoun) }), pending: false },
+      { at: '15:00', time: fmtTime('15:00'), text: t('Horario de visita disponible'), pending: true, icon: 'calendar' }
     ];
   }
 
@@ -54,7 +54,7 @@
       '<article class="list-card"><span class="avatar" aria-hidden="true"><img src="media/frames/doctora-white.png" alt=""></span>' +
       '<span class="list-copy"><strong class="list-title">' + escapeHtml(t('Enfermera de turno')) + '</strong><span class="list-meta"><span>' + escapeHtml(t('Elena · vuelve a')) + ' <span class="time-nowrap">' + escapeHtml(t('la 1:00 p. m.')) + '</span></span></span></span></article>' +
       '<div class="contact-actions contact-options">' +
-      '<a class="contact-option primary-button" href="tel:' + escapeHtml(ctx().SHIFT_PHONE) + '"><span class="contact-icon is-call" aria-hidden="true">' + icon('call') + '</span><strong class="contact-option-label">' + escapeHtml(t('Llamar')) + '</strong> <span class="contact-option-line">' + escapeHtml(t('al turno de Elena')) + '</span></a>' +
+      '<button type="button" class="contact-option primary-button" data-call-request><span class="contact-icon is-call" aria-hidden="true">' + icon('call') + '</span><span class="list-copy"><strong class="contact-option-label">' + escapeHtml(t('Pedir que me llamen')) + '</strong> <span class="contact-option-line">' + escapeHtml(t('El equipo le devuelve la llamada')) + '</span>' + (ctx().SHIFT_PHONE ? '<span class="contact-option-line">' + escapeHtml(t('Número de demostración')) + ': ' + escapeHtml(ctx().SHIFT_PHONE) + '</span>' : '') + '</span></button>' +
       '<button type="button" class="contact-option" data-chat-open><span class="contact-icon is-message" aria-hidden="true">' + icon('message') + '</span><strong class="contact-option-label">' + escapeHtml(t('Mensaje')) + '</strong> <span class="contact-option-line">' + escapeHtml(t('Escriba al equipo')) + '</span></button>' +
       '<button type="button" class="contact-option secondary-button" data-schedule-open><span class="contact-icon is-visit" aria-hidden="true">' + icon('calendar') + '</span><strong class="contact-option-label">' + escapeHtml(t('Visita')) + '</strong> <span class="contact-option-line">' + escapeHtml(t('Ver horarios')) + '</span></button>' +
       '</div>' +
@@ -67,7 +67,7 @@
       return e.patientId === patient.id && ctx().EVENT_KIND_PHRASES_FAMILIA[e.kind];
     });
     logged.forEach(function (e) {
-      items.push({ at: e.time, time: e.time, text: t(ctx().EVENT_KIND_PHRASES_FAMILIA[e.kind]), pending: false, eventId: e.id, kind: e.kind });
+      items.push({ at: e.time, time: fmtTime(e.time), text: t(ctx().EVENT_KIND_PHRASES_FAMILIA[e.kind]), pending: false, eventId: e.id, kind: e.kind });
     });
     return ctx().byTime(items);
   }

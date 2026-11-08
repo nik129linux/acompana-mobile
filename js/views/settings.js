@@ -68,7 +68,7 @@
       ['Qué pasa: resumen sencillo del cuidado.', 'Qué pasa'],
       ['Contacto: llamar, escribir o ver horarios de visita.', 'Contacto']
     ];
-    var statuses = ['Revisar', 'Medicación 11:00', '1 toque', 'Listo', 'Hecho', 'Registrado', 'Pendiente', 'Plantilla', 'Borrador con IA'];
+    var statuses = ['Revisar', 'Medicación 11:00', '1 toque', 'Hecho', 'Registrado', 'Pendiente', 'Confirmar', 'Plantilla', 'Borrador con IA'];
     var icons = ['list', 'clock', 'message', 'heart', 'help', 'phone', 'pill', 'move', 'ruler', 'mic', 'clipboard', 'eye', 'shield', 'calendar', 'check'];
     return '<div class="help-block"><h3>' + escapeHtml(t('Todo lo que hace la guía')) + '</h3>' +
       '<div class="faq-list">' + faq.map(function (item, i) {
@@ -94,7 +94,7 @@
       var active = themeMode === value;
       return '<button type="button" class="segment' + (active ? ' is-active' : '') + '" data-set-theme="' + value + '" data-theme-option="' + value + '" aria-pressed="' + String(active) + '">' + escapeHtml(t(label)) + '</button>';
     };
-    return '<div class="view-header" data-settings-screen><button type="button" class="icon-button back-button" data-back data-settings-back aria-label="' + escapeHtml(t('Atrás')) + '"><span class="arrow-icon" aria-hidden="true">' + icon('back') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Configuración')) + '</h1></div></div>' +
+    return '<div class="view-header" data-settings-screen><button type="button" class="icon-button back-button" data-back data-settings-back aria-label="' + escapeHtml(t('Atrás')) + '"><span class="arrow-icon" aria-hidden="true">' + icon('arrow') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Configuración')) + '</h1></div></div>' +
       '<section class="settings-block" aria-labelledby="set-lang"><h2 id="set-lang">' + escapeHtml(t('Idioma')) + '</h2>' +
       '<div class="segmented" role="group" aria-label="' + escapeHtml(t('Idioma')) + '">' +
       '<button type="button" class="segment' + (lang === 'es' ? ' is-active' : '') + '" data-set-lang="es" aria-pressed="' + String(lang === 'es') + '">Español</button>' +
@@ -205,7 +205,7 @@
     guideReturn = document.activeElement;
     layer.innerHTML = '<section class="coach-card" role="dialog" aria-modal="false" aria-label="' + escapeHtml(t(text)) + '" data-coach-card>' +
       '<p>' + escapeHtml(t(text)) + '</p>' +
-      '<button type="button" class="btn btn-primary" data-coach-close>' + escapeHtml(t('Listo')) + '</button></section>';
+      '<button type="button" class="btn btn-primary" data-coach-close>' + escapeHtml(t('Hecho')) + '</button></section>';
     layer.classList.add('is-open');
     layer.setAttribute('aria-hidden', 'false');
     layer.dataset.coach = key;

@@ -35,7 +35,16 @@ ENTRIES.forEach((entry) => {
   if (fs.existsSync(src)) copy(src, entry);
 });
 
-const apiBase = process.env.ACOMPANA_API_BASE || '';
+const apiBase = process.env.ACOMPANA_API_BASE || (function () {
+  // Default to the deployed base from infra (terraform output api_base),
+  // else same-origin (empty). Never ship the *.test placeholder.
+  try {
+    var tf = JSON.parse(fs.readFileSync(path.join(ROOT, 'infra', 'terraform.tfstate'), 'utf8'));
+    var base = tf && tf.outputs && tf.outputs.api_base && tf.outputs.api_base.value;
+    if (typeof base === 'string' && base.trim() && base.indexOf('.test') === -1) return base.trim().replace(/\/+$/, '');
+  } catch (e) {}
+  return '';
+})();
 // Shared app key the server checks (APP_KEY there). Not a secret from anyone
 // who unpacks the APK; it keeps scanners and casual scripts out.
 const appKey = process.env.ACOMPANA_APP_KEY || '';

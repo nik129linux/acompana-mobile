@@ -60,8 +60,11 @@
   }
 
   function consentBox(kind, payload) {
+    var eventLine = '';
+    if (payload && payload.event && payload.event.text) eventLine = '<span class="list-meta" data-consent-event>' + tx('Texto del evento: ') + escapeHtml(String(payload.event.text)) + '</span>';
+    else if (payload && payload.question) eventLine = '<span class="list-meta" data-consent-event>' + tx('Pregunta: ') + escapeHtml(String(payload.question)) + '</span>';
     return '<div class="consent-box list-card"><strong class="list-title">' + tx('Antes de usar la IA') + '</strong>' +
-      '<span class="list-meta">' + tx('Esto es lo único que saldría de este equipo. Sin nombres ni datos personales. ¿Lo aceptas?') + '</span>' +
+      '<span class="list-meta">' + tx('Esto es lo único que saldría de este equipo. Sin nombres ni datos personales. ¿Lo aceptas?') + '</span>' + eventLine +
       '<pre>' + escapeHtml(JSON.stringify(payload, null, 1)) + '</pre>' +
       '<div class="consent-row"><button type="button" class="primary-button btn btn-primary" data-consent-yes="' + kind + '">' + tx('Aceptar') + '</button>' +
       '<button type="button" class="secondary-button btn btn-secondary" data-consent-no="' + kind + '">' + tx('Ahora no') + '</button></div></div>';

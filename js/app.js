@@ -35,8 +35,6 @@
         { label: 'Frecuencia cardiaca', value: '112', unit: 'lpm', alert: true },
         { label: 'Protocolo', value: 'Hipotensión', unit: 'activo', alert: true, wide: true }
       ],
-      patientText: 'El equipo está pendiente de sus signos',
-      familyText: 'Bajo observación, el equipo está con él'
     },
     {
       id: 'mg',
@@ -52,8 +50,6 @@
         { label: 'Dosis', value: '40', unit: 'mg SC' },
         { label: 'Hora', value: '11:00', unit: 'vía abdominal' }
       ],
-      patientText: 'Ya casi le toca el medicamento de la mañana',
-      familyText: 'Tratamiento de la mañana en curso'
     },
     {
       id: 'jp',
@@ -68,8 +64,6 @@
         { label: 'Posición', value: 'Decúbito lateral', unit: 'izquierdo', wide: true },
         { label: 'Próximo cambio', value: '11:20', unit: 'previsto' }
       ],
-      patientText: 'Le van a ayudar a cambiar de posición',
-      familyText: '—'
     }
   ];
   var FAMILY_PATIENT_ID = 'mg';
@@ -155,7 +149,7 @@
       paciente: HOME_NAV.paciente,
       familia: HOME_NAV.familia
     },
-    confirmed: {},
+    confirmed: (function () { try { return JSON.parse(window.localStorage.getItem('acompana-confirmed') || '{}') || {}; } catch (e) { return {}; } })(),
     pendingTab: 'pending',
     sheetOpen: false,
     sheetReturnNav: 'turno',
@@ -178,7 +172,7 @@
   var pushing = false;
 
   // placeholder: confirm in field
-  var SHIFT_PHONE = ''; // TODO: insert the shift phone (empty opens the dialer blank, never a stranger)
+  var SHIFT_PHONE = (window.ACOMPANA_CONFIG && (window.ACOMPANA_CONFIG.demoPhone || window.ACOMPANA_CONFIG.demo_phone)) || '';
 
   // Plain-language translations for patient/family timelines. Both maps
   // mirror the server's RULE_PHRASES (server/server.js): family never gets
@@ -313,36 +307,11 @@
   var reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener: function () {} };
   var videoObserver = null;
 
-  var ICONS = {
-    alert: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"></path></svg>',
-    arrow: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>',
-    chevron: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg>',
-    check: '<svg class="icon-svg icon-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.26 7.59 15.96C8.25 16.65 8.59 17 9 17S9.75 16.65 10.41 15.96L19 7"></path></svg>',
-    list: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h10M8 12h10M8 18h10"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg>',
-    plus: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>',
-    clock: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>',
-    heart: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8.8c0 5.2-8 9.7-8 9.7S4 14 4 8.8A4.4 4.4 0 0 1 12 6a4.4 4.4 0 0 1 8 2.8Z"></path></svg>',
-    help: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M9.7 9a2.4 2.4 0 1 1 3.7 2c-.9.6-1.4 1.1-1.4 2.2M12 16.5h.01"></path></svg>',
-    message: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 4H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3l4 3 4-3h3a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"></path><path d="M7 9h10M7 12h6"></path></svg>',
-    phone: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h3l1.4 4-2 1.5a14 14 0 0 0 5.1 5.1l1.5-2 4 1.4v3a2 2 0 0 1-2.2 2A16.8 16.8 0 0 1 5 6.2 2 2 0 0 1 7 4Z"></path></svg>',
-    pill: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5a4 4 0 0 1 5.7 0l5.3 5.3a4 4 0 0 1-5.7 5.7L8.5 10a4 4 0 0 1 0-5.5Z" transform="rotate(45 12 12)"></path><path d="m9 9 6 6"></path></svg>',
-    move: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M9 8l-4 4 4 4M15 8l4 4-4 4"></path></svg>',
-    ruler: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 17 12-12 2 2L7 19l-2-2Z"></path><path d="m12 8 2 2M9 11l2 2M15 5l2 2"></path></svg>',
-    mic: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="4" width="8" height="11" rx="4"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"></path></svg>',
-    clipboard: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h8M9 4h6a1 1 0 0 1 1 1v15H8V5a1 1 0 0 1 1-1Z"></path><path d="M10 10h4M10 14h4"></path></svg>',
-    eye: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12s3.2-5 9-5 9 5 9 5-3.2 5-9 5-9-5-9-5Z"></path><circle cx="12" cy="12" r="2"></circle></svg>',
-    shield: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 19 7v5c0 4.2-2.8 7-7 8-4.2-1-7-3.8-7-8V7l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>',
-    calendar: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="6" width="14" height="13" rx="2"></rect><path d="M8 4v4M16 4v4M5 10h14"></path></svg>',
-    more: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="12" cy="19" r="1.4"></circle></svg>',
-    gear: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z"></path></svg>',
-    moon: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg>',
-    sun: '<svg class="icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>'
-  };
 
-  // Hugeicons stroke-rounded (js/icons.js); the old inline set is the fallback.
+  // Hugeicons stroke-rounded (js/icons.js) is the only icon set.
   function icon(name) {
     var huge = window.ACOMPANA_ICONS || {};
-    return huge[name] || ICONS[name] || huge.check || ICONS.check;
+    return huge[name] || huge.check || '';
   }
 
   function escapeHtml(value) {
@@ -506,6 +475,10 @@
     showSnack(t('Toca atrás otra vez para salir'));
   }
 
+  function saveConfirmed() {
+    try { window.localStorage.setItem('acompana-confirmed', JSON.stringify(state.confirmed)); } catch (e) {}
+  }
+
   function isConfirmed(taskId) {
     return Boolean(state.confirmed[taskId]);
   }
@@ -649,10 +622,7 @@
   }
 
   function renderRoute(direction, force) {
-    if (state.role === 'enfermero' && state.activeNav[state.role] === 'registrar' && !state.sheetOpen) {
-      openRegistrationSheet();
-      return;
-    }
+
     var definition = viewDefinition();
     var current = app.screen.querySelector('.view.is-active');
     if (current && current.dataset.viewKey === definition.key && !force) {
@@ -732,10 +702,7 @@
 
   function updateFab() {
     if (!app.fab) return;
-    app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient;
-    var chatNav = app.bottomNav.querySelector('[data-nav="chat"]');
-    // The floating chat bubble never sits over Settings/Help content.
-    if (chatNav) chatNav.hidden = !!state.detailPatient || !!state.settingsOpen;
+    app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient || !!state.settingsOpen;
   }
 
   function openDemoMenu(button) {
@@ -925,8 +892,7 @@
     if (views.settings && views.settings.showCoach) window.setTimeout(function () { views.settings.showCoach('register', 'Registra lo que haces'); }, 450);
     state.sheetOpen = true;
     pushLayer('register');
-    state.sheetReturnNav = state.activeNav.enfermero === 'registrar' ? 'turno' : state.activeNav.enfermero;
-    state.activeNav.enfermero = 'registrar';
+    state.sheetReturnNav = state.activeNav.enfermero || 'turno';
     state.eventPatient = state.detailPatient ? state.detailPatient.id : (state.lastEventPatient || nextDuePatientId());
     clearUndo();
     app.registrationLayer.innerHTML = views.sheets.registrationSheet(state.eventPatient);
@@ -949,7 +915,7 @@
     if (!state.sheetOpen) return;
     state.sheetOpen = false;
     dropLayer('register', fromPop);
-    if (restoreNav !== false) state.activeNav.enfermero = state.sheetReturnNav || 'turno';
+    if (restoreNav !== false && state.sheetReturnNav) state.activeNav.enfermero = state.sheetReturnNav;
     app.registrationLayer.classList.remove('is-open');
     app.registrationLayer.setAttribute('aria-hidden', 'true');
     renderBottomNav();
@@ -991,6 +957,7 @@
     if (isConfirmed(taskId)) return;
     var card = trigger.closest('.task-card, .patient-card');
     state.confirmed[taskId] = true;
+    saveConfirmed();
     pushTaskDone(taskId);
     if (card) card.classList.add('is-confirming');
     navigator.vibrate?.(10);
@@ -1196,6 +1163,17 @@
       return;
     }
 
+    var callRequest = event.target.closest('[data-call-request]');
+    if (callRequest) {
+      var msg = t('La familia pide que la llamen.');
+      aiRequest('/api/questions', { question: msg }).then(function () {
+        showSnack(t('El equipo le devolverá la llamada.'));
+      }, function () {
+        showSnack(t('Sin conexión. El mensaje no se envió.'));
+      });
+      return;
+    }
+
     var chatOpen = event.target.closest('[data-chat-open]');
     if (chatOpen) {
       state.familyChatOpen = true;
@@ -1340,10 +1318,6 @@
     var button = event.target.closest('[data-nav]');
     if (!button) return;
     var key = button.getAttribute('data-nav');
-    if (state.role === 'enfermero' && key === 'registrar') {
-      openRegistrationSheet();
-      return;
-    }
     var wasSettings = state.settingsOpen;
     if (wasSettings) {
       state.settingsOpen = false;
@@ -1471,13 +1445,30 @@
   var KIND_LABELS = { medication: 'Medicación', position: 'Cambio de posición', round: 'Ronda', other: 'Otro evento' };
   var activeRecognizer = null;
 
-  function showProposal(kind, text) {
+  function showProposal(kind, text, source, model) {
     var proposal = app.registrationLayer.querySelector('[data-event-proposal]');
     if (!proposal) return;
     proposal.dataset.pendingKind = kind;
     proposal.dataset.pendingText = text;
     proposal.querySelector('[data-proposal-kind]').textContent = t(KIND_LABELS[kind] || 'Evento');
     proposal.querySelector('[data-proposal-text]').textContent = text;
+    var src = proposal.querySelector('[data-proposal-source]');
+    if (!src) {
+      src = document.createElement('span');
+      src.className = 'ai-source-text';
+      src.setAttribute('data-proposal-source', '');
+      proposal.appendChild(src);
+    }
+    var label = (source === 'ollama') ? ('IA \u00b7 ' + (model || 'gemma')) : t('Plantilla');
+    src.textContent = label;
+    var old = proposal.querySelector('[data-ai-fallback]');
+    if (old) old.remove();
+    if (source !== 'ollama' && aiConsent === 'yes') {
+      var note = document.createElement('div');
+      note.setAttribute('data-ai-fallback', '');
+      note.innerHTML = aiFallbackNote();
+      proposal.appendChild(note);
+    }
     proposal.classList.add('is-visible');
     if (window.AcompanaMotion) window.AcompanaMotion.pop(proposal, { from: 0.92, duration: 420 });
   }
@@ -1626,14 +1617,14 @@
       }
       if (aiConsent === 'yes') {
         aiRequest('/api/event', { text: transcript }).then(function (result) {
-          showProposal(result.kind, result.text || transcript);
+          showProposal(result.kind, result.text || transcript, result.source, result.model);
         }, function () {
           var r = classifyEventRulesLocal(transcript);
-          showProposal(r.kind, r.text);
+          showProposal(r.kind, r.text, 'rules', null);
         });
       } else {
-        var r = classifyEventRulesLocal(transcript);
-        showProposal(r.kind, r.text);
+        var r2 = classifyEventRulesLocal(transcript);
+        showProposal(r2.kind, r2.text, 'rules', null);
       }
     };
     try {
@@ -1993,13 +1984,21 @@
     return { answer: t(SAFE_ANSWER_OFFLINE) };
   }
 
-  // Bloub shows the source instead of a label: preparar with AI, static without.
-  function setBadge(element, source) {
+  // Visible source chip: "IA \u00b7 gemma" from the model, "Plantilla" from rules.
+  function aiSourceLabel(source, model) {
+    if (source === 'ollama') return 'IA \u00b7 ' + (model || 'gemma');
+    return 'Plantilla';
+  }
+  function setBadge(element, source, model) {
     if (!element) return;
-    var fromAi = source === 'ollama';
-    element.setAttribute('aria-label', t(fromAi ? 'Borrador con IA' : 'Plantilla'));
-    element.innerHTML = aiMark(fromAi ? 'ai-preparar' : 'ai-static', 'Bloub');
+    var label = aiSourceLabel(source, model);
+    element.setAttribute('aria-label', t(source === 'ollama' ? 'Borrador con IA' : 'Plantilla'));
+    element.innerHTML = aiMark(source === 'ollama' ? 'ai-preparar' : 'ai-static', 'Bloub') +
+      '<span class="ai-source-text">' + escapeHtml(label) + '</span>';
     bindVideos(element);
+  }
+  function aiFallbackNote() {
+    return '<p class="ai-fallback-note">' + escapeHtml(t('No pudimos usar la IA; esto lo escribieron las reglas.')) + '</p>';
   }
 
 
@@ -2026,6 +2025,7 @@
   }
 
   function fillHandover(draft, source, model) {
+    var sheet = app.aiLayer.querySelector('.ai-sheet');
     var set = function (key, value) {
       var field = app.aiLayer.querySelector('[data-handover-' + key + ']');
       if (field) field.value = value || '';
@@ -2034,8 +2034,20 @@
     set('b', draft.b);
     set('a', draft.a);
     set('r', draft.r);
-    setBadge(app.aiLayer.querySelector('[data-handover-badge]'), source);
-    setBadge(app.screen.querySelector('[data-handover-home-badge]'), source);
+    setBadge(app.aiLayer.querySelector('[data-handover-badge]'), source, model);
+    setBadge(app.screen.querySelector('[data-handover-home-badge]'), source, model);
+    if (sheet) {
+      var old = sheet.querySelector('[data-ai-fallback]');
+      if (old) old.remove();
+      if (source !== 'ollama' && aiConsent === 'yes') {
+        var note = document.createElement('div');
+        note.setAttribute('data-ai-fallback', '');
+        note.innerHTML = aiFallbackNote();
+        var actions = sheet.querySelector('.ai-actions');
+        if (actions) actions.insertAdjacentElement('afterend', note);
+        else sheet.appendChild(note);
+      }
+    }
   }
 
   // The loading bar creeps while the draft is on its way and closes when the
@@ -2409,6 +2421,7 @@
         var taskId = String(incoming.id).slice(TASK_EVENT_PREFIX.length);
         if (!isConfirmed(taskId)) {
           state.confirmed[taskId] = true;
+          saveConfirmed();
           changed = true;
         }
         return;
@@ -2460,7 +2473,8 @@
   function pollSync() {
     if (!canSync() || document.hidden) return;
     flushPushes();
-    aiRequest('/api/sync?reader=' + encodeURIComponent(readerForSync()) + '&since=' + syncState.seq)
+    var patientScope = state.role === 'familia' ? FAMILY_PATIENT_ID : (state.detailPatient ? state.detailPatient.id : '');
+    aiRequest('/api/sync?reader=' + encodeURIComponent(readerForSync()) + '&since=' + syncState.seq + '&patientId=' + encodeURIComponent(patientScope))
       .then(function (data) {
         // The store is in memory: a lower seq means the server restarted.
         if (data && typeof data.seq === 'number' && data.seq < syncState.seq) {
@@ -2520,9 +2534,11 @@
   function showAsk(box, text, source, model) {
     box.classList.remove('is-empty', 'is-thinking');
     var fromAi = source === 'ollama';
-    box.innerHTML = aiMark(fromAi ? 'ai-answer' : 'ai-static', 'Bloub') +
+    var chip = '<span class="ai-source-text">' + escapeHtml(fromAi ? ('IA \u00b7 ' + (model || 'gemma')) : t('Plantilla')) + '</span>';
+    var note = (!fromAi && aiConsent === 'yes') ? aiFallbackNote() : '';
+    box.innerHTML = aiMark(fromAi ? 'ai-answer' : 'ai-static', 'Bloub') + chip +
       '<span class="sr-only">' + escapeHtml(t(fromAi ? 'Respuesta de IA: ' : 'Respuesta automática: ')) + '</span>' +
-      '<span class="ask-text">' + escapeHtml(text) + '</span>';
+      '<span class="ask-text">' + escapeHtml(text) + '</span>' + note;
     box.classList.add('has-mark');
     bindVideos(box);
     var badge = app.screen.querySelector('[data-ask-badge]');

@@ -286,15 +286,16 @@
   .snack-timer, .dictate-button.is-listening .mic-bubble { animation: none; }
 }
 
-/* Nav: the two nurse tabs sit symmetric around the centered "+". */
+/* Nav: Turno / Pendientes / Chat with the centered "+" in its own gap. */
 .phone[data-role="enfermero"] .bottom-nav {
   display: grid;
-  grid-template-columns: 1fr 96px 1fr;
+  grid-template-columns: 1fr 1fr 76px 1fr;
   column-gap: 0;
 }
 
 .phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(1) { grid-column: 1; }
-.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(2) { grid-column: 3; }
+.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(2) { grid-column: 2; }
+.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(3) { grid-column: 4; }
 
 /* Patient detail: "Registrar evento" docks just above the bottom bar. */
 .phone[data-role="enfermero"] .view[data-view-key="nurse-detail"] { padding-bottom: 0; }
@@ -656,7 +657,12 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--nurse) 22%, transparent);
 }
 
-/* The chat shortcut floats clear of the bottom nav and the raised "+", and the
-   toast rises above it so its undo button is never covered. */
-.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] { top: -80px; }
-.snackbar { bottom: calc(var(--nav-height) + var(--space-6) * 3 + var(--space-4)); }
+/* Chat lives in the bottom nav; the toast rises above the nav. */
+.snackbar { bottom: calc(var(--nav-height) + var(--space-6)); }
+
+/* Celebration/confetti never covers the copy: pieces stay behind the text. */
+.celebration-card .confetti-layer, .empty-state .confetti-layer { z-index: 0; }
+.celebration-card > *:not(.confetti-layer), .empty-state > *:not(.confetti-layer) { position: relative; z-index: 1; }
+/* Visible AI source chip next to Bloub. */
+.ai-source-text { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 9999px; background: var(--stone); color: var(--body); font-size: var(--text-caption); font-weight: 600; }
+.ai-fallback-note { margin: 8px 0 0; color: var(--body); font-size: var(--text-small); }

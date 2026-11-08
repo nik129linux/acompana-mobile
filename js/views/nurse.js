@@ -27,7 +27,7 @@
     if (taskForPatient(patient.id)) {
       return '<span class="badge badge-pending">' + escapeHtml(t(patient.statusLabel)) + '</span>';
     }
-    return '<span class="badge badge-ready">' + escapeHtml(t('Listo')) + '</span>';
+    return '<span class="badge badge-ready">' + escapeHtml(t('Hecho')) + '</span>';
   }
 
   var KIND_ICON = { medication: 'pill', position: 'move', round: 'ruler', other: 'note' };
@@ -40,7 +40,7 @@
   function patientCard(patient) {
     var task = taskForPatient(patient.id);
     var side = task
-      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="' + escapeHtml(t('Confirmar {task} en un toque', { task: t(task.title) })) + '">' + icon('check') + '<span>' + escapeHtml(t('Listo')) + '</span></button>'
+      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="' + escapeHtml(t('Confirmar {task} en un toque', { task: t(task.title) })) + '">' + icon('check') + '<span>' + escapeHtml(t('Confirmar')) + '</span></button>'
       : patientBadge(patient);
     var meta = '<span>' + icon('bed') + escapeHtml(room(patient.room)) + '</span>' +
       (task ? '<span>' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + ' · ' + escapeHtml(t(task.title)) + '</span>' : '');
@@ -152,16 +152,19 @@
 
   function renderPending() {
     var pending = remainingTasks();
-    if (!pending.length) return renderEmptyPending();
     var done = pendingTab() === 'done';
-    return '<div class="view-header"><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Pendientes')) + '</h1></div></div>' +
-      '<div class="segmented" role="tablist" aria-label="' + escapeHtml(t('Pendientes y hechas')) + '">' + segment('pending', 'Pendientes') + segment('done', 'Hechas') + '</div>' +
-      (done
-        ? '<div class="section-head pending-head"><h2>' + escapeHtml(t('Hechas')) + '</h2><span class="status-pill is-done">' + escapeHtml(qty(ctx().TASKS.filter(function (task) { return isConfirmed(task.id); }).length + loadEvents().length, '1 registro', '{count} registros')) + '</span></div>' + doneList()
-        : '<div class="section-head pending-head"><h2>' + escapeHtml(t('Lo que falta')) + '</h2><span class="status-pill" data-pending-count>' + escapeHtml(qty(pending.length, '1 pendiente', '{count} pendientes')) + '</span></div>' +
+    var head = '<div class="view-header"><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Pendientes')) + '</h1></div></div>' +
+      '<div class="segmented" role="tablist" aria-label="' + escapeHtml(t('Pendientes y hechas')) + '">' + segment('pending', 'Pendientes') + segment('done', 'Hechas') + '</div>';
+    if (done) {
+      return head +
+        '<div class="section-head pending-head"><h2>' + escapeHtml(t('Hechas')) + '</h2><span class="status-pill is-done">' + escapeHtml(qty(ctx().TASKS.filter(function (task) { return isConfirmed(task.id); }).length + loadEvents().length, '1 registro', '{count} registros')) + '</span></div>' + doneList();
+    }
+    if (!pending.length) return head + renderEmptyPending();
+    return head +
+      '<div class="section-head pending-head"><h2>' + escapeHtml(t('Lo que falta')) + '</h2><span class="status-pill" data-pending-count>' + escapeHtml(qty(pending.length, '1 pendiente', '{count} pendientes')) + '</span></div>' +
           '<div class="section-heading"><h2 class="section-label">' + escapeHtml(t('En este momento')) + '</h2><span class="section-meta">' + escapeHtml(t('Orden por hora')) + '</span></div>' +
           '<div class="pending-list">' + pending.map(taskCard).join('') + '</div>' +
-          '<div class="ai-card"><strong>' + escapeHtml(t('Preguntas de la familia')) + '</strong><span>' + escapeHtml(t('Si una familia dejó una duda desde su vista, aparece aquí.')) + '</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>' + escapeHtml(t('Revisar preguntas')) + '</button></div><div data-nurse-questions></div></div>');
+          '<div class="ai-card"><strong>' + escapeHtml(t('Preguntas de la familia')) + '</strong><span>' + escapeHtml(t('Si una familia dejó una duda desde su vista, aparece aquí.')) + '</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>' + escapeHtml(t('Revisar preguntas')) + '</button></div><div data-nurse-questions></div></div>';
   }
 
   function renderNurseDetail(patient) {
@@ -173,9 +176,9 @@
     var doneCount = patientTasks.filter(function (task) { return isConfirmed(task.id); }).length + patientEvents.length;
     var rows = patientTasks.map(function (task) {
       var done = isConfirmed(task.id);
-      return { time: task.time, title: t(task.title), note: '', status: t(done ? 'Hecho' : 'Pendiente'), done: done };
+      return { time: fmtTaskTime(task.time), title: t(task.title), note: '', status: t(done ? 'Hecho' : 'Pendiente'), done: done };
     }).concat(patientEvents.map(function (entry) {
-      return { time: entry.time, title: t(kindLabels[entry.kind] || 'Evento'), note: entry.text ? t(entry.text) : '', status: t('Registrado'), done: true };
+      return { time: fmtTaskTime(entry.time), title: t(kindLabels[entry.kind] || 'Evento'), note: entry.text ? t(entry.text) : '', status: t('Registrado'), done: true };
     })).sort(function (x, y) { return x.time < y.time ? -1 : x.time > y.time ? 1 : 0; });
     var alert = patient.status === 'critical'
       ? '<div class="detail-alert detail-status" role="status"><span class="urgent-icon" aria-hidden="true">' + icon('alert') + '</span><span>' + escapeHtml(t('Alerta de signos vitales · protocolo abierto')) + '</span></div>'

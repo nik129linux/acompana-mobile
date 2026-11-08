@@ -39,9 +39,11 @@ function aiDailyLimit() {
 
 // Shared app key (APP_KEY, sent as X-App-Key). It ships inside the APK, so it
 // stops scanners and drive-by scripts, not someone who unpacks the app.
-// Unset means open, as in dev and the file:// prototype.
+// Unset means open, as in dev and the file:// prototype. In production the
+// server refuses every /api/* route without the key.
 function appKeyValid(req) {
   const expected = process.env.APP_KEY;
+  if (process.env.NODE_ENV === 'production' && !expected) return false;
   if (!expected) return true;
   const given = String((req.headers && req.headers['x-app-key']) || '');
   const a = crypto.createHash('sha256').update(given).digest();
@@ -168,6 +170,10 @@ function serveStatic(res, pathname) {
   }
   var rel = decoded.replace(/^\/+/, '');
   if (!rel) rel = 'index.html';
+  if (/^media\/raw(\/|$)/.test(rel)) {
+    sendJson(res, 404, { ok: false, error: 'not found' });
+    return;
+  }
   var top = rel.split('/')[0];
   var allowed = STATIC_ROOT_FILES.includes(rel) || STATIC_DIRS.includes(top);
   if (!allowed) {
@@ -776,10 +782,13 @@ function addChatMessage(body) {
 }
 
 // reader=familia (and paciente, or a missing reader) never receives clinical
-// event text nor the team channel. Only the nurse feed is complete.
-function sharedSnapshot(reader, since) {
+// event text nor the team channel. Only the nurse feed is complete. Family
+// messages are scoped by patientId: a family reader with a patient only sees
+// familia messages for that patient (privacy: Carlos never reaches Maria).
+function sharedSnapshot(reader, since, patientId) {
   const familySafe = reader !== 'enfermero';
   const after = Number(since) || 0;
+  const scope = typeof patientId === 'string' ? patientId : '';
   const events = sharedEvents
     .filter((item) => item.seq > after)
     .map((item) => ({
@@ -791,7 +800,8 @@ function sharedSnapshot(reader, since) {
       seq: item.seq
     }));
   const messages = sharedMessages.filter(
-    (item) => item.seq > after && (!familySafe || item.channel === 'familia')
+    (item) => item.seq > after && (!familySafe || item.channel === 'familia') &&
+      (familySafe && scope && item.channel === 'familia' ? String(item.patientId || '') === scope : true)
   );
   const deleted = sharedDeleted
     .filter((item) => item.seq > after)
@@ -1150,6 +1160,14 @@ function createRequestHandler(client) {
         sendJson(res, 200, { items: listNurseQuestions() });
         return;
       }
+      if (req.method === 'POST' && url.pathname === '/api/questions') {
+        const body = JSON.parse(await readBody(req));
+        const question = body && typeof body.question === 'string' ? body.question.trim() : '';
+        if (!question) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
+        const item = addNurseQuestion(question);
+        sendJson(res, 200, { ok: true, item });
+        return;
+      }
       if (req.method === 'POST' && url.pathname === '/api/questions/resolve') {
         const body = JSON.parse(await readBody(req));
         const ok = resolveNurseQuestion(body && body.id);
@@ -1255,7 +1273,8 @@ function createRequestHandler(client) {
       if (req.method === 'GET' && url.pathname === '/api/sync') {
         const reader = url.searchParams.get('reader');
         const since = url.searchParams.get('since');
-        sendJson(res, 200, sharedSnapshot(reader, since));
+        const patientId = url.searchParams.get('patientId') || '';
+        sendJson(res, 200, sharedSnapshot(reader, since, patientId));
         return;
       }
       // Static frontend: only for GET, everything else 404.

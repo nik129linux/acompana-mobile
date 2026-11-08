@@ -58,7 +58,7 @@
       return e.patientId === ctx().FAMILY_PATIENT_ID && e.kind !== 'other' && ctx().EVENT_KIND_PHRASES[e.kind];
     });
     logged.forEach(function (e) {
-      items.push({ at: e.time, time: e.time, text: t(ctx().EVENT_KIND_PHRASES[e.kind]), pending: false, eventId: e.id, kind: e.kind });
+      items.push({ at: e.time, time: fmtTime(e.time), text: t(ctx().EVENT_KIND_PHRASES[e.kind]), pending: false, eventId: e.id, kind: e.kind });
     });
     return ctx().byTime(items);
   }

@@ -75,17 +75,18 @@
 
   /* Medixin gradients: "Blue Linear" hero and "Yellow Linear" stat tile. */
   --grad-primary: linear-gradient(135deg,
-    var(--color-primary-500) 0%,
-    color-mix(in srgb, var(--color-primary-500) 80%, var(--color-neutral-950)) 100%);
+    color-mix(in srgb, var(--color-primary-500) 72%, var(--color-neutral-950)) 0%,
+    color-mix(in srgb, var(--color-primary-500) 45%, var(--color-neutral-950)) 100%);
   --grad-alert: linear-gradient(135deg,
-    color-mix(in srgb, var(--color-alert-500) 40%, var(--color-alert-700)) 0%,
-    var(--color-alert-700) 100%);
+    color-mix(in srgb, var(--color-alert-700) 78%, var(--color-neutral-950)) 0%,
+    color-mix(in srgb, var(--color-alert-700) 62%, var(--color-neutral-950)) 100%);
   --grad-warm: linear-gradient(135deg, var(--color-warm-400) 0%, var(--color-warm-500) 100%);
   /* Critical = calm deep navy; red is only an accent (dot, badge), never a slab. */
   --grad-critical: linear-gradient(135deg,
     color-mix(in srgb, var(--color-primary-500) 34%, var(--color-neutral-950)) 0%,
     color-mix(in srgb, var(--color-primary-500) 14%, var(--color-neutral-950)) 100%);
-  --on-gradient-soft: color-mix(in srgb, var(--color-neutral-0) 80%, transparent);
+  --on-gradient-soft: var(--color-neutral-0);
+  --on-warm: var(--color-neutral-950);
   --glass-on-gradient: color-mix(in srgb, var(--color-neutral-0) 16%, transparent);
 
   --snackbar-fill: var(--ink);

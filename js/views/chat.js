@@ -50,6 +50,12 @@
     var role = ctx().getRole();
     var ownAuthor = role === 'familia' ? 'Familia' : 'Elena';
     var messages = ctx().getChatMessages(channel);
+    if (channel === 'familia' && role !== 'enfermero' && ctx().FAMILY_PATIENT_ID) {
+      var scope = ctx().FAMILY_PATIENT_ID;
+      messages = messages.filter(function (message) {
+        return !message.patientId || String(message.patientId) === String(scope);
+      });
+    }
     if (messages.length) return messages.map(function (message) { return messageHtml(message, ownAuthor); }).join('');
     var empty = EMPTY[channel][role] || EMPTY.familia.familia;
     return '<div class="chat-empty"><span class="chat-empty-icon" aria-hidden="true">' + icon('message') + '</span>' +
@@ -82,7 +88,7 @@
   }
 
   function renderFamilyChat() {
-    return '<div class="view-header"><button type="button" class="icon-button back-button" data-chat-back aria-label="' + escapeHtml(t('Volver a Contacto')) + '"><span class="arrow-icon">' + icon('arrow') + '</span></button><div class="view-header-copy"><p class="view-subtitle">' + escapeHtml(t('Familia de María González')) + '</p><h1 class="view-title small-title">' + escapeHtml(t('Mensajes')) + '</h1></div></div>' +
+    return '<div class="view-header"><button type="button" class="icon-button back-button" data-chat-back aria-label="' + escapeHtml(t('Volver a Contacto')) + '"><span class="arrow-icon" aria-hidden="true">' + icon('arrow') + '</span></button><div class="view-header-copy"><p class="view-subtitle">' + escapeHtml(t('Familia de María González')) + '</p><h1 class="view-title small-title">' + escapeHtml(t('Mensajes')) + '</h1></div></div>' +
       '<p class="view-copy">' + escapeHtml(t('Escriba al equipo de turno. Le responderán por aquí.')) + '</p>' +
       threadHtml('familia') +
       composer('familia');

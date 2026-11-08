@@ -26,6 +26,14 @@ node server/server.js
 
 The same address also serves the web version of the app.
 
+`tools/build-www.js` bakes the server address into `www/js/config.js`: it uses
+`$ACOMPANA_API_BASE` when set, else the deployed base from
+`infra/terraform.tfstate` output `api_base` (currently
+`https://184-72-152-71.sslip.io`), else same-origin (empty `apiBase`, the app
+works offline from its on-device rules). In production the server refuses every
+`/api/*` route without `APP_KEY` (`NODE_ENV=production` requires it); set the
+same key as `ACOMPANA_APP_KEY` at build time so the APK sends `X-App-Key`.
+
 ## Test commands
 
 ```sh
