@@ -81,6 +81,8 @@
 }
 
 .fab-register-label {
+  display: inline;
+  flex: 0 0 auto;
   font-size: var(--text-small);
   font-weight: 600;
   white-space: nowrap;

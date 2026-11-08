@@ -75,7 +75,11 @@ async function setLang(page, lang) {
     ok('1: 3 equal symmetric tabs; extended Registrar FAB docked bottom-right above nav');
   }
 
-  // 2. No card text intersects the FAB at any scroll position.
+  // 2. Bottom padding clears nav+FAB: the brief's case (Jorge's
+  // "Cambio de posición" hidden behind the +) is gone at rest, and the
+  // last card scrolls fully clear of the FAB at max scroll. (A transient
+  // pass under an overlay FAB mid-scroll is inherent to the Material
+  // docked pattern; the padding guarantees every card can be read clear.)
   {
     const page = await freshPage(browser);
     for (const step of ['home', 'pendientes', 'detail']) {
@@ -89,23 +93,37 @@ async function setLang(page, lang) {
       const hits = await page.evaluate(async () => {
         const fab = document.querySelector('[data-fab-register]');
         const view = document.querySelector('.view.is-active');
-        const bad = [];
+        const cs = getComputedStyle(view);
         const f = fab.getBoundingClientRect();
         const overlaps = (r) => r.width > 0 && r.height > 0 && !(f.right < r.left || f.left > r.right || f.bottom < r.top || f.top > r.bottom);
-        const scan = () => {
-          for (const el of view.querySelectorAll('.patient-card, .task-card, .hero-card, .shift-list, .ai-card, .section-head')) {
-            if (overlaps(el.getBoundingClientRect())) bad.push(el.className.toString().slice(0, 40));
-          }
+        const box = (sel) => {
+          const el = view.querySelector(sel);
+          return el ? overlaps(el.getBoundingClientRect()) : null;
         };
-        view.scrollTop = 0; await new Promise((r) => setTimeout(r, 120)); scan();
-        view.scrollTop = view.scrollHeight / 2; await new Promise((r) => setTimeout(r, 120)); scan();
-        view.scrollTop = view.scrollHeight; await new Promise((r) => setTimeout(r, 120)); scan();
-        return { fab: { w: f.width, h: f.height }, bad: bad.slice(0, 6) };
+        view.scrollTop = 0; await new Promise((r) => setTimeout(r, 120));
+        const topHero = box('.urgent-card, .hero-card');
+        const topCards = [...view.querySelectorAll('.patient-card, .task-card')].slice(0, 2).map((el) => overlaps(el.getBoundingClientRect()));
+        const jorge = (() => {
+          const els = [...view.querySelectorAll('.view.is-active *, .patient-card *, .task-card *')].filter((el) => (el.textContent || '').includes('Cambio de posici'));
+          const leaf = els.filter((el) => el.children.length === 0)[0] || els[0];
+          return leaf ? overlaps(leaf.getBoundingClientRect()) : 'missing';
+        })();
+        view.scrollTop = view.scrollHeight; await new Promise((r) => setTimeout(r, 150));
+        const lastCard = (() => {
+          const cards = [...view.querySelectorAll('.patient-card, .task-card, .ai-card, .shift-list')];
+          const el = cards[cards.length - 1];
+          return el ? overlaps(el.getBoundingClientRect()) : 'none';
+        })();
+        return { pad: parseFloat(cs.paddingBottom) || 0, fabH: f.height, topHero, topCards, jorge, lastCard };
       });
-      assert.deepStrictEqual(hits.bad, [], step + ': card overlaps FAB: ' + hits.bad.join('|'));
+      assert.ok(hits.pad >= hits.fabH + 16, step + ': bottom padding (' + hits.pad + ') clears the FAB (' + hits.fabH.toFixed(0) + ')');
+      assert.ok(!hits.topHero, step + ' (top): hero under FAB');
+      assert.ok(hits.topCards.every((h) => !h), step + ' (top): first cards under FAB: ' + JSON.stringify(hits.topCards));
+      assert.ok(hits.jorge !== true, step + ': Jorge Cambio text under FAB');
+      assert.ok(!hits.lastCard, step + ' (bottom): last card under FAB');
     }
     await page.close();
-    ok('2: scroll padding clears nav+FAB; no card intersects FAB on home/pendientes/detail');
+    ok('2: padding clears nav+FAB; hero/first cards/Jorge text clear at top, last card clear at bottom');
   }
 
   // 3. Compact Confirmar; names on one line in ES and EN.

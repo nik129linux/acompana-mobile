@@ -298,7 +298,8 @@
 /* Room under the last item so the FAB and the nav never cover a control.
    76px nav + 56px FAB + gaps. */
 .phone[data-role="enfermero"] .view {
-  padding-bottom: calc(var(--nav-height) + 96px);
+  padding-bottom: calc(var(--nav-height) + 120px);
+  scroll-padding-bottom: calc(var(--nav-height) + 120px);
 }
 
 /* Settings/Help is a pushed screen: the chat tab steps aside with the rest. */
