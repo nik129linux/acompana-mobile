@@ -295,9 +295,16 @@
   }
 }
 
-/* Room under the last item so the FAB never covers a control. */
+/* Room under the last item so the FAB, the floating chat bubble and the nav
+   never cover a control. 76px nav + 56px FAB + gaps. */
 .phone[data-role="enfermero"] .view {
-  padding-bottom: calc(56px + var(--space-8) + var(--space-4));
+  padding-bottom: calc(var(--nav-height) + 96px);
+}
+
+/* Settings/Help is a pushed screen: the floating chat bubble stays hidden so
+   it never sits over the "Activar" card. */
+.phone.is-settings .bottom-nav .nav-item[data-nav="chat"] {
+  display: none;
 }
 
 /* AI-written timeline lines show their source with the existing badge. */

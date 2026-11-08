@@ -127,18 +127,15 @@
     enfermero: [
       { key: 'turno', label: 'Turno', icon: 'list' },
       { key: 'pendientes', label: 'Pendientes', icon: 'clock' },
-      { key: 'chat', label: 'Chat', icon: 'message' },
-      { key: 'config', label: 'Configuración', icon: 'gear' }
+      { key: 'chat', label: 'Chat', icon: 'message' }
     ],
     paciente: [
       { key: 'estado', label: 'Mi estado', icon: 'heart' },
-      { key: 'preguntas', label: 'Preguntas', icon: 'help' },
-      { key: 'config', label: 'Configuración', icon: 'gear' }
+      { key: 'preguntas', label: 'Preguntas', icon: 'help' }
     ],
     familia: [
       { key: 'pasa', label: 'Qué pasa', icon: 'message' },
-      { key: 'contacto', label: 'Contacto', icon: 'phone' },
-      { key: 'config', label: 'Configuración', icon: 'gear' }
+      { key: 'contacto', label: 'Contacto', icon: 'phone' }
     ]
   };
 
@@ -152,6 +149,7 @@
   var state = {
     role: 'enfermero',
     detailPatient: null,
+    settingsOpen: false,
     activeNav: {
       enfermero: HOME_NAV.enfermero,
       paciente: HOME_NAV.paciente,
@@ -550,8 +548,11 @@
 
 
   function viewDefinition() {
-    if (state.activeNav[state.role] === 'config') {
-      return { key: 'settings-' + state.role, className: 'is-home', inner: views.settings.renderSettings(state.role) };
+    // Settings is a pushed screen on top of the current tab (gear in the top
+    // app bar opens it, the back arrow closes it). It never takes a bottom-nav
+    // slot, so the nav keeps its pre-phase-A items.
+    if (state.settingsOpen) {
+      return { key: 'settings-' + state.role, className: 'is-detail', inner: views.settings.renderSettings(state.role) };
     }
     if (state.role === 'enfermero') {
       if (state.detailPatient) {
@@ -725,6 +726,7 @@
       var label = t(item.label);
       return '<button type="button" class="nav-item' + (active ? ' is-active' : '') + '" data-nav="' + escapeHtml(item.key) + '" aria-label="' + escapeHtml(label) + '" aria-pressed="' + String(active) + '"><span class="nav-icon">' + icon(item.icon) + '</span><span>' + escapeHtml(label) + '</span></button>';
     }).join('');
+    app.phone.classList.toggle('is-settings', !!state.settingsOpen);
     updateFab();
   }
 
@@ -732,7 +734,8 @@
     if (!app.fab) return;
     app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient;
     var chatNav = app.bottomNav.querySelector('[data-nav="chat"]');
-    if (chatNav) chatNav.hidden = !!state.detailPatient;
+    // The floating chat bubble never sits over Settings/Help content.
+    if (chatNav) chatNav.hidden = !!state.detailPatient || !!state.settingsOpen;
   }
 
   function openDemoMenu(button) {
@@ -762,6 +765,10 @@
     var nextIndex = ROLE_INDEX[role];
     var currentIndex = ROLE_INDEX[state.role];
     state.role = role;
+    if (state.settingsOpen) {
+      state.settingsOpen = false;
+      dropLayer('settings');
+    }
     if (state.detailPatient) dropLayer('detail');
     state.detailPatient = null;
     state.activeNav[role] = HOME_NAV[role];
@@ -777,6 +784,26 @@
     app.screen.innerHTML = '';
     renderBottomNav();
     renderRoute(nextIndex >= currentIndex ? 'forward' : 'back', true);
+  }
+
+  function openSettings() {
+    if (state.settingsOpen) return;
+    state.settingsOpen = true;
+    state.familyChatOpen = false;
+    if (state.role === 'enfermero') closeRegistrationSheet(false);
+    pushLayer('settings');
+    renderRoute('forward');
+    window.setTimeout(function () {
+      var back = app.screen.querySelector('.view.is-active [data-settings-back]');
+      if (back && back.focus) back.focus({ preventScroll: true });
+    }, 340);
+  }
+
+  function closeSettings(fromPop) {
+    if (!state.settingsOpen) return;
+    state.settingsOpen = false;
+    dropLayer('settings', fromPop);
+    renderRoute('back', true);
   }
 
   function openPatientDetail(patientId, sourceCard) {
@@ -1033,11 +1060,7 @@
   function handleScreenClick(event) {
     var settingsNav = event.target.closest('[data-nav-settings]');
     if (settingsNav) {
-      state.detailPatient = null;
-      state.activeNav[state.role] = 'config';
-      if (state.role === 'familia') state.familyChatOpen = false;
-      if (state.role === 'enfermero') closeRegistrationSheet(false);
-      renderRoute('forward');
+      openSettings();
       return;
     }
 
@@ -1254,6 +1277,10 @@
 
     var back = event.target.closest('[data-back]');
     if (back) {
+      if (state.settingsOpen) {
+        closeSettings();
+        return;
+      }
       closePatientDetail();
       return;
     }
@@ -1316,6 +1343,10 @@
     if (state.role === 'enfermero' && key === 'registrar') {
       openRegistrationSheet();
       return;
+    }
+    if (state.settingsOpen) {
+      state.settingsOpen = false;
+      dropLayer('settings');
     }
     var oldKey = state.activeNav[state.role];
     if (oldKey === key && !state.detailPatient) return;
@@ -2720,6 +2751,7 @@
       delete layerOpen[layer];
       delete layerPushed[layer];
       if (layer === 'detail') closePatientDetail(true);
+      else if (layer === 'settings') closeSettings(true);
       else if (layer === 'register') closeRegistrationSheet(undefined, true);
       else if (layer === 'ai') closeAiSheet(true);
       else if (layer === 'menu') closeDemoMenu(true);
@@ -2748,6 +2780,7 @@
       else if (document.querySelector('.demo-menu.is-open')) closeDemoMenu();
       else if (app.aiLayer.classList.contains('is-open')) closeAiSheet();
       else if (state.sheetOpen) closeRegistrationSheet();
+      else if (state.settingsOpen) closeSettings();
       else if (state.detailPatient) closePatientDetail();
       else if (app.celebrationLayer.classList.contains('is-visible')) hideCompletion();
     });

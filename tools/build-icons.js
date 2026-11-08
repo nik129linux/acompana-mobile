@@ -29,6 +29,7 @@ const MAP = {
   clock: 'Clock01Icon',
   calendar: 'Calendar03Icon',
   pill: 'Medicine01Icon',
+  gear: 'Settings01Icon',
   medicine: 'MedicineBottle01Icon',
   injection: 'InjectionIcon',
   bed: 'BedSingle01Icon',

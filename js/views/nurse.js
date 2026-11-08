@@ -69,7 +69,7 @@
       '<div class="greet-copy"><h1 class="greet-title view-title">' + escapeHtml(t('Hola, Elena')) + '</h1><span class="greet-meta view-copy">' + icon('location') + escapeHtml(t('Piso 3 · Hospital Central')) + '</span></div></header>' +
       '<div class="chip-row shift-line" aria-label="' + escapeHtml(t('Resumen del turno')) + '">' +
       '<span class="chip"><span class="chip-icon">' + icon('user') + '</span><strong>' + ctx().PATIENTS.length + '</strong>&nbsp;' + escapeHtml(t('pacientes')) + '</span>' +
-      '<span class="chip"><span class="chip-icon">' + icon('task') + '</span><strong>' + fmtNum(pending) + '</strong>&nbsp;' + escapeHtml(qty(pending, '1 pendiente', '{count} pendientes')) + '</span>' +
+      '<span class="chip" data-pending-chip><span class="chip-icon">' + icon('task') + '</span>' + escapeHtml(qty(pending, '1 pendiente', '{count} pendientes')) + '</span>' +
       '<span class="chip"><span class="chip-icon">' + icon('clock') + '</span>' + escapeHtml(t('Ronda')) + '&nbsp;<strong>' + escapeHtml(t('1:00 p. m.')) + '</strong></span></div>' +
       (critical.length ? '<section class="urgent-section" aria-label="' + escapeHtml(t('Requiere atención')) + '"><div class="section-head"><h2>' + escapeHtml(t('Requiere atención')) + '</h2></div>' + critical.map(urgentCard).join('') + '</section>' : '') +
       '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Tus pacientes')) + '</h2><span class="section-link">' + escapeHtml(qty(stable.length, '1 estable', '{count} estables')) + '</span></div>' +
@@ -158,7 +158,7 @@
       '<div class="segmented" role="tablist" aria-label="' + escapeHtml(t('Pendientes y hechas')) + '">' + segment('pending', 'Pendientes') + segment('done', 'Hechas') + '</div>' +
       (done
         ? '<div class="section-head pending-head"><h2>' + escapeHtml(t('Hechas')) + '</h2><span class="status-pill is-done">' + escapeHtml(qty(ctx().TASKS.filter(function (task) { return isConfirmed(task.id); }).length + loadEvents().length, '1 registro', '{count} registros')) + '</span></div>' + doneList()
-        : '<div class="section-head pending-head"><h2>' + escapeHtml(t('Lo que falta')) + '</h2><span class="status-pill" data-pending-count><strong>' + fmtNum(pending.length) + '</strong>&nbsp;' + escapeHtml(qty(pending.length, '1 pendiente', '{count} pendientes')) + '</span></div>' +
+        : '<div class="section-head pending-head"><h2>' + escapeHtml(t('Lo que falta')) + '</h2><span class="status-pill" data-pending-count>' + escapeHtml(qty(pending.length, '1 pendiente', '{count} pendientes')) + '</span></div>' +
           '<div class="section-heading"><h2 class="section-label">' + escapeHtml(t('En este momento')) + '</h2><span class="section-meta">' + escapeHtml(t('Orden por hora')) + '</span></div>' +
           '<div class="pending-list">' + pending.map(taskCard).join('') + '</div>' +
           '<div class="ai-card"><strong>' + escapeHtml(t('Preguntas de la familia')) + '</strong><span>' + escapeHtml(t('Si una familia dejó una duda desde su vista, aparece aquí.')) + '</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>' + escapeHtml(t('Revisar preguntas')) + '</button></div><div data-nurse-questions></div></div>');

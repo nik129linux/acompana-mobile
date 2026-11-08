@@ -34,7 +34,10 @@ async function viewAs(page, role) {
 async function openSettings(page) {
   const gear = page.locator('[data-nav-settings]').first();
   if (await visible(gear)) await gear.click();
-  else await page.locator('#bottomNav [data-nav="config"]').first().click();
+  else {
+    const cfg = page.locator('#bottomNav [data-nav="config"]');
+    if (await visible(cfg)) await cfg.first().click();
+  }
   await page.waitForTimeout(400);
 }
 

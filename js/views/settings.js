@@ -94,7 +94,7 @@
       var active = themeMode === value;
       return '<button type="button" class="segment' + (active ? ' is-active' : '') + '" data-set-theme="' + value + '" data-theme-option="' + value + '" aria-pressed="' + String(active) + '">' + escapeHtml(t(label)) + '</button>';
     };
-    return '<div class="view-header"><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Configuración')) + '</h1></div></div>' +
+    return '<div class="view-header" data-settings-screen><button type="button" class="icon-button back-button" data-back data-settings-back aria-label="' + escapeHtml(t('Atrás')) + '"><span class="arrow-icon" aria-hidden="true">' + icon('back') + '</span></button><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Configuración')) + '</h1></div></div>' +
       '<section class="settings-block" aria-labelledby="set-lang"><h2 id="set-lang">' + escapeHtml(t('Idioma')) + '</h2>' +
       '<div class="segmented" role="group" aria-label="' + escapeHtml(t('Idioma')) + '">' +
       '<button type="button" class="segment' + (lang === 'es' ? ' is-active' : '') + '" data-set-lang="es" aria-pressed="' + String(lang === 'es') + '">Español</button>' +
