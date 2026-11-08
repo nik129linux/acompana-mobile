@@ -1,0 +1,166 @@
+/* Settings + guide: only semantic tokens, no raw colors. */
+
+.settings-block {
+  background: var(--white);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--elevation-1);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.settings-block h2 {
+  font-size: var(--text-body);
+  color: var(--ink);
+  margin: 0 0 var(--space-2);
+}
+
+.settings-block .btn,
+.guide-card .btn,
+.coach-card .btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.settings-block .segment,
+.guide-card .segment {
+  min-height: 44px;
+}
+
+.help-block h3 {
+  font-size: var(--text-small);
+  color: var(--charcoal);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.help-icons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.help-icons li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--body);
+  font-size: var(--text-small);
+}
+
+.help-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  border-radius: var(--radius-sm);
+}
+
+.help-gloss dt {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.help-gloss dd {
+  margin: 0 0 var(--space-2);
+  color: var(--body);
+}
+
+.guide-layer {
+  position: absolute;
+  inset: 0;
+  display: none;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.guide-layer.is-open { display: block; }
+
+.guide-layer.is-open .guide-card,
+.guide-layer.is-open .coach-card,
+.guide-layer.is-open .guide-backdrop { pointer-events: auto; }
+
+.guide-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--veil-ink);
+}
+
+.coach-card {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  top: calc(var(--space-4) + 56px);
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-2);
+  padding: var(--space-4);
+}
+
+.guide-card {
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid var(--stone-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-2);
+  padding: var(--space-4);
+}
+
+.guide-card h2 {
+  font-size: var(--text-section);
+  margin: 0 0 var(--space-2);
+  color: var(--ink);
+}
+
+.guide-step-title { font-weight: 700; color: var(--ink); }
+.guide-step-body { color: var(--body); }
+
+.guide-dots {
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.guide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--stone-border);
+}
+
+.guide-dot.is-active { background: var(--nurse); }
+
+.guide-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.guide-skip {
+  border: 0;
+  background: transparent;
+  color: var(--nurse-text);
+  min-height: 44px;
+  min-width: 44px;
+  text-decoration: underline;
+}
+
+.guide-x {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-card,
+  .coach-card { animation: none; transition: none; }
+}

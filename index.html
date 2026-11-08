@@ -22,9 +22,10 @@
   <link rel="stylesheet" href="css/screens/nurse.css">
   <link rel="stylesheet" href="css/screens/readers.css">
   <link rel="stylesheet" href="css/shell.css">
+  <link rel="stylesheet" href="css/screens/settings.css">
 </head>
 <body>
-  <main class="stage" aria-label="Prototipo de app de enfermería">
+  <main class="stage" aria-label="Prototipo de app de enfermería" data-i18n-label="Prototipo de app de enfermería">
     <section class="phone" data-role="enfermero" style="--role-index: 0" aria-label="Vista de la aplicación Acompaña" data-i18n-label="Vista de la aplicación Acompaña">
       <div class="phone-notch" aria-hidden="true"></div>
       <div class="status-bar" aria-hidden="true">
@@ -33,7 +34,7 @@
       </div>
 
       <div class="role-row">
-      <div class="role-switch" role="tablist" aria-label="Cambiar de lector">
+      <div class="role-switch" role="tablist" aria-label="Cambiar de lector" data-i18n-label="Cambiar de lector">
         <div class="role-switch-indicator" aria-hidden="true"></div>
         <button type="button" class="role-tab is-active" data-role="enfermero" role="tab" aria-selected="true">Enfermero</button>
         <button type="button" class="role-tab" data-role="paciente" role="tab" aria-selected="false">Paciente</button>
@@ -76,6 +77,7 @@
   <script src="js/views/family.js" defer></script>
   <script src="js/views/sheets.js" defer></script>
   <script src="js/views/chat.js" defer></script>
+  <script src="js/views/settings.js" defer></script>
   <script src="js/config.js" defer></script>
   <script src="js/app.js" defer></script>
 </body>
