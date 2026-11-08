@@ -77,7 +77,7 @@
       '<div class="section-head"><h2>' + escapeHtml(t('Entrega de turno')) + '</h2></div>' +
       '<div class="ai-card list-card sbar-card"><span class="media-square" aria-hidden="true">' + icon('note') + '</span>' +
       '<span class="list-copy"><strong class="list-title">' + escapeHtml(t('Nota de entrega (SBAR)')) + '</strong><span class="list-meta">' + escapeHtml(t('Borrador del turno que puedes editar antes de copiar.')) + '</span>' +
-      '<span class="ai-source" data-handover-home-badge aria-label="' + escapeHtml(t('Plantilla')) + '">' + '<span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span>' + '</span></span>' +
+      '<span class="ai-source" data-handover-home-badge aria-label="' + escapeHtml(t('Plantilla')) + '">' + '<span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span>' + '<span class="ai-source-text">' + escapeHtml(t('Plantilla')) + '</span></span></span>' +
       '<div class="ai-actions"><button type="button" class="btn btn-tonal sbar-open" data-handover-open>' + escapeHtml(t('Preparar entrega')) + '</button></div></div>';
   }
 

@@ -47,7 +47,7 @@
       '<label class="handover-field field">' + tx('Antecedentes') + '<span class="field-box"><textarea data-handover-b rows="2" maxlength="200"></textarea></span></label>' +
       '<label class="handover-field field">' + tx('Evaluación') + '<span class="field-box"><textarea data-handover-a rows="2" maxlength="200"></textarea></span></label>' +
       '<label class="handover-field field">' + tx('Recomendación') + '<span class="field-box"><textarea data-handover-r rows="2" maxlength="200"></textarea></span></label>' +
-      '<div class="ai-actions"><span class="ai-source" data-handover-badge aria-label="' + tx('Plantilla') + '">' + '<span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span>' + '</span>' +
+      '<div class="ai-actions"><span class="ai-source" data-handover-badge aria-label="' + tx('Plantilla') + '">' + '<span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span>' + '<span class="ai-source-text">' + tx('Plantilla') + '</span></span>' +
       '<button type="button" class="secondary-button btn btn-secondary" data-handover-generate>' + tx('Generar borrador') + '</button>' +
       '<button type="button" class="btn btn-tonal" data-handover-copy>' + icon('copy') + tx('Copiar') + '</button>' +
       '<button type="button" class="primary-button btn btn-primary" data-handover-chat>' + icon('message') + tx('Enviar al equipo') + '</button></div>' +
@@ -75,7 +75,7 @@
     return '<div class="ai-card ask-card"><strong>' + tx('¿Tiene una duda?') + '</strong><span>' + tx('Pregunte con tranquilidad. Le respondemos solo con lo que se ve del turno.') + '</span>' +
       '<div class="ask-row"><input type="text" class="ask-input" data-ask-input maxlength="300" placeholder="' + tx('¿Cómo pasó la noche?') + '" aria-label="' + tx('Escriba su pregunta') + '"><button type="button" class="primary-button" data-ask-send>' + tx('Preguntar') + '</button></div>' +
       '<div class="ask-answer is-empty" data-ask-answer aria-live="polite"></div>' +
-      '<span class="ai-source" data-ask-badge aria-label="' + tx('Plantilla') + '"><span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span></span></div>';
+      '<span class="ai-source" data-ask-badge aria-label="' + tx('Plantilla') + '"><span class="ai-mark" aria-hidden="true">' + ctx().videoSlot('ai-static', 'Bloub') + '</span><span class="ai-source-text">' + tx('Plantilla') + '</span></span></div>';
   }
 
   // Pop the proposal card when it opens (success path); helpers no-op under reduced motion.

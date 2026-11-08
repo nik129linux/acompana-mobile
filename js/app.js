@@ -709,8 +709,8 @@
     if (app.fabDock) app.fabDock.hidden = app.fab.hidden;
     var chatNav = app.bottomNav.querySelector('[data-nav="chat"]');
     // Chat is a bottom-nav tab, not a floating bubble; it still steps aside
-    // for pushed screens (patient detail, Settings/Help).
-    if (chatNav) chatNav.hidden = !!state.detailPatient || !!state.settingsOpen;
+    // for pushed detail screens. Settings keeps all three nurse tabs.
+    if (chatNav) chatNav.hidden = !!state.detailPatient;
   }
 
   function openDemoMenu(button) {
@@ -2544,7 +2544,7 @@
     var fromAi = source === 'ollama';
     var chip = '<span class="ai-source-text">' + escapeHtml(fromAi ? ('IA \u00b7 ' + (model || 'gemma')) : t('Plantilla')) + '</span>';
     var note = (!fromAi && aiConsent === 'yes') ? aiFallbackNote() : '';
-    box.innerHTML = aiMark(fromAi ? 'ai-answer' : 'ai-static', 'Bloub') + chip +
+    box.innerHTML = '<span class="ai-source">' + aiMark(fromAi ? 'ai-answer' : 'ai-static', 'Bloub') + chip + '</span>' +
       '<span class="sr-only">' + escapeHtml(t(fromAi ? 'Respuesta de IA: ' : 'Respuesta automática: ')) + '</span>' +
       '<span class="ask-text">' + escapeHtml(text) + '</span>' + note;
     box.classList.add('has-mark');
@@ -2564,7 +2564,7 @@
   function askViaServer(question, box) {
     box.classList.remove('is-empty');
     box.classList.add('is-thinking', 'has-mark');
-    box.innerHTML = aiMark('ai-thinking', t('Buscando la respuesta')) + '<span class="ask-text">' + escapeHtml(t('Buscando en el turno…')) + '</span>';
+    box.innerHTML = '<span class="ai-source">' + aiMark('ai-thinking', t('Buscando la respuesta')) + '<span class="ai-source-text">' + escapeHtml(t('IA')) + '</span></span>' + '<span class="ask-text">' + escapeHtml(t('Buscando en el turno…')) + '</span>';
     bindVideos(box);
     revealAnswer(box);
     var badge = app.screen.querySelector('[data-ask-badge]');

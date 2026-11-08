@@ -29,21 +29,26 @@
 }
 
 .event-patient-btn .patient-dot {
-  width: 18px;
-  height: 18px;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--stone-border);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 11px;
+  line-height: 1;
   font-weight: 600;
   color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  letter-spacing: 0;
 }
 
 .event-patient-btn[aria-pressed="true"] .patient-dot {
-  background: var(--accent);
-  color: var(--white);
+  background: var(--on-primary);
+  color: var(--accent);
 }
 
 .other-event-field {

@@ -304,10 +304,7 @@
   scroll-padding-bottom: calc(var(--nav-height) + 56px + 24px);
 }
 
-/* Settings/Help is a pushed screen: the chat tab steps aside with the rest. */
-.phone.is-settings .bottom-nav .nav-item[data-nav="chat"] {
-  display: none;
-}
+/* Settings keeps the same three tabs as nurse home (Turno/Pendientes/Chat). */
 
 /* AI-written timeline lines show their source with the existing badge. */
 .timeline-text .source-badge {

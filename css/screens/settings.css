@@ -1,6 +1,9 @@
 /* Settings + guide: only semantic tokens, no raw colors. */
 
 .settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   background: var(--white);
   border: 1px solid var(--stone-border);
   border-radius: var(--radius-card);
@@ -12,7 +15,13 @@
 .settings-block h2 {
   font-size: var(--text-body);
   color: var(--ink);
-  margin: 0 0 var(--space-2);
+  margin: 0;
+}
+
+/* Settings is a pushed screen, but it is not a detail overlay: no seam on the
+   left edge (the dark theme made that 1px border obvious). */
+.view.is-detail[data-view-key^="settings-"] {
+  border-left: 0;
 }
 
 .settings-block .btn,

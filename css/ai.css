@@ -83,21 +83,42 @@
 
 .ask-answer.has-mark {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 
 .ask-answer.is-empty.has-mark {
   display: none;
 }
 
+.ask-answer .ask-text {
+  width: 100%;
+}
+
+.ask-answer .ai-fallback-note {
+  width: 100%;
+}
+
 .ask-answer.is-thinking .ask-text {
   color: var(--muted);
 }
 
+/* Source badge: one compact pill (24px Bloub mark + inline label). It is never
+   a layout column, so answers and notes below it keep the full width. */
 .ai-source {
   display: inline-flex;
+  flex: 0 0 auto;
   align-self: flex-start;
+  align-items: center;
+  gap: var(--space-2);
+  height: 32px;
+  max-height: 32px;
+  padding: 0 var(--space-3) 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--stone);
+  color: var(--body);
+  white-space: nowrap;
 }
 
 .ai-source[hidden] {
@@ -106,12 +127,18 @@
 
 /* White disc, like the mascots: the video stays white in the dark theme too. */
 .ai-mark {
-  flex: 0 0 56px;
-  width: 56px;
-  height: 56px;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--color-neutral-0);
   overflow: hidden;
+}
+
+.ai-source .ai-mark {
+  flex-basis: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .ai-mark .video-slot {

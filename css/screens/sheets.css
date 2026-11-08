@@ -61,10 +61,10 @@
   color: var(--on-primary);
 }
 
-.registration-sheet .chip.is-selected .chip-icon,
-.registration-sheet .chip[aria-pressed="true"] .chip-icon {
-  background: var(--glass-on-gradient);
-  color: var(--on-primary);
+.registration-sheet .chip.is-selected .patient-dot,
+.registration-sheet .chip[aria-pressed="true"] .patient-dot {
+  background: var(--on-primary);
+  color: var(--accent);
 }
 
 .registration-sheet .quick-events {
@@ -205,6 +205,9 @@
 }
 
 .ai-sheet .ai-actions .source-badge { grid-column: 1 / -1; justify-self: start; }
+
+/* The source pill hugs its content even when it lands in the actions grid. */
+.ai-sheet .ai-actions .ai-source { grid-column: 1 / -1; justify-self: start; }
 
 .ai-sheet .ai-actions .btn {
   min-width: 0;

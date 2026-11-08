@@ -55,13 +55,22 @@
 
 .phone[data-role="enfermero"] .bottom-nav .nav-item { min-width: 0; }
 
-/* The FAB owns a dock band above the nav, so scrolling content never passes
-   underneath it at any scroll position. 80px = 56px FAB + 16px gap to the nav
-   + 8px breathing room above the button. */
+/* The FAB floats in its own transparent strip above the nav. The strip takes
+   no layout space (content scrolls up to the nav) and only the FAB itself
+   takes pointer events. 80px = 56px FAB + 16px gap to the nav + 8px above. */
 .fab-dock {
-  position: relative;
-  flex: 0 0 80px;
-  background: var(--canvas);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--nav-height);
+  height: 80px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.fab-dock .fab-register {
+  pointer-events: auto;
 }
 
 .fab-dock[hidden] { display: none; }
@@ -689,6 +698,6 @@
 /* Celebration/confetti never covers the copy: pieces stay behind the text. */
 .celebration-card .confetti-layer, .empty-state .confetti-layer { z-index: 0; }
 .celebration-card > *:not(.confetti-layer), .empty-state > *:not(.confetti-layer) { position: relative; z-index: 1; }
-/* Visible AI source chip next to Bloub. */
-.ai-source-text { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 9999px; background: var(--stone); color: var(--body); font-size: var(--text-caption); font-weight: 600; }
-.ai-fallback-note { margin: 8px 0 0; color: var(--body); font-size: var(--text-small); }
+/* Source label inline inside the compact badge pill (mark + text, one row). */
+.ai-source-text { display: inline-block; margin: 0; padding: 0; border-radius: 0; background: transparent; color: var(--body); font-size: var(--text-caption); font-weight: 600; line-height: 1; }
+.ai-fallback-note { width: 100%; margin: var(--space-2) 0 0; color: var(--body); font-size: var(--text-small); }
