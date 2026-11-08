@@ -103,7 +103,7 @@ function fakeNative(mode) {
     page.on('pageerror', (e) => errors.push(e.message));
     await page.route('**/api/handover', () => { /* never answers, like a stopped server */ });
     await page.goto(origin + '/');
-    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => { localStorage.clear(); try { localStorage.setItem('acompana-guide-seen', JSON.stringify({ all: true })); localStorage.setItem('acompana-coach-confirm', 'yes'); localStorage.setItem('acompana-coach-handover', 'yes'); localStorage.setItem('acompana-coach-register', 'yes'); localStorage.setItem('acompana-coach-ask', 'yes'); localStorage.setItem('acompana-coach-visit', 'yes'); } catch (e) {} });
     await page.reload();
     await skipSplash(page);
     await page.locator('.view.is-active [data-handover-open]').first().click();

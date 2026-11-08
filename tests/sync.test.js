@@ -22,6 +22,7 @@ async function api(base, path, body) {
 async function open(browser, url, secure) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(() => {
+    localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); });
     window.__shared = 0;
     Object.defineProperty(navigator, 'share', { configurable: true, value: () => { window.__shared += 1; return Promise.resolve(); } });
     window.__opened = 0;

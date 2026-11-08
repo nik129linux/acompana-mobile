@@ -164,6 +164,7 @@ function request(server, method, url, body, headers) {
       page.on('console', (m) => { if (/Content Security Policy|Refused to/.test(m.text())) violations.push(m.text()); });
       page.on('pageerror', (e) => violations.push(e.message));
       await page.goto('http://127.0.0.1:' + server.address().port + '/');
+      await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
       if (await page.locator('[data-splash-skip]').isVisible().catch(() => false)) await page.locator('[data-splash-skip]').click();
       await page.waitForTimeout(800);
       await page.locator('.view.is-active [data-handover-open]').click();

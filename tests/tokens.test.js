@@ -79,6 +79,7 @@ async function walk(page) {
       const errors = [];
       page.on('pageerror', (e) => errors.push(e.message));
       await page.goto(INDEX);
+      await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
       await skipSplash(page);
 
@@ -161,6 +162,7 @@ async function walk(page) {
     // Toggle: a visible control flips data-theme and remembers it.
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, colorScheme: 'light' });
     await page.goto(INDEX);
+      await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
     await skipSplash(page);
     const toggle = page.locator('[data-theme-toggle]');
     assert(await toggle.isVisible(), 'theme toggle is visible');

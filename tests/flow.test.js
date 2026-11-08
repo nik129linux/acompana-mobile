@@ -23,7 +23,7 @@ async function fresh(browser, init) {
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.goto(INDEX);
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); try { localStorage.setItem('acompana-guide-seen', JSON.stringify({ all: true })); localStorage.setItem('acompana-coach-confirm', 'yes'); localStorage.setItem('acompana-coach-handover', 'yes'); localStorage.setItem('acompana-coach-register', 'yes'); localStorage.setItem('acompana-coach-ask', 'yes'); localStorage.setItem('acompana-coach-visit', 'yes'); } catch (e) {} });
   await page.reload();
   if (await page.locator('[data-splash-skip]').isVisible().catch(() => false)) await page.locator('[data-splash-skip]').click();
   await page.waitForTimeout(500);

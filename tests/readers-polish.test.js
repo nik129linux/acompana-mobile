@@ -29,7 +29,7 @@ function lum(c) {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(INDEX);
-    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acompana-theme', 'light'); });
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); });; localStorage.setItem('acompana-theme', 'light'); });
     await page.reload();
     if (await page.locator('[data-splash-skip]').isVisible().catch(() => false)) await page.locator('[data-splash-skip]').click();
     await page.waitForTimeout(500);

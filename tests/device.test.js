@@ -37,6 +37,8 @@ async function ring(page, selector) {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: scheme });
       const page = await ctx.newPage();
       await page.goto(INDEX);
+    await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
+      await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
       if (await page.locator('[data-splash-skip]').isVisible().catch(() => false)) await page.locator('[data-splash-skip]').click();
       await page.waitForTimeout(600);
 
@@ -71,6 +73,7 @@ async function ring(page, selector) {
   try {
     const page = await browser2.newPage({ viewport: { width: 390, height: 844 } });
     await page.goto(INDEX);
+    await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
     if (await page.locator('[data-splash-skip]').isVisible().catch(() => false)) await page.locator('[data-splash-skip]').click();
     await page.waitForTimeout(600);
     await openRegister(page);

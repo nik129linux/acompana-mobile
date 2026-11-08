@@ -104,6 +104,7 @@ function ok(name) { passed += 1; console.log('ok - ' + name); }
       page.on('request', (req) => { if (req.url().includes('/api/')) apiHosts.push(new URL(req.url()).host); });
       const origin = 'http://127.0.0.1:' + port;
       await page.goto(origin + '/');
+      await page.evaluate(() => { localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); }); });
       const swReady = await page.evaluate(() => Promise.race([
         navigator.serviceWorker.ready.then(() => true),
         new Promise((r) => setTimeout(() => r(false), 5000))

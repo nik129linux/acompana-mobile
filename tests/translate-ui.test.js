@@ -54,7 +54,7 @@ async function logPositionForMaria(page) {
     const translateCalls = [];
     page.on('request', (r) => { if (r.url().includes('/api/translate')) translateCalls.push(JSON.parse(r.postData() || '{}')); });
     await page.goto(origin + '/');
-    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acompana-ai-consent', 'yes'); });
+    await page.evaluate(() => { localStorage.clear(); localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); });; localStorage.setItem('acompana-ai-consent', 'yes'); });
     await page.reload();
     await skipSplash(page);
     await logPositionForMaria(page);
@@ -81,7 +81,7 @@ async function logPositionForMaria(page) {
     const local = await browser.newPage({ viewport: { width: 390, height: 844 } });
     local.on('pageerror', (e) => errors.push('file: ' + e.message));
     await local.goto(pathToFileURL(path.join(__dirname, '..', 'index.html')).href);
-    await local.evaluate(() => { localStorage.clear(); localStorage.setItem('acompana-ai-consent', 'yes'); });
+    await local.evaluate(() => { localStorage.clear(); localStorage.setItem('acompana-guide-seen', '{"all":true}'); ['confirm','handover','register','ask','visit'].forEach(function(k){ localStorage.setItem('acompana-coach-'+k, 'yes'); });; localStorage.setItem('acompana-ai-consent', 'yes'); });
     await local.reload();
     await skipSplash(local);
     await logPositionForMaria(local);
