@@ -151,16 +151,19 @@
 .fab-register {
   position: absolute;
   right: var(--space-4);
-  bottom: calc(var(--nav-height) + var(--space-4));
+  bottom: var(--space-4);
   z-index: 12;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: center;
+  gap: 0;
+  width: 56px;
   min-width: 56px;
+  height: 56px;
   min-height: 56px;
-  padding: var(--space-3) var(--space-6) var(--space-3) var(--space-4);
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--nurse);
   color: var(--on-primary);
   cursor: pointer;
@@ -200,7 +203,7 @@
   position: absolute;
   right: var(--space-4);
   left: var(--space-4);
-  bottom: calc(var(--nav-height) + calc(var(--space-6) + var(--space-6)));
+  bottom: calc(var(--nav-height) + 88px);
   z-index: 35;
   display: none;
   align-items: center;
@@ -295,11 +298,10 @@
   }
 }
 
-/* Room under the last item so the FAB and the nav never cover a control.
-   76px nav + 56px FAB + gaps. */
+/* Room under the last item = nav + 56px FAB + 24px breathing room. */
 .phone[data-role="enfermero"] .view {
-  padding-bottom: calc(var(--nav-height) + 120px);
-  scroll-padding-bottom: calc(var(--nav-height) + 120px);
+  padding-bottom: calc(var(--nav-height) + 56px + 24px);
+  scroll-padding-bottom: calc(var(--nav-height) + 56px + 24px);
 }
 
 /* Settings/Help is a pushed screen: the chat tab steps aside with the rest. */

@@ -619,7 +619,7 @@ a:focus-visible {
   font-size: var(--text-body);
   font-weight: 500;
   line-height: 23px;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
 }
 

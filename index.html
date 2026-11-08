@@ -44,12 +44,14 @@
 
       <main id="screen" class="screen" aria-live="polite"></main>
 
-      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación principal" data-i18n-label="Navegación principal"></nav>
+      <div class="fab-dock" data-fab-dock hidden>
+        <button type="button" class="fab-register" data-fab-register aria-label="Registrar evento" data-i18n-label="Registrar evento">
+          <span class="fab-register-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>
+          <span class="fab-register-label" data-i18n="Registrar">Registrar</span>
+        </button>
+      </div>
 
-      <button type="button" class="fab-register" data-fab-register aria-label="Registrar" data-i18n-label="Registrar">
-        <span class="fab-register-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg></span>
-        <span class="fab-register-label" data-i18n="Registrar">Registrar</span>
-      </button>
+      <nav id="bottomNav" class="bottom-nav" aria-label="Navegación principal" data-i18n-label="Navegación principal"></nav>
 
       <div id="snackbar" class="snackbar" data-tray-feedback role="status" aria-live="polite"></div>
 

@@ -40,14 +40,14 @@
   function patientCard(patient) {
     var task = taskForPatient(patient.id);
     var side = task
-      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" title="' + escapeHtml(t('Confirmar')) + '" aria-label="' + escapeHtml(t('Confirmar {task} de {patient}', { task: t(task.title), patient: patient.name })) + '">' + icon('check') + '<span>' + escapeHtml(t('Confirmar')) + '</span></button>'
+      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" title="' + escapeHtml(t('Confirmar')) + '" aria-label="' + escapeHtml(t('Confirmar {task} de {patient}', { task: t(task.title), patient: patient.name })) + '">' + icon('check') + '<span class="sr-only">' + escapeHtml(t('Confirmar')) + '</span></button>'
       : patientBadge(patient);
     var meta = '<span>' + icon('bed') + escapeHtml(room(patient.room)) + '</span>' +
       (task ? '<span>' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + ' · ' + escapeHtml(t(task.title)) + '</span>' : '');
     return '<article class="patient-card list-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
       '<button type="button" class="patient-card-main" data-patient="' + escapeHtml(patient.id) + '" aria-label="' + escapeHtml(t('Abrir detalle de {name}', { name: patient.name })) + '">' +
       '<span class="media-square patient-avatar">' + escapeHtml(patient.initials) + '</span>' +
-      '<span class="list-copy patient-info"><span class="list-title patient-name">' + escapeHtml(patient.name) + '</span><span class="list-meta patient-meta">' + meta + '</span></span>' +
+      '<span class="list-copy patient-info"><span class="list-title patient-name">' + escapeHtml(patient.name) + '</span><span class="list-meta patient-meta">' + meta + '</span><span class="patient-done">' + icon('check') + escapeHtml(t('Hecho')) + '</span></span>' +
       '</button><div class="patient-side">' + side + '</div></article>';
   }
 

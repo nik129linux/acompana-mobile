@@ -63,13 +63,13 @@
 }
 
 .task-card .task-title {
-  overflow: hidden;
+  overflow: visible;
   color: var(--ink);
   font-size: var(--text-body);
   font-weight: 600;
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .task-card .task-meta {
@@ -97,12 +97,12 @@
 }
 
 .task-card .task-patient {
-  overflow: hidden;
+  overflow: visible;
   color: var(--muted);
   font-size: var(--text-caption);
   line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .task-card .task-action.tap-confirm {
@@ -130,24 +130,53 @@
   white-space: nowrap;
 }
 
-/* Home cards: compact 44px Confirmar pill, never wider than 120px, so the
-   patient name keeps its single line at 390px in ES and EN. */
-.patient-card .patient-side { flex: 0 0 auto; min-width: 0; }
+/* Home cards: 56px avatar | text column | 48px round confirm. The name keeps
+   its single line and is never truncated; only the meta wraps. */
+.patient-card .patient-side { flex: 0 0 auto; min-width: 0; padding-inline: var(--space-1) var(--space-3); }
 .patient-card .quick-confirm.tap-confirm {
-  min-width: 0;
-  max-width: 120px;
-  min-height: 56px;
-  height: 56px;
-  padding: 6px 14px;
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 1.5px solid var(--stone-border);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--nurse-text);
+  box-shadow: var(--elevation-1);
   white-space: nowrap;
 }
+.patient-card .quick-confirm.tap-confirm:hover {
+  border-color: var(--nurse);
+  background: var(--white);
+  filter: none;
+}
+.patient-card .quick-confirm.tap-confirm .icon-svg { width: 22px; height: 22px; }
+.patient-card .patient-avatar { width: 56px; height: 56px; }
 .patient-card .patient-info { min-width: 0; flex: 1 1 auto; }
 .patient-card .patient-name {
   display: block;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
 }
+.patient-card .patient-done {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.patient-card .patient-done .icon-svg { width: 14px; height: 14px; }
+.patient-card.is-confirming .quick-confirm.tap-confirm {
+  border-color: transparent;
+  background: var(--grad-primary);
+  color: var(--on-primary);
+}
+.patient-card.is-confirming .patient-done { display: inline-flex; }
 
 .task-card.is-confirming .task-action {
   background: var(--primary-container);

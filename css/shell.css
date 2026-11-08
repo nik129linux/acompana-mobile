@@ -55,17 +55,29 @@
 
 .phone[data-role="enfermero"] .bottom-nav .nav-item { min-width: 0; }
 
+/* The FAB owns a dock band above the nav, so scrolling content never passes
+   underneath it at any scroll position. 80px = 56px FAB + 16px gap to the nav
+   + 8px breathing room above the button. */
+.fab-dock {
+  position: relative;
+  flex: 0 0 80px;
+  background: var(--canvas);
+}
+
+.fab-dock[hidden] { display: none; }
+
 .fab-register {
   right: var(--space-4);
-  bottom: calc(var(--nav-height) + var(--space-4));
+  bottom: var(--space-4);
   left: auto;
   justify-content: center;
-  width: auto;
+  width: 56px;
   min-width: 56px;
+  height: 56px;
   min-height: 56px;
-  padding: var(--space-3) var(--space-6) var(--space-3) var(--space-4);
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--grad-primary);
   box-shadow: var(--elevation-2);
   transform: none;
@@ -81,10 +93,11 @@
 }
 
 .fab-register-label {
-  display: inline;
-  flex: 0 0 auto;
-  font-size: var(--text-small);
-  font-weight: 600;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
 }
 
@@ -120,16 +133,22 @@
   text-transform: none;
 }
 
-/* Names and task titles stay on one line; they are cut with an ellipsis. */
+/* Task titles stay on one line, cut with an ellipsis. Patient names never
+   truncate or ellipsize (DESIGN.md): they keep a single line that fits. */
 .list-title,
-.task-title,
-.patient-name {
+.task-title {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.patient-name { display: block; max-width: 100%; }
+.patient-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+}
 
 /* Centered content must never overflow upward under the app bar. */
 .empty-state { justify-content: safe center; padding-top: var(--space-6); }
@@ -299,7 +318,13 @@
 
 .phone[data-role="enfermero"] .bottom-nav .nav-item { grid-column: auto; min-width: 0; }
 
-/* Patient detail scrolls clear of the docked FAB + bottom bar. */
+/* Patient detail has its own docked "Registrar evento" CTA and hides the FAB,
+   so the scroll container keeps no bottom padding: the sticky CTA must reach
+   the bottom edge instead of floating up over the clinical toggle. */
+.phone[data-role="enfermero"] .view[data-view-key="nurse-detail"] {
+  padding-bottom: 0;
+  scroll-padding-bottom: 0;
+}
 
 .detail-cta {
   position: sticky;
@@ -658,8 +683,8 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--nurse) 22%, transparent);
 }
 
-/* Chat lives in the bottom nav; the toast rises above the nav. */
-.snackbar { bottom: calc(var(--nav-height) + var(--space-6)); }
+/* Chat lives in the bottom nav; the toast rises above the nav and the FAB. */
+.snackbar { bottom: calc(var(--nav-height) + 88px); }
 
 /* Celebration/confetti never covers the copy: pieces stay behind the text. */
 .celebration-card .confetti-layer, .empty-state .confetti-layer { z-index: 0; }

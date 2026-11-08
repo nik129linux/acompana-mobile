@@ -10,6 +10,7 @@
     screen: $('screen'),
     bottomNav: $('bottomNav'),
     fab: document.querySelector('[data-fab-register]'),
+    fabDock: document.querySelector('[data-fab-dock]'),
     snackbar: $('snackbar'),
     roleSwitch: document.querySelector('.role-switch'),
     roleTabs: Array.prototype.slice.call(document.querySelectorAll('.role-tab')),
@@ -703,6 +704,9 @@
   function updateFab() {
     if (!app.fab) return;
     app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient || !!state.settingsOpen;
+    // The FAB lives in its own dock band so scrolling content can never pass
+    // under it; the band collapses with the FAB on pushed screens.
+    if (app.fabDock) app.fabDock.hidden = app.fab.hidden;
     var chatNav = app.bottomNav.querySelector('[data-nav="chat"]');
     // Chat is a bottom-nav tab, not a floating bubble; it still steps aside
     // for pushed screens (patient detail, Settings/Help).
