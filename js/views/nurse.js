@@ -4,6 +4,9 @@
   var V = window.AcompanaViews = window.AcompanaViews || {};
   var t = window.AcompanaI18n.t;
   var room = window.AcompanaI18n.room;
+  var fmtNum = window.AcompanaI18n.fmtNum;
+  var fmtTime = window.AcompanaI18n.fmtTime;
+  var qty = window.AcompanaI18n.qty;
   function ctx() { return V.ctx; }
   function escapeHtml(value) { return ctx().escapeHtml(value); }
   function icon(name) { return ctx().icon(name); }
@@ -40,7 +43,7 @@
       ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="' + escapeHtml(t('Confirmar {task} en un toque', { task: t(task.title) })) + '">' + icon('check') + '<span>' + escapeHtml(t('Listo')) + '</span></button>'
       : patientBadge(patient);
     var meta = '<span>' + icon('bed') + escapeHtml(room(patient.room)) + '</span>' +
-      (task ? '<span>' + icon('clock') + escapeHtml(task.time) + ' · ' + escapeHtml(t(task.title)) + '</span>' : '');
+      (task ? '<span>' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + ' · ' + escapeHtml(t(task.title)) + '</span>' : '');
     return '<article class="patient-card list-card" data-patient-card="' + escapeHtml(patient.id) + '">' +
       '<button type="button" class="patient-card-main" data-patient="' + escapeHtml(patient.id) + '" aria-label="' + escapeHtml(t('Abrir detalle de {name}', { name: patient.name })) + '">' +
       '<span class="media-square patient-avatar">' + escapeHtml(patient.initials) + '</span>' +
@@ -66,10 +69,10 @@
       '<div class="greet-copy"><h1 class="greet-title view-title">' + escapeHtml(t('Hola, Elena')) + '</h1><span class="greet-meta view-copy">' + icon('location') + escapeHtml(t('Piso 3 · Hospital Central')) + '</span></div></header>' +
       '<div class="chip-row shift-line" aria-label="' + escapeHtml(t('Resumen del turno')) + '">' +
       '<span class="chip"><span class="chip-icon">' + icon('user') + '</span><strong>' + ctx().PATIENTS.length + '</strong>&nbsp;' + escapeHtml(t('pacientes')) + '</span>' +
-      '<span class="chip"><span class="chip-icon">' + icon('task') + '</span><strong>' + pending + '</strong>&nbsp;' + escapeHtml(t('pendientes')) + '</span>' +
+      '<span class="chip"><span class="chip-icon">' + icon('task') + '</span><strong>' + fmtNum(pending) + '</strong>&nbsp;' + escapeHtml(qty(pending, '1 pendiente', '{count} pendientes')) + '</span>' +
       '<span class="chip"><span class="chip-icon">' + icon('clock') + '</span>' + escapeHtml(t('Ronda')) + '&nbsp;<strong>' + escapeHtml(t('1:00 p. m.')) + '</strong></span></div>' +
       (critical.length ? '<section class="urgent-section" aria-label="' + escapeHtml(t('Requiere atención')) + '"><div class="section-head"><h2>' + escapeHtml(t('Requiere atención')) + '</h2></div>' + critical.map(urgentCard).join('') + '</section>' : '') +
-      '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Tus pacientes')) + '</h2><span class="section-link">' + escapeHtml(t('{count} estables', { count: stable.length })) + '</span></div>' +
+      '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Tus pacientes')) + '</h2><span class="section-link">' + escapeHtml(qty(stable.length, '1 estable', '{count} estables')) + '</span></div>' +
       '<div class="patient-list">' + stable.map(patientCard).join('') + '</div>' +
       '<div class="section-head"><h2>' + escapeHtml(t('Entrega de turno')) + '</h2></div>' +
       '<div class="ai-card list-card sbar-card"><span class="media-square" aria-hidden="true">' + icon('note') + '</span>' +
@@ -83,11 +86,15 @@
     return patient ? patient.name + ' · ' + room(patient.room) : task.note;
   }
 
+  function fmtTaskTime(time) {
+    return fmtTime(time);
+  }
+
   function taskCard(task) {
     return '<article class="task-card list-card" data-task-card="' + escapeHtml(task.id) + '">' +
       '<span class="media-square task-media" aria-hidden="true">' + icon(task.icon) + '</span>' +
       '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(t(task.title)) + '</span>' +
-      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(task.time) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
+      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
       '<button type="button" class="task-action tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="' + escapeHtml(t('Confirmar {task}', { task: t(task.title) })) + '"><svg class="confirm-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M6.67 17.68 10.11 21.28C11 22.2 11.45 22.67 12 22.67S13 22.2 13.89 21.28L25.33 9.33"></path></svg><span class="confirm-label">' + escapeHtml(t('Listo')) + '</span></button>' +
       '</article>';
   }
@@ -96,7 +103,7 @@
     return '<article class="task-card list-card is-done" data-done-task="' + escapeHtml(task.id) + '">' +
       '<span class="media-square task-media" aria-hidden="true">' + icon(task.icon) + '</span>' +
       '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(t(task.title)) + '</span>' +
-      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(task.time) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
+      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
       '<span class="status-pill is-done">' + icon('check') + escapeHtml(t('Hecho')) + '</span></article>';
   }
 
@@ -105,7 +112,7 @@
     return '<article class="task-card list-card is-done" data-done-event="' + escapeHtml(entry.id) + '">' +
       '<span class="media-square task-media" aria-hidden="true">' + icon(KIND_ICON[entry.kind] || 'note') + '</span>' +
       '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(entry.text ? t(entry.text) : t(KIND_LABEL[entry.kind] || 'Evento')) + '</span>' +
-      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(entry.time) + '</span>' + (patient ? '<span class="task-patient">' + escapeHtml(patient.name + ' · ' + room(patient.room)) + '</span>' : '') + '</span></span>' +
+      '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(fmtTaskTime(entry.time)) + '</span>' + (patient ? '<span class="task-patient">' + escapeHtml(patient.name + ' · ' + room(patient.room)) + '</span>' : '') + '</span></span>' +
       '<span class="status-pill is-done">' + escapeHtml(t('Registrado')) + '</span></article>';
   }
 
@@ -123,7 +130,7 @@
 
   function summaryRow(task) {
     return '<li class="summary-row"><span class="summary-icon" aria-hidden="true">' + icon('check') + '</span>' +
-      '<span class="summary-copy"><strong>' + escapeHtml(t(task.title)) + '</strong><span>' + escapeHtml(task.time) + ' · ' + escapeHtml(taskPlace(task)) + '</span></span></li>';
+      '<span class="summary-copy"><strong>' + escapeHtml(t(task.title)) + '</strong><span>' + escapeHtml(fmtTaskTime(task.time)) + ' · ' + escapeHtml(taskPlace(task)) + '</span></span></li>';
   }
 
   function renderEmptyPending() {
@@ -150,8 +157,8 @@
     return '<div class="view-header"><div class="view-header-copy"><h1 class="view-title small-title screen-title">' + escapeHtml(t('Pendientes')) + '</h1></div></div>' +
       '<div class="segmented" role="tablist" aria-label="' + escapeHtml(t('Pendientes y hechas')) + '">' + segment('pending', 'Pendientes') + segment('done', 'Hechas') + '</div>' +
       (done
-        ? '<div class="section-head pending-head"><h2>' + escapeHtml(t('Hechas')) + '</h2><span class="status-pill is-done">' + escapeHtml(t('{count} registros', { count: ctx().TASKS.filter(function (task) { return isConfirmed(task.id); }).length + loadEvents().length })) + '</span></div>' + doneList()
-        : '<div class="section-head pending-head"><h2>' + escapeHtml(t('Lo que falta')) + '</h2><span class="status-pill" data-pending-count><strong>' + pending.length + '</strong>&nbsp;' + escapeHtml(t('pendientes')) + '</span></div>' +
+        ? '<div class="section-head pending-head"><h2>' + escapeHtml(t('Hechas')) + '</h2><span class="status-pill is-done">' + escapeHtml(qty(ctx().TASKS.filter(function (task) { return isConfirmed(task.id); }).length + loadEvents().length, '1 registro', '{count} registros')) + '</span></div>' + doneList()
+        : '<div class="section-head pending-head"><h2>' + escapeHtml(t('Lo que falta')) + '</h2><span class="status-pill" data-pending-count><strong>' + fmtNum(pending.length) + '</strong>&nbsp;' + escapeHtml(qty(pending.length, '1 pendiente', '{count} pendientes')) + '</span></div>' +
           '<div class="section-heading"><h2 class="section-label">' + escapeHtml(t('En este momento')) + '</h2><span class="section-meta">' + escapeHtml(t('Orden por hora')) + '</span></div>' +
           '<div class="pending-list">' + pending.map(taskCard).join('') + '</div>' +
           '<div class="ai-card"><strong>' + escapeHtml(t('Preguntas de la familia')) + '</strong><span>' + escapeHtml(t('Si una familia dejó una duda desde su vista, aparece aquí.')) + '</span><div class="ai-actions"><button type="button" class="secondary-button" data-questions-load>' + escapeHtml(t('Revisar preguntas')) + '</button></div><div data-nurse-questions></div></div>');

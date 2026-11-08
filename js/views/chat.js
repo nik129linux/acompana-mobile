@@ -7,11 +7,15 @@
   function escapeHtml(value) { return ctx().escapeHtml(value); }
   function icon(name) { return ctx().icon(name); }
 
-  // The server stamps UTC; the reader wants their own clock.
+  // The server stamps UTC; the reader wants their own clock, in their locale.
   function clock(value) {
     var date = new Date(value);
     if (isNaN(date.getTime())) return '';
-    return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+    try {
+      return new Intl.DateTimeFormat(window.AcompanaI18n.lang() === 'en' ? 'en-US' : 'es-CO', { hour: 'numeric', minute: '2-digit' }).format(date);
+    } catch (error) {
+      return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+    }
   }
 
   // Every own message says where it stands: sending, sent, or not sent.

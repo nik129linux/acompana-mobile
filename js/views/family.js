@@ -3,6 +3,7 @@
 
   var V = window.AcompanaViews = window.AcompanaViews || {};
   var t = window.AcompanaI18n.t;
+  var fmtTime = window.AcompanaI18n.fmtTime;
   var room = window.AcompanaI18n.room;
   function ctx() { return V.ctx; }
   function escapeHtml(value) { return ctx().escapeHtml(value); }
@@ -44,9 +45,7 @@
       '<div class="glass-pill"><span class="visit-icon">' + icon('calendar') + '</span><span class="pill-copy">' + t('Horario de visita · Hoy, de {from} a {to}', { from: '<span class="time-nowrap">' + escapeHtml(t('3:00 p. m.')) + '</span>', to: '<span class="time-nowrap">' + escapeHtml(t('5:00 p. m.')) + '</span>' }) + '</span></div>' +
       '</article></div>' +
       '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Hoy')) + '</h2><span class="section-link">' + escapeHtml(t('Sin datos clínicos')) + '</span></div>' + timeline(familyDayTimeline(patient)) +
-      V.sheets.askCard() +
-      '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Así funciona')) + '</h2><span class="section-link">' + escapeHtml(t('Dos ideas sencillas')) + '</span></div>' +
-      '<div class="onboarding-list">' + onboardingCard('onboarding-1', t('Lo que sigue'), t('Vea el próximo paso del turno.')) + onboardingCard('onboarding-2', t('Cómo pedir ayuda'), t('Escriba al equipo cuando necesite algo.')) + '</div>';
+      V.sheets.askCard();
   }
 
   function renderContact() {

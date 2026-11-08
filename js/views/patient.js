@@ -3,6 +3,7 @@
 
   var V = window.AcompanaViews = window.AcompanaViews || {};
   var t = window.AcompanaI18n.t;
+  var fmtTime = window.AcompanaI18n.fmtTime;
   var room = window.AcompanaI18n.room;
   function ctx() { return V.ctx; }
   function escapeHtml(value) { return ctx().escapeHtml(value); }
@@ -35,9 +36,7 @@
       '</video><span class="video-fallback"><img src="media/frames/doctora-white.png" alt=""></span></span></span></span></div>' +
       '<div class="glass-pill">' + icon('clock') + '<span>' + escapeHtml(t(next.label)) + ' · <span class="time-nowrap">' + escapeHtml(t(next.time)) + '</span></span></div>' +
       '</article></div>' +
-      '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Su día de hoy')) + '</h2><span class="section-link">' + escapeHtml(t('En simple')) + '</span></div>' + timeline(patientDayTimeline()) +
-      '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Así funciona')) + '</h2><span class="section-link">' + escapeHtml(t('Dos ideas sencillas')) + '</span></div>' +
-      '<div class="onboarding-list">' + onboardingCard('onboarding-1', t('Lo que sigue'), t('Vea el próximo paso del turno.')) + onboardingCard('onboarding-2', t('Cómo pedir ayuda'), t('Use el timbre cuando necesite algo.')) + '</div>';
+      '<div class="section-head"><h2 class="section-label">' + escapeHtml(t('Su día de hoy')) + '</h2><span class="section-link">' + escapeHtml(t('En simple')) + '</span></div>' + timeline(patientDayTimeline());
   }
 
   function faqItem(id, iconName, question, answerHtml) {
