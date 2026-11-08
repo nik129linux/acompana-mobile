@@ -68,8 +68,9 @@ async function ring(page, selector) {
     await browser.close();
   }
 
-  // Chat is a bottom-nav tab (Turno / Pendientes / Chat) with the + FAB
-  // centered; the toast clears the nav.
+  // Chat is a bottom-nav tab (Turno / Pendientes / Chat, three equal
+  // symmetric tabs) with the extended Registrar FAB docked bottom-right
+  // above the nav (Material pattern); the toast clears the nav.
   const browser2 = await chromium.launch();
   try {
     const page = await browser2.newPage({ viewport: { width: 390, height: 844 } });
@@ -84,19 +85,25 @@ async function ring(page, selector) {
     await page.waitForTimeout(500);
     const g = await page.evaluate(() => {
       const nav = document.querySelector('#bottomNav').getBoundingClientRect();
+      const tabs = [...document.querySelectorAll('#bottomNav [data-nav]')].map((el) => el.getBoundingClientRect());
       const chat = document.querySelector('#bottomNav [data-nav="chat"]').getBoundingClientRect();
       const fab = document.querySelector('[data-fab-register]').getBoundingClientRect();
       const snack = document.querySelector('#snackbar').getBoundingClientRect();
-      return { navTop: nav.top, navBottom: nav.bottom, navCx: nav.left + nav.width / 2, chatTop: chat.top, chatBottom: chat.bottom, fabCx: fab.left + fab.width / 2, fabTop: fab.top, snackBottom: snack.bottom, snackVisible: snack.height > 0 };
+      return { navTop: nav.top, navBottom: nav.bottom, navCx: nav.left + nav.width / 2, tabs: tabs.map((t) => t.width), midCx: tabs[1].left + tabs[1].width / 2, chatTop: chat.top, chatBottom: chat.bottom, fabCx: fab.left + fab.width / 2, fabRight: fab.right, navRight: nav.right, fabW: fab.width, fabH: fab.height, fabTop: fab.top, fabBottom: fab.bottom, snackBottom: snack.bottom, snackVisible: snack.height > 0 };
     });
     assert.ok(g.chatTop >= g.navTop - 2 && g.chatBottom <= g.navBottom + 2, 'chat tab lives inside the bottom nav: ' + JSON.stringify(g));
-    assert.ok(Math.abs(g.fabCx - g.navCx) <= 4, 'the + FAB is centered on the nav: ' + JSON.stringify(g));
-    assert.ok(g.fabTop >= g.navTop - 60, 'the + FAB docks at the nav: ' + JSON.stringify(g));
+    assert.strictEqual(g.tabs.length, 3, 'three equal tabs: ' + JSON.stringify(g));
+    assert.ok(Math.max(...g.tabs) - Math.min(...g.tabs) <= 2, 'tabs equal width: ' + JSON.stringify(g.tabs));
+    assert.ok(Math.abs(g.midCx - g.navCx) <= 4, 'tabs symmetric around the nav center: ' + JSON.stringify(g));
+    assert.ok(g.fabCx > g.navCx, 'the Registrar FAB is docked right, not centered: ' + JSON.stringify(g));
+    assert.ok(g.navRight - g.fabRight <= 32, 'the Registrar FAB docks at the right edge: ' + JSON.stringify(g));
+    assert.ok(g.fabW > g.fabH, 'the Registrar FAB is extended: ' + JSON.stringify(g));
+    assert.ok(g.fabBottom <= g.navTop + 1, 'the Registrar FAB sits above the nav: ' + JSON.stringify(g));
     assert.ok(g.snackVisible && g.snackBottom <= g.navTop, 'the toast clears the bottom nav: ' + JSON.stringify(g));
   } finally {
     await browser2.close();
   }
-  ok('layout: chat tab inside the bottom nav, + centered, toast above it');
+  ok('layout: chat tab inside the bottom nav, 3 symmetric tabs, Registrar docked right, toast above it');
 
   // The Android WebView is laid out inside the system bars on every Android version.
   const cap = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8'));
