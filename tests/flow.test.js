@@ -80,19 +80,24 @@ const selected = (page) => page.locator('[data-event-patient][aria-pressed="true
     await page.goBack();
     await page.waitForTimeout(600);
 
-    // 4. Nav: Turno / Pendientes / Chat with the "+" exactly centered in its gap.
+    // 4. Nav: Turno / Pendientes / Chat are three equal symmetric tabs;
+    // the extended Registrar FAB is docked bottom-right above the nav.
     const phone = await page.locator('.phone').boundingBox();
     const center = phone.x + phone.width / 2;
+    const navBar = await page.locator('.bottom-nav').boundingBox();
     const fab = await page.locator('[data-fab-register]').boundingBox();
-    assert(Math.abs(fab.x + fab.width / 2 - center) <= 2, '+ is centered');
+    assert(fab.x + fab.width / 2 > center, 'Registrar is docked right, not centered');
+    assert(navBar.x + navBar.width - (fab.x + fab.width) <= 32, 'Registrar docks at the right edge');
+    assert(fab.width > fab.height, 'Registrar is extended');
+    assert(fab.y + fab.height <= navBar.y + 1, 'Registrar sits above the nav');
     const tabs = await page.locator('.bottom-nav .nav-item').all();
     assert.strictEqual(tabs.length, 3, 'nurse nav is Turno / Pendientes / Chat');
     const boxes = [];
     for (const tab of tabs) boxes.push(await tab.boundingBox());
+    assert.ok(Math.max(...boxes.map((b) => b.width)) - Math.min(...boxes.map((b) => b.width)) <= 2, 'tabs equal width');
     const cx = (b) => b.x + b.width / 2;
-    assert.ok(cx(boxes[0]) < center && cx(boxes[1]) < center, 'Turno and Pendientes sit left of the +');
-    assert.ok(cx(boxes[2]) > center, 'Chat sits right of the +');
-    ok('nav: centered + with Turno / Pendientes / Chat around it');
+    assert.ok(Math.abs(cx(boxes[1]) - center) <= 4, 'tabs symmetric around the center');
+    ok('nav: 3 equal symmetric tabs with Registrar docked bottom-right');
 
     // 5. SBAR goes to the team chat in-app, and can still be copied.
     await page.locator('[data-handover-open]').first().click();
