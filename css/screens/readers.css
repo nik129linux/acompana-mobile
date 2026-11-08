@@ -488,31 +488,8 @@
   gap: var(--space-1);
 }
 
-/* Nurse: a floating chat shortcut beside the raised "+", so the two tabs
-   stay symmetric around the center. */
-.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] {
-  position: absolute;
-  top: -60px;
-  right: var(--space-4);
-  display: grid;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--white);
-  color: var(--accent);
-  box-shadow: var(--elevation-2);
-  place-items: center;
-}
-
-.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] span:last-child {
-  display: none;
-}
-
-.phone[data-role="enfermero"] .bottom-nav .nav-item[data-nav="chat"] .icon-svg {
-  width: 24px;
-  height: 24px;
-}
+/* Nurse: Chat is the third bottom-nav tab (Turno / Pendientes / Chat),
+   in the grid column reserved beside the centered "+". No floating bubble. */
 
 /* Chat send status: the sender always sees where the message stands. */
 .chat-meta {

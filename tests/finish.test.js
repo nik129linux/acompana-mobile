@@ -345,7 +345,8 @@ const bg = (locator) => locator.first().evaluate((node) => getComputedStyle(node
     await viewAs(page, 'familia');
     await page.waitForTimeout(500);
     const times = await page.locator('.view.is-active .timeline-time').allInnerTexts();
-    assert.ok(times.indexOf('12:00') !== -1 && times.indexOf('12:00') < times.indexOf('15:00'), 'time order: ' + times.join(', '));
+    const joined = times.join('|');
+    assert.ok(joined.includes('12:00') && joined.indexOf('12:00') < joined.indexOf('15:00'), 'time order: ' + times.join(', '));
     ok('family: timeline in time order');
 
     // 13. "What's next" follows the shift, it is not a fixed sentence.

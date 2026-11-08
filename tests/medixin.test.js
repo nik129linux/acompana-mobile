@@ -132,8 +132,9 @@ async function readers(browser) {
   await page.locator('[data-nav="contacto"]').click();
   await page.waitForTimeout(600);
   view = page.locator('.view.is-active');
-  assert.strictEqual(await view.locator('.contact-option').count(), 3, 'Contacto offers 3 option cards (Llamar / Mensaje / Visita)');
-  assert.strictEqual(await view.locator('a.contact-option[href^="tel:"]').count(), 1, 'Llamar is a tel: link');
+  assert.strictEqual(await view.locator('.contact-option').count(), 3, 'Contacto offers 3 option cards (Pedir que me llamen / Mensaje / Visita)');
+  assert.strictEqual(await view.locator('a.contact-option[href^="tel:"]').count(), 0, 'no dead tel: links on Contacto');
+  assert.strictEqual(await view.locator('button.contact-option[data-call-request]').count(), 1, 'Pedir que me llamen is an in-app callback request');
   ok('readers: family home + Contacto (3 option cards)');
   assert.deepStrictEqual(page.errors, []);
   await page.close();

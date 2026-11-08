@@ -703,6 +703,10 @@
   function updateFab() {
     if (!app.fab) return;
     app.fab.hidden = state.role !== 'enfermero' || !!state.detailPatient || !!state.settingsOpen;
+    var chatNav = app.bottomNav.querySelector('[data-nav="chat"]');
+    // Chat is a bottom-nav tab, not a floating bubble; it still steps aside
+    // for pushed screens (patient detail, Settings/Help).
+    if (chatNav) chatNav.hidden = !!state.detailPatient || !!state.settingsOpen;
   }
 
   function openDemoMenu(button) {

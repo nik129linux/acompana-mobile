@@ -113,7 +113,7 @@ async function open(browser, url, secure) {
     assert.deepStrictEqual(await Promise.all(['ai-answer.mp4', 'ai-answer.webm', 'ai-answer.jpg', 'ai-thinking.mp4', 'ai-thinking.webm', 'ai-thinking.jpg', 'ai-static.mp4', 'ai-static.webm', 'ai-static.jpg', 'ai-preparar.mp4', 'ai-preparar.webm', 'ai-preparar.jpg']
       .map((f) => fetch(base + '/media/' + f).then((r) => r.status))), new Array(12).fill(200), 'AI mark media is served');
 
-    assert(!/Plantilla|IA ·|gemma/i.test(await family.locator('.ai-card').textContent()), 'no source label on the family card');
+    assert(/Plantilla|IA ·/.test(await family.locator('.ai-card').textContent()), 'the family card shows a visible AI source chip');
 
     // Avisar a la familia lands in chat, no OS share and no wa.me.
     await nurse.locator('[data-patient="mg"]').first().click();
@@ -164,7 +164,7 @@ async function open(browser, url, secure) {
     await nurse.locator('[data-handover-chat]').click();
     await nurse.waitForTimeout(300);
     assert.strictEqual((await api(base, '/api/sync?reader=enfermero')).data.messages.length, before2, 'an empty note is not sent');
-    assert(!/Plantilla|IA ·|gemma/i.test(await nurse.locator('.ai-sheet').textContent()), 'no source label in the SBAR sheet');
+    assert(/Plantilla|IA ·/.test(await nurse.locator('.ai-sheet').textContent()), 'the SBAR sheet shows a visible source chip');
     await nurse.locator('.ai-sheet [data-ai-close]').click();
     const team = await api(base, '/api/sync?reader=enfermero');
     assert(team.data.messages.some((m) => m.channel === 'equipo' && m.text.includes('PA 90/55')), 'SBAR is in the team channel');

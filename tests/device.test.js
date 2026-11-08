@@ -68,7 +68,8 @@ async function ring(page, selector) {
     await browser.close();
   }
 
-  // The floating chat button keeps clear of the bottom nav, and the toast clears both.
+  // Chat is a bottom-nav tab (Turno / Pendientes / Chat) with the + FAB
+  // centered; the toast clears the nav.
   const browser2 = await chromium.launch();
   try {
     const page = await browser2.newPage({ viewport: { width: 390, height: 844 } });
@@ -86,15 +87,16 @@ async function ring(page, selector) {
       const chat = document.querySelector('#bottomNav [data-nav="chat"]').getBoundingClientRect();
       const fab = document.querySelector('[data-fab-register]').getBoundingClientRect();
       const snack = document.querySelector('#snackbar').getBoundingClientRect();
-      return { navTop: nav.top, chatTop: chat.top, chatBottom: chat.bottom, fabTop: fab.top, snackBottom: snack.bottom, snackVisible: snack.height > 0 };
+      return { navTop: nav.top, navBottom: nav.bottom, navCx: nav.left + nav.width / 2, chatTop: chat.top, chatBottom: chat.bottom, fabCx: fab.left + fab.width / 2, fabTop: fab.top, snackBottom: snack.bottom, snackVisible: snack.height > 0 };
     });
-    assert.ok(g.navTop - g.chatBottom >= 24, 'chat button at least 24px above the nav: ' + JSON.stringify(g));
-    assert.ok(g.chatBottom <= g.fabTop, 'chat button sits above the raised + : ' + JSON.stringify(g));
-    assert.ok(g.snackVisible && g.snackBottom <= g.chatTop - 8, 'the toast clears the chat button: ' + JSON.stringify(g));
+    assert.ok(g.chatTop >= g.navTop - 2 && g.chatBottom <= g.navBottom + 2, 'chat tab lives inside the bottom nav: ' + JSON.stringify(g));
+    assert.ok(Math.abs(g.fabCx - g.navCx) <= 4, 'the + FAB is centered on the nav: ' + JSON.stringify(g));
+    assert.ok(g.fabTop >= g.navTop - 60, 'the + FAB docks at the nav: ' + JSON.stringify(g));
+    assert.ok(g.snackVisible && g.snackBottom <= g.navTop, 'the toast clears the bottom nav: ' + JSON.stringify(g));
   } finally {
     await browser2.close();
   }
-  ok('layout: chat button clear of the bottom nav, toast above it');
+  ok('layout: chat tab inside the bottom nav, + centered, toast above it');
 
   // The Android WebView is laid out inside the system bars on every Android version.
   const cap = JSON.parse(fs.readFileSync(path.join(ROOT, 'capacitor.config.json'), 'utf8'));

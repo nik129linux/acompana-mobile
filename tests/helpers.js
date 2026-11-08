@@ -54,9 +54,19 @@ async function triggerError(page) {
 }
 
 async function openRegister(page) {
-  const fab = page.locator('[data-fab-register]');
+  // The +FAB hides on Settings/Help (and for other readers): step back to the
+  // tab first, then use the FAB (or the detail CTA that replaces it).
+  let fab = page.locator('[data-fab-register]');
+  if (!(await visible(fab))) {
+    const back = page.locator('.view.is-active [data-settings-back]');
+    if (await visible(back)) {
+      await back.first().click();
+      await page.waitForTimeout(450);
+    }
+  }
+  fab = page.locator('[data-fab-register]');
   if (await visible(fab)) await fab.first().click();
-  else await page.locator('.bottom-nav [data-nav="registrar"]').first().click();
+  else await page.locator('.view.is-active [data-open-register]').first().click();
 }
 
 module.exports = { viewAs, openRegister, openSettings, setLang, triggerError };

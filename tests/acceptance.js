@@ -286,7 +286,9 @@ function contrastRatio(foreground, background) {
     assert(!hasRawS, `F6: raw s duration in css/app.css outside reduced-motion`);
   }
 
-  // Fresh mobile page for computed-style and bbox checks (F1-F5, F8)
+  // Fresh mobile page for computed-style and bbox checks (F1-F5, F8).
+  // Confirmed tasks persist in storage now, so reset them for a fresh state.
+  await page.evaluate(() => { try { localStorage.removeItem('acompana-confirmed'); } catch (e) {} });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(pathToFileURL(path.join(root, 'index.html')).href, { waitUntil: 'domcontentloaded' });
   // skip splash
@@ -494,6 +496,8 @@ function contrastRatio(foreground, background) {
 
   // F8 — nav and small type computed >=12px
   {
+    // pending confirmations persist now; clear them for this fresh-state check
+    await page.evaluate(() => { try { localStorage.removeItem('acompana-confirmed'); } catch (e) {} });
     // pending confirmations cleared quick-confirm; reload fresh state for this check
     await page.goto(pathToFileURL(path.join(root, 'index.html')).href, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(300);

@@ -30,7 +30,7 @@
     return [
       { at: '00:00', time: fmtTime('08:00'), text: t(treated ? 'Tratamiento de la mañana cumplido' : 'Tratamiento de la mañana en curso'), pending: !treated },
       { at: '00:01', time: fmtTime('08:05'), text: t('El equipo está con {pronoun}, sin novedad que reportar', { pronoun: t(patient.pronoun) }), pending: false },
-      { at: '15:00', time: fmtTime('15:00'), text: t('Horario de visita disponible'), pending: true, icon: 'calendar' }
+      { at: '15:00', time: '15:00', text: t('Horario de visita disponible'), pending: true, icon: 'calendar' }
     ];
   }
 

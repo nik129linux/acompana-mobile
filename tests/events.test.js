@@ -210,8 +210,9 @@ async function uiTests() {
     // 8. Contact buttons do something.
     await page.locator('.bottom-nav [data-nav="contacto"]').first().click();
     await page.waitForTimeout(600);
-    const call = page.locator('a[href^="tel:"]', { hasText: 'Llamar al turno' });
-    assert.strictEqual(await call.count(), 1, 'Llamar al turno is a tel: link');
+    const call = page.locator('[data-call-request]', { hasText: 'Pedir que me llamen' });
+    assert.strictEqual(await call.count(), 1, 'Pedir que me llamen request exists on Contacto');
+    assert.strictEqual(await page.locator('a[href^="tel:"]').count(), 0, 'no dead tel: links on Contacto');
     await page.locator('button:has-text("Ver horarios"), a:has-text("Ver horarios")').first().click();
     await page.waitForTimeout(500);
     assert(await page.locator('[data-schedule-sheet]').isVisible(), 'Ver horarios opens the schedule sheet');

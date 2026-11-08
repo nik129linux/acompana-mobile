@@ -80,16 +80,19 @@ const selected = (page) => page.locator('[data-event-patient][aria-pressed="true
     await page.goBack();
     await page.waitForTimeout(600);
 
-    // 4. Nav: "+" exactly centered, tabs symmetric.
+    // 4. Nav: Turno / Pendientes / Chat with the "+" exactly centered in its gap.
     const phone = await page.locator('.phone').boundingBox();
     const center = phone.x + phone.width / 2;
     const fab = await page.locator('[data-fab-register]').boundingBox();
     assert(Math.abs(fab.x + fab.width / 2 - center) <= 2, '+ is centered');
     const tabs = await page.locator('.bottom-nav .nav-item').all();
-    const t0 = await tabs[0].boundingBox();
-    const t1 = await tabs[1].boundingBox();
-    assert(Math.abs((center - (t0.x + t0.width / 2)) - ((t1.x + t1.width / 2) - center)) <= 4, 'tabs sit symmetric around the +');
-    ok('nav: centered + and symmetric tabs');
+    assert.strictEqual(tabs.length, 3, 'nurse nav is Turno / Pendientes / Chat');
+    const boxes = [];
+    for (const tab of tabs) boxes.push(await tab.boundingBox());
+    const cx = (b) => b.x + b.width / 2;
+    assert.ok(cx(boxes[0]) < center && cx(boxes[1]) < center, 'Turno and Pendientes sit left of the +');
+    assert.ok(cx(boxes[2]) > center, 'Chat sits right of the +');
+    ok('nav: centered + with Turno / Pendientes / Chat around it');
 
     // 5. SBAR goes to the team chat in-app, and can still be copied.
     await page.locator('[data-handover-open]').first().click();
