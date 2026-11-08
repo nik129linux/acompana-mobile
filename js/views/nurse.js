@@ -40,7 +40,7 @@
   function patientCard(patient) {
     var task = taskForPatient(patient.id);
     var side = task
-      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="' + escapeHtml(t('Confirmar {task} en un toque', { task: t(task.title) })) + '">' + icon('check') + '<span>' + escapeHtml(t('Confirmar')) + '</span></button>'
+      ? '<button type="button" class="quick-confirm tap-confirm" data-confirm="' + escapeHtml(task.id) + '" title="' + escapeHtml(t('Confirmar')) + '" aria-label="' + escapeHtml(t('Confirmar {task} de {patient}', { task: t(task.title), patient: patient.name })) + '">' + icon('check') + '<span>' + escapeHtml(t('Confirmar')) + '</span></button>'
       : patientBadge(patient);
     var meta = '<span>' + icon('bed') + escapeHtml(room(patient.room)) + '</span>' +
       (task ? '<span>' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + ' · ' + escapeHtml(t(task.title)) + '</span>' : '');
@@ -91,11 +91,13 @@
   }
 
   function taskCard(task) {
+    var patient = ctx().patientById(task.patientId);
+    var patientName = patient ? patient.name : task.note;
     return '<article class="task-card list-card" data-task-card="' + escapeHtml(task.id) + '">' +
       '<span class="media-square task-media" aria-hidden="true">' + icon(task.icon) + '</span>' +
       '<span class="task-copy list-copy"><span class="list-title task-title">' + escapeHtml(t(task.title)) + '</span>' +
       '<span class="list-meta task-meta"><span class="task-time">' + icon('clock') + escapeHtml(fmtTaskTime(task.time)) + '</span><span class="task-patient">' + escapeHtml(taskPlace(task)) + '</span></span></span>' +
-      '<button type="button" class="task-action tap-confirm" data-confirm="' + escapeHtml(task.id) + '" aria-label="' + escapeHtml(t('Confirmar {task}', { task: t(task.title) })) + '"><svg class="confirm-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M6.67 17.68 10.11 21.28C11 22.2 11.45 22.67 12 22.67S13 22.2 13.89 21.28L25.33 9.33"></path></svg><span class="confirm-label">' + escapeHtml(t('Listo')) + '</span></button>' +
+      '<button type="button" class="task-action tap-confirm" data-confirm="' + escapeHtml(task.id) + '" title="' + escapeHtml(t('Confirmar')) + '" aria-label="' + escapeHtml(t('Confirmar {task} de {patient}', { task: t(task.title), patient: patientName })) + '"><svg class="confirm-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M6.67 17.68 10.11 21.28C11 22.2 11.45 22.67 12 22.67S13 22.2 13.89 21.28L25.33 9.33"></path></svg><span class="confirm-label">' + escapeHtml(t('Confirmar')) + '</span></button>' +
       '</article>';
   }
 

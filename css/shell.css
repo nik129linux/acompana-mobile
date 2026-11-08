@@ -45,30 +45,33 @@
   transform: translateX(-50%);
 }
 
-/* Nurse: two tabs either side of the raised "+". */
+/* Nurse: three equal tabs (Turno / Pendientes / Chat). */
 .phone[data-role="enfermero"] .bottom-nav {
-  column-gap: 96px;
-  padding: 0 var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  column-gap: 0;
+  padding: 0 var(--space-2);
 }
+
+.phone[data-role="enfermero"] .bottom-nav .nav-item { min-width: 0; }
 
 .fab-register {
-  right: auto;
-  bottom: calc(var(--nav-height) - 34px);
-  left: 50%;
+  right: var(--space-4);
+  bottom: calc(var(--nav-height) + var(--space-4));
+  left: auto;
   justify-content: center;
-  width: 64px;
-  min-width: 64px;
-  height: 64px;
-  min-height: 64px;
-  padding: 0;
-  border: 4px solid var(--white);
-  border-radius: 50%;
+  width: auto;
+  min-width: 56px;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-6) var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--grad-primary);
   box-shadow: var(--elevation-2);
-  transform: translateX(-50%);
+  transform: none;
 }
 
-.fab-register:active { transform: translateX(-50%) scale(0.94); }
+.fab-register:active { transform: scale(0.96); }
 
 .fab-register-icon svg {
   width: 28px;
@@ -78,11 +81,8 @@
 }
 
 .fab-register-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+  font-size: var(--text-small);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -118,14 +118,16 @@
   text-transform: none;
 }
 
-/* Names and task titles wrap; they are never cut with an ellipsis. */
+/* Names and task titles stay on one line; they are cut with an ellipsis. */
 .list-title,
 .task-title,
 .patient-name {
-  overflow: visible;
-  white-space: normal;
-  text-overflow: clip;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
+
+.patient-name { display: block; max-width: 100%; }
 
 /* Centered content must never overflow upward under the app bar. */
 .empty-state { justify-content: safe center; padding-top: var(--space-6); }
@@ -286,19 +288,16 @@
   .snack-timer, .dictate-button.is-listening .mic-bubble { animation: none; }
 }
 
-/* Nav: Turno / Pendientes / Chat with the centered "+" in its own gap. */
+/* Nurse: Turno / Pendientes / Chat are three equal tabs. */
 .phone[data-role="enfermero"] .bottom-nav {
   display: grid;
-  grid-template-columns: 1fr 1fr 76px 1fr;
+  grid-template-columns: repeat(3, 1fr);
   column-gap: 0;
 }
 
-.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(1) { grid-column: 1; }
-.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(2) { grid-column: 2; }
-.phone[data-role="enfermero"] .bottom-nav .nav-item:nth-child(3) { grid-column: 4; }
+.phone[data-role="enfermero"] .bottom-nav .nav-item { grid-column: auto; min-width: 0; }
 
-/* Patient detail: "Registrar evento" docks just above the bottom bar. */
-.phone[data-role="enfermero"] .view[data-view-key="nurse-detail"] { padding-bottom: 0; }
+/* Patient detail scrolls clear of the docked FAB + bottom bar. */
 
 .detail-cta {
   position: sticky;

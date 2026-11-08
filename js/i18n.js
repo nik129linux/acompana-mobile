@@ -104,6 +104,7 @@
 
     // Pending
     'Confirmar {task}': 'Confirm {task}',
+    'Confirmar {task} de {patient}': 'Confirm {task} for {patient}',
     'Hecho': 'Done',
     'Registrado': 'Logged',
     'Evento': 'Event',

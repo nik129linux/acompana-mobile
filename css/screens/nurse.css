@@ -130,6 +130,25 @@
   white-space: nowrap;
 }
 
+/* Home cards: compact 44px Confirmar pill, never wider than 120px, so the
+   patient name keeps its single line at 390px in ES and EN. */
+.patient-card .patient-side { flex: 0 0 auto; min-width: 0; }
+.patient-card .quick-confirm.tap-confirm {
+  min-width: 0;
+  max-width: 120px;
+  min-height: 44px;
+  height: 44px;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+.patient-card .patient-info { min-width: 0; flex: 1 1 auto; }
+.patient-card .patient-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .task-card.is-confirming .task-action {
   background: var(--primary-container);
   color: var(--on-primary-container);
