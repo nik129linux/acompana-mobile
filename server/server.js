@@ -861,6 +861,13 @@ async function handleAsk(question, facts, ollamaClient, lang) {
         if (out && validAskAnswer(out.answer, source)) {
           return { answer: out.answer.trim(), source: 'ollama', model, createdQuestion: false };
         }
+        // The model worked and said the facts do not cover it ("how did she
+        // sleep" with no sleep event). That is an AI answer, not a fallback:
+        // say so honestly and pass the question to the nurse.
+        if (out && out.refuse === true) {
+          addNurseQuestion(question);
+          return { answer: safeMessage, source: 'ollama', model, createdQuestion: true };
+        }
       }
     } catch (_) {
       // fall through to the rules below
