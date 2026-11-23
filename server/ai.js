@@ -45,6 +45,23 @@ function baseUrl(key) {
 // chat-completions API). On when LLM_API_KEY is set and no explicit baseUrl
 // is passed. Groq by default; LLM_MODEL names the model, unset = rules only.
 const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+const GEMINI_OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+
+// Optional second provider, tried once when the first fails (quota, 5xx,
+// timeout, bad JSON). Gemini by default: LLM_FALLBACK_API_KEY +
+// LLM_FALLBACK_MODEL, LLM_FALLBACK_BASE_URL for anything else.
+function createFallback(opts) {
+  if (!process.env.LLM_FALLBACK_API_KEY || !process.env.LLM_FALLBACK_MODEL) return null;
+  return {
+    kind: 'openai',
+    baseUrl: (process.env.LLM_FALLBACK_BASE_URL || GEMINI_OPENAI_BASE_URL).replace(/\/+$/, ''),
+    apiKey: process.env.LLM_FALLBACK_API_KEY,
+    model: process.env.LLM_FALLBACK_MODEL,
+    timeoutMs: opts.timeoutMs || OLLAMA_TIMEOUT_MS,
+    fetchImpl: opts.fetchImpl || fetch,
+    fallback: null
+  };
+}
 
 function createOpenAiClient(opts) {
   if (!process.env.LLM_MODEL) console.warn('LLM_API_KEY set but LLM_MODEL is not: AI stays on rules');
@@ -54,7 +71,8 @@ function createOpenAiClient(opts) {
     apiKey: process.env.LLM_API_KEY,
     model: process.env.LLM_MODEL || null,
     timeoutMs: opts.timeoutMs || OLLAMA_TIMEOUT_MS,
-    fetchImpl: opts.fetchImpl || fetch
+    fetchImpl: opts.fetchImpl || fetch,
+    fallback: createFallback(opts)
   };
 }
 
@@ -113,7 +131,7 @@ function pickModel(models) {
 }
 
 async function activeModel(client) {
-  if (client.kind === 'openai') return client.model;
+  if (client.kind === 'openai') return client.model || (client.fallback && client.fallback.model) || null;
   const models = await listModels(client);
   return pickModel(models);
 }
@@ -130,6 +148,24 @@ function cleanModelJson(raw) {
 
 async function generateJson(client, model, prompt) {
   if (client.kind === 'openai') {
+    if (!client.fallback) return chatJson(client, model, prompt);
+    try {
+      return await chatJson(client, client.model || model, prompt);
+    } catch (error) {
+      return chatJson(client.fallback, client.fallback.model, prompt);
+    }
+  }
+  const data = await fetchJson(client, '/api/generate', {
+    method: 'POST',
+    body: { model, prompt, format: 'json', stream: false }
+  });
+  if (!data || typeof data.response !== 'string') throw new Error('ollama bad generate');
+  return JSON.parse(cleanModelJson(data.response));
+}
+
+async function chatJson(client, model, prompt) {
+  if (!model) throw new Error('llm no model');
+  {
     const out = await fetchJson(client, '/chat/completions', {
       method: 'POST',
       body: {
@@ -146,12 +182,6 @@ async function generateJson(client, model, prompt) {
     if (typeof text !== 'string') throw new Error('llm bad completion');
     return JSON.parse(cleanModelJson(text));
   }
-  const data = await fetchJson(client, '/api/generate', {
-    method: 'POST',
-    body: { model, prompt, format: 'json', stream: false }
-  });
-  if (!data || typeof data.response !== 'string') throw new Error('ollama bad generate');
-  return JSON.parse(cleanModelJson(data.response));
 }
 
 module.exports = {
@@ -159,6 +189,7 @@ module.exports = {
   DEFAULT_BASE_URL,
   CLOUD_BASE_URL,
   GROQ_BASE_URL,
+  GEMINI_OPENAI_BASE_URL,
   KEY_FILE,
   readKeyFile,
   baseUrl,
