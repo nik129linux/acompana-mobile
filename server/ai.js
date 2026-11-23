@@ -41,10 +41,29 @@ function baseUrl(key) {
   return key ? CLOUD_BASE_URL : DEFAULT_BASE_URL;
 }
 
+// OpenAI-compatible hosted mode (Groq, Gemini's /openai endpoint, any
+// chat-completions API). On when LLM_API_KEY is set and no explicit baseUrl
+// is passed. Groq by default; LLM_MODEL names the model, unset = rules only.
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
+
+function createOpenAiClient(opts) {
+  if (!process.env.LLM_MODEL) console.warn('LLM_API_KEY set but LLM_MODEL is not: AI stays on rules');
+  return {
+    kind: 'openai',
+    baseUrl: (process.env.LLM_BASE_URL || GROQ_BASE_URL).replace(/\/+$/, ''),
+    apiKey: process.env.LLM_API_KEY,
+    model: process.env.LLM_MODEL || null,
+    timeoutMs: opts.timeoutMs || OLLAMA_TIMEOUT_MS,
+    fetchImpl: opts.fetchImpl || fetch
+  };
+}
+
 function createClient(options) {
   const opts = options || {};
+  if (!opts.baseUrl && opts.apiKey === undefined && process.env.LLM_API_KEY) return createOpenAiClient(opts);
   const key = opts.apiKey !== undefined ? opts.apiKey : apiKey();
   return {
+    kind: 'ollama',
     baseUrl: opts.baseUrl || baseUrl(key),
     apiKey: key || null,
     timeoutMs: opts.timeoutMs || OLLAMA_TIMEOUT_MS,
@@ -94,6 +113,7 @@ function pickModel(models) {
 }
 
 async function activeModel(client) {
+  if (client.kind === 'openai') return client.model;
   const models = await listModels(client);
   return pickModel(models);
 }
@@ -109,6 +129,23 @@ function cleanModelJson(raw) {
 }
 
 async function generateJson(client, model, prompt) {
+  if (client.kind === 'openai') {
+    const out = await fetchJson(client, '/chat/completions', {
+      method: 'POST',
+      body: {
+        model,
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'Reply with one JSON object only, no prose.' },
+          { role: 'user', content: prompt }
+        ]
+      }
+    });
+    const text = out && out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content;
+    if (typeof text !== 'string') throw new Error('llm bad completion');
+    return JSON.parse(cleanModelJson(text));
+  }
   const data = await fetchJson(client, '/api/generate', {
     method: 'POST',
     body: { model, prompt, format: 'json', stream: false }
@@ -121,6 +158,7 @@ module.exports = {
   OLLAMA_TIMEOUT_MS,
   DEFAULT_BASE_URL,
   CLOUD_BASE_URL,
+  GROQ_BASE_URL,
   KEY_FILE,
   readKeyFile,
   baseUrl,

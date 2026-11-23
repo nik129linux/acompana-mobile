@@ -387,10 +387,14 @@ button.glass-pill {
   gap: var(--space-2);
   width: 100%;
   min-height: 52px;
-  padding: 0 var(--space-5);
+  /* Vertical padding + 1.25 leading: a label that wraps to two lines
+     (Spanish runs long) keeps air above and below instead of touching
+     the edges. Single-line buttons are unchanged, min-height wins. */
+  padding: var(--space-3) var(--space-5);
   border: 0;
   border-radius: var(--radius-cta);
-  font: 600 var(--text-small) / 1 var(--font-body);
+  font: 600 var(--text-small) / 1.25 var(--font-body);
+  text-align: center;
   letter-spacing: 0.04em;
   text-decoration: none;
   text-transform: uppercase;

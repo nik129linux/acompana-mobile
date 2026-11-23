@@ -698,6 +698,10 @@
 /* Celebration/confetti never covers the copy: pieces stay behind the text. */
 .celebration-card .confetti-layer, .empty-state .confetti-layer { z-index: 0; }
 .celebration-card > *:not(.confetti-layer), .empty-state > *:not(.confetti-layer) { position: relative; z-index: 1; }
+/* The mascot video blends its white backdrop away with multiply. A z-index
+   here would make it its own stacking group with nothing behind it to blend
+   into, and the white square would show. Positioned without z-index = no group. */
+.empty-state > .video-slot { z-index: auto; }
 /* Source label inline inside the compact badge pill (mark + text, one row). */
 .ai-source-text { display: inline-block; margin: 0; padding: 0; border-radius: 0; background: transparent; color: var(--body); font-size: var(--text-caption); font-weight: 600; line-height: 1; }
 .ai-fallback-note { width: 100%; margin: var(--space-2) 0 0; color: var(--body); font-size: var(--text-small); }

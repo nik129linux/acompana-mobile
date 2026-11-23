@@ -22,7 +22,7 @@ const ROOT = path.join(__dirname, '..');
 // AI endpoints cost a model call, so they are capped per client IP.
 const AI_RATE_PER_MIN = Number(process.env.AI_RATE_PER_MIN) || 30;
 const AI_RATE_WINDOW_MS = 60 * 1000;
-const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event', '/api/retoma/resume-line', '/api/retoma/propose', '/api/retoma/habits', '/api/retoma/ask'];
+const AI_RATE_PATHS = ['/api/ask', '/api/translate', '/api/handover', '/api/event', '/api/retoma/resume-line', '/api/retoma/propose', '/api/retoma/habits', '/api/retoma/ask', '/api/watch/query'];
 
 // Abuse protection for the public deploy. Limits are read at call time so the
 // environment (and tests) can change them without a code edit.
@@ -1246,6 +1246,22 @@ function createRequestHandler(client) {
         const result = await retoma.handleAsk(body, client, generateWithinBudget);
         if (!result) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
         sendJson(res, 200, withQuota(result, res));
+        return;
+      }
+      // Hand Hygiene watch: its renderer builds the prompt from aggregates only
+      // (no names, scrubbed in smartwatch/js/ai.js). Capped length, same budget.
+      if (req.method === 'POST' && url.pathname === '/api/watch/query') {
+        const body = JSON.parse(await readBody(req));
+        const prompt = body && typeof body.prompt === 'string' ? body.prompt : '';
+        if (!prompt || prompt.length > 4000) { sendJson(res, 400, { ok: false, error: 'bad request' }); return; }
+        const model = client ? await ai.activeModel(client).catch(() => null) : null;
+        if (!model) { sendJson(res, 200, withQuota({ ok: false, reason: 'no-model' }, res)); return; }
+        try {
+          const draft = await generateWithinBudget(client, model, prompt);
+          sendJson(res, 200, withQuota({ ok: true, text: JSON.stringify(draft), model }, res));
+        } catch (error) {
+          sendJson(res, 200, withQuota({ ok: false, reason: 'down' }, res));
+        }
         return;
       }
       if (req.method === 'POST' && url.pathname === '/api/events') {

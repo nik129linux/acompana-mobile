@@ -79,7 +79,7 @@
 .sbar-card .list-copy { gap: 6px; }
 .sbar-card .source-badge { justify-self: start; }
 .sbar-card .ai-actions { margin: 0; }
-.sbar-card .btn { width: auto; min-height: 44px; padding: 0 var(--space-4); }
+.sbar-card .btn { width: auto; min-height: 44px; padding: var(--space-3) var(--space-4); }
 
 /* Pending tasks: the main action is the primary fill, not black. */
 .task-action {
