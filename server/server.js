@@ -821,7 +821,33 @@ function resetShared() {
 // Orchestration: rules -> Ollama -> rules
 // ---------------------------------------------------------------------------
 
-async function handleHandover(events, ollamaClient, lang) {
+// The app waits 12s; a second model try only starts if it can finish before that.
+const HANDOVER_DEADLINE_MS = 11000;
+const HANDOVER_RETRY_MIN_MS = 3000;
+
+// Models overrun the 200-char limit on busy shifts. Keep the whole sentences
+// that fit; a field with no sentence that fits stays oversize and is rejected.
+function fitHandoverField(text) {
+  if (typeof text !== 'string' || text.length <= HANDOVER_MAX) return text;
+  let kept = '';
+  for (const sentence of text.trim().split(/(?<=[.;!?])\s+/)) {
+    const next = kept ? kept + ' ' + sentence : sentence;
+    if (next.length > HANDOVER_MAX) break;
+    kept = next;
+  }
+  return kept || text;
+}
+
+function fitHandoverDraft(draft) {
+  if (!draft || typeof draft !== 'object') return draft;
+  const out = {};
+  for (const k of ['s', 'b', 'a', 'r']) out[k] = fitHandoverField(draft[k]);
+  return out;
+}
+
+async function handleHandover(events, ollamaClient, lang, clock) {
+  const now = clock || Date.now;
+  const started = now();
   const list = cleanEvents(events);
   const rules = buildHandoverRules(list, lang);
   const source = eventSource(list);
@@ -832,11 +858,21 @@ async function handleHandover(events, ollamaClient, lang) {
     if (!model) return { ...rules, source: 'rules', model: null };
     const payload = buildHandoverPayload(list, lang);
     const prompt = 'You draft a nursing shift handover (SBAR) ' + HANDOVER_VOICE[langOf(lang)] + '.' + HANDOVER_PROMPT;
-    const draft = await generateWithinBudget(ollamaClient, model, prompt + JSON.stringify(payload));
-    if (!validHandoverDraft(draft)) return { ...rules, source: 'rules', model: null };
-    const ok = ['s', 'b', 'a', 'r'].every((k) => isGrounded(draft[k], source, extras));
-    if (!ok || !truthfulHandover(draft, list)) return { ...rules, source: 'rules', model: null };
-    return { s: draft.s, b: draft.b, a: draft.a, r: draft.r, source: 'ollama', model };
+    let client = ollamaClient;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (attempt > 0) {
+        const left = HANDOVER_DEADLINE_MS - (now() - started);
+        if (left < HANDOVER_RETRY_MIN_MS) break;
+        // The retry must end before the app gives up: shorter timeout, no second provider.
+        client = { ...ollamaClient, timeoutMs: Math.min(ollamaClient.timeoutMs, left), fallback: null };
+      }
+      const draft = fitHandoverDraft(await generateWithinBudget(client, model, prompt + JSON.stringify(payload)));
+      if (!validHandoverDraft(draft)) continue;
+      const ok = ['s', 'b', 'a', 'r'].every((k) => isGrounded(draft[k], source, extras));
+      if (!ok || !truthfulHandover(draft, list)) continue;
+      return { s: draft.s, b: draft.b, a: draft.a, r: draft.r, source: 'ollama', model };
+    }
+    return { ...rules, source: 'rules', model: null };
   } catch (_) {
     return { ...rules, source: 'rules', model: null };
   }

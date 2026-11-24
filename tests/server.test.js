@@ -172,6 +172,55 @@ test('oversize model field is rejected', async () => {
   assert.strictEqual(out.source, 'rules');
 });
 
+// A long section is cut at its last full sentence, not thrown away (the live
+// model overran "b" on busy shifts and every such draft fell back to rules).
+test('oversize field with sentences is cut at the last full sentence', async () => {
+  const longB = 'Aplicado: Enoxaparina 40mg SC via abdominal aplicada (11:05). ' +
+    'Cambio postural hecho a las 08:00. ' + 'Ronda programada a las 13:00 con control de signos. ' +
+    'Cambio postural previsto a las 11:20 sin hacer todavia y queda pendiente.';
+  assert.ok(longB.length > srv.HANDOVER_MAX);
+  const out = await srv.handleHandover(EVENTS, localClient({ tags: LOCAL_TAGS, generate: { ...GOOD_DRAFT, b: longB } }));
+  assert.strictEqual(out.source, 'ollama');
+  assert.ok(out.b.length <= srv.HANDOVER_MAX);
+  assert.ok(longB.startsWith(out.b));
+  assert.ok(/\.$/.test(out.b));
+});
+
+function sequenceClient(drafts, calls) {
+  const fetchImpl = async (url) => {
+    if (url.endsWith('/api/tags')) return { ok: true, json: async () => ({ models: LOCAL_TAGS }) };
+    const draft = drafts[Math.min(calls.n, drafts.length - 1)];
+    calls.n += 1;
+    return { ok: true, json: async () => ({ response: JSON.stringify(draft) }) };
+  };
+  return ai.createClient({ baseUrl: 'http://mock', fetchImpl, timeoutMs: 1000 });
+}
+const UNGROUNDED = { ...GOOD_DRAFT, r: 'Revalora en 15 min y avisa al medico.' };
+
+test('a rejected draft gets one more model try', async () => {
+  const calls = { n: 0 };
+  const out = await srv.handleHandover(EVENTS, sequenceClient([UNGROUNDED, GOOD_DRAFT], calls));
+  assert.strictEqual(calls.n, 2);
+  assert.strictEqual(out.source, 'ollama');
+  assert.strictEqual(out.r, GOOD_DRAFT.r);
+});
+
+test('two rejected drafts fall back to rules, no third call', async () => {
+  const calls = { n: 0 };
+  const out = await srv.handleHandover(EVENTS, sequenceClient([UNGROUNDED], calls));
+  assert.strictEqual(calls.n, 2);
+  assert.strictEqual(out.source, 'rules');
+});
+
+test('no retry when the first try left too little time before the app gives up', async () => {
+  const calls = { n: 0 };
+  const times = [0, 9000];
+  const clock = () => (times.length > 1 ? times.shift() : times[0]);
+  const out = await srv.handleHandover(EVENTS, sequenceClient([UNGROUNDED, GOOD_DRAFT], calls), 'es', clock);
+  assert.strictEqual(calls.n, 1);
+  assert.strictEqual(out.source, 'rules');
+});
+
 // --- privacy ---
 
 test('handover payload carries no names', () => {
