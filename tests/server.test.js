@@ -462,6 +462,29 @@ test('health never exposes the key', async () => {
   }
 });
 
+// gpt-oss on Groq spent ~800 hidden reasoning tokens per handover and hit the
+// free per-minute token cap (429) after a few taps. Low effort cuts that ~4x.
+function captureChat(model) {
+  const bodies = [];
+  const fetchImpl = async (url, options) => {
+    bodies.push(JSON.parse(options.body));
+    return { ok: true, json: async () => ({ choices: [{ message: { content: '{"ok":1}' } }] }) };
+  };
+  return { bodies, client: { kind: 'openai', baseUrl: 'http://mock', apiKey: 'k', model, timeoutMs: 1000, fetchImpl, fallback: null } };
+}
+
+test('gpt-oss models are asked for low reasoning effort', async () => {
+  const { bodies, client } = captureChat('openai/gpt-oss-120b');
+  await ai.generateJson(client, 'openai/gpt-oss-120b', 'p');
+  assert.strictEqual(bodies[0].reasoning_effort, 'low');
+});
+
+test('other chat models get no reasoning_effort field', async () => {
+  const { bodies, client } = captureChat('gemini-3.5-flash-lite');
+  await ai.generateJson(client, 'gemini-3.5-flash-lite', 'p');
+  assert.ok(!('reasoning_effort' in bodies[0]));
+});
+
 (async () => {
   let failed = 0;
   for (const { name, fn } of tests) {

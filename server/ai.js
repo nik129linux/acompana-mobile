@@ -166,18 +166,19 @@ async function generateJson(client, model, prompt) {
 async function chatJson(client, model, prompt) {
   if (!model) throw new Error('llm no model');
   {
-    const out = await fetchJson(client, '/chat/completions', {
-      method: 'POST',
-      body: {
-        model,
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'Reply with one JSON object only, no prose.' },
-          { role: 'user', content: prompt }
-        ]
-      }
-    });
+    const body = {
+      model,
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'Reply with one JSON object only, no prose.' },
+        { role: 'user', content: prompt }
+      ]
+    };
+    // gpt-oss reasons by default (~800 hidden tokens a call), which hits Groq's
+    // per-minute token cap after a few taps; low effort is ~4x fewer and faster.
+    if (/gpt-oss/i.test(model)) body.reasoning_effort = 'low';
+    const out = await fetchJson(client, '/chat/completions', { method: 'POST', body });
     const text = out && out.choices && out.choices[0] && out.choices[0].message && out.choices[0].message.content;
     if (typeof text !== 'string') throw new Error('llm bad completion');
     return JSON.parse(cleanModelJson(text));
