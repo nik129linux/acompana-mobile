@@ -64,7 +64,28 @@ node tests/server.test.js
 - To install: USB + `adb reverse tcp:8787 tcp:8787`, then open `http://localhost:8787`
   on the phone and pick "Install app". It opens full screen and the shell works offline.
 
-## Gemma through the Ollama cloud API (no install)
+## Groq + Gemini (what the EC2 runs, and how to start it locally)
+
+Since 2026-11-23 the AI goes through an OpenAI-compatible API: Groq first, Gemini
+when Groq fails (quota, 5xx, timeout, bad JSON). Start the server like this:
+
+```
+LLM_API_KEY=<groq key> LLM_MODEL=openai/gpt-oss-120b \
+LLM_FALLBACK_API_KEY=<google key> LLM_FALLBACK_MODEL=gemini-3.5-flash \
+node server/server.js
+```
+
+`LLM_BASE_URL` / `LLM_FALLBACK_BASE_URL` point elsewhere (defaults: Groq, Gemini's
+`/openai` endpoint). A bare `node server/server.js` falls back to the Ollama path
+below, and that account is out of credits (402): every answer then comes from rules and
+the app shows "We could not use AI; rules wrote this instead". `GET /api/health` names
+the model in use, so check that first.
+
+Handover drafts: a section over 200 chars keeps its whole sentences; a draft that
+fails a check gets one more model try if it can still finish within 11 s (the app
+waits 12 s).
+
+## Gemma through the Ollama cloud API (legacy, no credits)
 
 Put the key in a file only you can read, outside the repo:
 
