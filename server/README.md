@@ -71,7 +71,7 @@ when Groq fails (quota, 5xx, timeout, bad JSON). Start the server like this:
 
 ```
 LLM_API_KEY=<groq key> LLM_MODEL=openai/gpt-oss-120b \
-LLM_FALLBACK_API_KEY=<google key> LLM_FALLBACK_MODEL=gemini-3.5-flash \
+LLM_FALLBACK_API_KEY=<google key> LLM_FALLBACK_MODEL=gemini-3.5-flash-lite \
 node server/server.js
 ```
 
@@ -80,6 +80,10 @@ node server/server.js
 below, and that account is out of credits (402): every answer then comes from rules and
 the app shows "We could not use AI; rules wrote this instead". `GET /api/health` names
 the model in use, so check that first.
+
+Groq's free tier caps tokens per minute; gpt-oss is sent `reasoning_effort: low`
+(~250 tokens a call instead of ~950). Use `gemini-3.5-flash-lite` as the fallback:
+`gemini-3.5-flash` took 15-30 s (2026-11-24), longer than the 10 s timeout.
 
 Handover drafts: a section over 200 chars keeps its whole sentences; a draft that
 fails a check gets one more model try if it can still finish within 11 s (the app
