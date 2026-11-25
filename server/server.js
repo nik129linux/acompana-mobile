@@ -545,7 +545,8 @@ function validHandoverDraft(draft) {
 // Truth checks the grounding check can't see: every number can be real and the
 // sentence still false. Reject drafts that (1) skip an open alert in the
 // assessment or (2) call a pending task done.
-const DONE_CLAIM_RE = /cumpli|realiz|hech[oa]s?\b|aplicad|complet|termin|ya se|\bdone\b|\bgiven\b|finished|administered/i;
+// Past forms only: "Completar la ronda" is a recommendation, not a claim it was done.
+const DONE_CLAIM_RE = /cumplid|cumpli[óo]|realizad|realiz[óo]|realizaron|hech[oa]s?\b|aplicad|aplic[óo]|completad|complet[óo]|completaron|terminad|termin[óo]|ya se|\bdone\b|\bgiven\b|finished|administered|completed/i;
 const STILL_OPEN_RE = /pendiente|falta|por hacer|no se ha|sin hacer|queda|\bleft\b|to do|not yet|still open|\bfinish\b/i;
 const STOPWORDS = new Set(['programada', 'programado', 'previsto', 'prevista', 'control', 'durante', 'despues', 'planned', 'scheduled']);
 
