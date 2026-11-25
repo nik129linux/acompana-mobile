@@ -867,6 +867,9 @@ async function handleHandover(events, ollamaClient, lang, clock) {
         client = { ...ollamaClient, timeoutMs: Math.min(ollamaClient.timeoutMs, left), fallback: null };
       }
       const draft = fitHandoverDraft(await generateWithinBudget(client, model, prompt + JSON.stringify(payload)));
+      // No open alert = the model often leaves A empty. The rules' assessment of
+      // the same events is true by construction; truthfulHandover still runs.
+      if (draft && typeof draft === 'object' && typeof draft.a === 'string' && !draft.a.trim()) draft.a = rules.a;
       if (!validHandoverDraft(draft)) continue;
       const ok = ['s', 'b', 'a', 'r'].every((k) => isGrounded(draft[k], source, extras));
       if (!ok || !truthfulHandover(draft, list)) continue;

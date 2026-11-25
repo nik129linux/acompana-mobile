@@ -35,14 +35,15 @@ const METRIC_NUMBER_KEYS = [
 const METRIC_APP_KEYS = ['topDistraction', 'mostUsedApp'];
 const HABIT_METRICS = ['switchesPerHour', 'longest', 'lateNight', 'distractionShare'];
 const HABIT_TEXT_RE = /^After .+, I will .+ for \d+ min\.?$/;
-const HABIT_TEXT_ES_RE = /^Después de .+, (voy a|haré) .+ (por|durante) \d+ min\.?$/;
+// Any first-person future (voy a, haré, cerraré, tomaré...), same shape as the English one.
+const HABIT_TEXT_ES_RE = /^Después de .+, .+ (por|durante) \d+ min(utos)?\.?$/;
 
 // Same judging language the desktop refuses to show.
 const JUDGE_RE = /productiv|distract|score|lazy|wasted|productividad|distra[ií]d|puntaje|perezos/i;
 // Third person sounds like a report about someone else, not a nudge to you.
 const THIRD_PERSON_RE = /\bthe user\b|\bel usuario\b/i;
 // Second person, English or Spanish.
-const SECOND_PERSON_RE = /\byou\b|\byour\b|\byou're\b|estabas|estuviste|\bestás\b|\bsigues\b|\bcontinúa\b|\bcontinua\b|\bretoma\b|\btu\b|\btú\b|\btenías\b|\btenias\b/i;
+const SECOND_PERSON_RE = /\byou\b|\byour\b|\byou're\b|estabas|estuviste|\bestás\b|\bsigues\b|\bcontinúa\b|\bcontinua\b|\bretoma\b|\btu\b|\btú\b|\btenías\b|\btenias\b|\bte\b|quedaste|\bsigue\b|\btienes\b|\bvuelve\b/i;
 const START_RE = /^(?:[01]?\d|2[0-3]):[0-5]\d$/;
 
 const FALLBACK = { ok: true, fallback: true };
